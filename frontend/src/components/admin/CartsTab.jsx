@@ -181,11 +181,11 @@ const CartsTab = () => {
         <div className="surface overflow-hidden">
             {/* Toolbar */}
             <div className="flex items-center gap-3 p-4 border-b border-gray-50 flex-wrap">
-                <div className="flex items-center gap-2 flex-1 min-w-48 border border-gray-200 rounded-xl px-3 py-2 focus-within:ring-1 focus-within:ring-blue-300">
+                <div className="dashboard-search flex-1 min-w-48">
                     <MdSearch size={14} className="text-gray-400 shrink-0" />
                     <input
                         type="text"
-                        value={search}
+                        aria-label="Search by cart ID or customer..." value={search}
                         onChange={e => setSearch(e.target.value)}
                         placeholder="Search by cart ID or customer..."
                         className="text-xs text-gray-700 focus:outline-none w-full"

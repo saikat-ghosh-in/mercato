@@ -1,53 +1,12 @@
-import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
-import { MdPayment } from "react-icons/md";
-
-const Spinner = () => (
-  <svg className="animate-spin h-3.5 w-3.5" viewBox="0 0 24 24" fill="none">
-    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-  </svg>
-);
-
-const PaymentStep = ({ onBack, onSubmit, loading, disabled }) => (
-  <div className="surface overflow-hidden">
-    <div className="px-5 py-4 border-b border-gray-100">
-      <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">
-        Payment
-      </p>
-    </div>
-
-    <div className="p-5">
-      <div className="mb-6 p-4 bg-blue-50 rounded-xl border border-blue-100">
-        <div className="flex items-start gap-3">
-          <MdPayment size={24} className="text-blue-500 mt-0.5 flex-shrink-0" />
-          <div>
-            <h3 className="text-sm font-bold text-gray-900 mb-1">Secure Payment via Cashfree</h3>
-            <p className="text-xs text-gray-600">Complete your payment securely with multiple payment options including cards, UPI, net banking, and more.</p>
-          </div>
-        </div>
-      </div>
-
-      <div className="flex justify-between items-center pt-4 border-t border-gray-100">
-        <button
-          onClick={onBack}
-          className="control flex items-center gap-2 px-5 py-2.5 bg-white border border-gray-200 hover:border-gray-300 text-gray-700 text-xs font-bold rounded-xl transition-colors"
-        >
-          <FaChevronLeft size={11} /> Back
-        </button>
-        <button
-          onClick={onSubmit}
-          disabled={loading || disabled}
-          className="control control-prominent flex items-center gap-2 px-6 py-2.5 bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold rounded-xl transition-[transform,opacity,background-color] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
-        >
-          {loading ? (
-            <><Spinner /> Preparing...</>
-          ) : (
-            <>Proceed to Payment <FaChevronRight size={11} /></>
-          )}
-        </button>
-      </div>
-    </div>
-  </div>
-);
-
-export default PaymentStep;
+import { FiArrowLeft, FiArrowUpRight, FiCreditCard, FiLock, FiMapPin } from "react-icons/fi";
+import { formatCurrency } from "../../../utils/formatCurrency";
+import DeliveryDetails from "../DeliveryDetails";
+export default function PaymentStep({ onBack, onSubmit, onChangeAddress, selectedAddress, total, loading, disabled, error }) {
+  return <>
+    <div className="checkout-section-heading"><div><p className="eyebrow">STEP 03 · PAYMENT</p><h2 id="checkout-step-heading" tabIndex={-1}>One last step. Make it yours.</h2><p>Your payment details are entered securely with Cashfree.</p></div></div>
+    <div className="checkout-payment-card"><div className="checkout-payment-mark"><FiCreditCard aria-hidden="true" /><span>Cashfree<span>Secure payment partner</span></span><FiLock aria-hidden="true" /></div><h3>Choose how you pay, next.</h3><p>Continue to Cashfree to see available payment methods and complete your purchase. You’ll return to Mercato for your order status.</p><div className="checkout-payment-amount"><span>Amount to pay</span><strong>{formatCurrency(total)}</strong></div></div>
+    <section className="checkout-payment-delivery"><div className="checkout-card-title"><h3><FiMapPin aria-hidden="true" /> Delivery address</h3><button className="button checkout-edit" disabled={loading} onClick={onChangeAddress}>Change</button></div><DeliveryDetails address={selectedAddress} /></section>
+    {error && <div className="checkout-payment-error" role="alert"><strong>We couldn’t start your payment.</strong><p>{error}</p><p>Your delivery details are still here. Please try again.</p></div>}
+    <div className="checkout-step-actions"><button className="button checkout-back" disabled={loading} onClick={onBack}><FiArrowLeft /> Review</button><button className="button button-dark button-prominent checkout-pay" onClick={onSubmit} disabled={loading || disabled} aria-busy={loading}><span>Continue to Cashfree</span>{loading ? <span className="checkout-spinner" aria-hidden="true" /> : <FiArrowUpRight aria-hidden="true" />}</button></div><p className="checkout-payment-note" role="status">{loading ? "Preparing your secure payment…" : "Your order total is confirmed again before payment."}</p>
+  </>;
+}

@@ -1,14 +1,16 @@
 import api from "../../backend/api";
 import toast from "react-hot-toast";
 
-export const getUserAddresses = (setLoadingAddresses) => async (dispatch) => {
+export const getUserAddresses = (setLoadingAddresses, setAddressError = () => {}) => async (dispatch) => {
     try {
         setLoadingAddresses(true);
+        setAddressError(false);
         dispatch({ type: "IS_FETCHING" });
         const { data } = await api.get(`/user/addresses`);
         dispatch({ type: "USER_ADDRESS", payload: data });
         dispatch({ type: "IS_SUCCESS" });
     } catch (error) {
+        setAddressError(true);
         console.error(error);
         dispatch({
             type: "IS_ERROR",

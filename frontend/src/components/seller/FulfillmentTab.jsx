@@ -329,11 +329,11 @@ const FulfillmentTab = () => {
         </div>
 
         {/* Search */}
-        <div className="flex items-center gap-2 border border-gray-200 rounded-xl px-3 py-2 focus-within:ring-1 focus-within:ring-blue-300 bg-white min-w-48">
+        <div className="dashboard-search min-w-48">
           <MdSearch size={14} className="text-gray-400 shrink-0" />
           <input
             type="text"
-            value={search}
+            aria-label="Search by ID or customer..." value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search by ID or customer..."
             className="text-xs text-gray-700 focus:outline-none w-full"

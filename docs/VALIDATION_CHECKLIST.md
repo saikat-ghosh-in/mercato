@@ -25,6 +25,17 @@ This records what was actually checked. Browser checks used disposable demo H2 d
 - [ ] Real verification/reset emails and completed reset link require SMTP sandbox. No existing user's credentials were changed.
 - [ ] Account deactivation and role grants were not performed interactively. The dialogs were inspected without changing access; permission/validation boundaries have backend tests.
 
+## Current follow-up — checkout, homepage and dashboard search
+
+- [x] Original multi-category campaign image and marketplace copy, working catalog/category links, once-only entry/scroll reveals, reduced-motion and fine-pointer hover safeguards.
+- [x] Delivery/review/payment redesign; saved address add/select/delete, edit prefill, Escape/focus restoration and keyboard progression in Browser.
+- [x] Current-address validation, unavailable/empty bag guards, malformed payment handoff and backend total regression coverage (four new tests).
+- [x] Recoverable local gateway failure and retry preserve the address, bag and step. Missing payment sessions redirect to checkout; incomplete returns expose order/bag recovery.
+- [x] Checkout measured at 320/360/390/414/768/1024/1440/1920px and 844×390 landscape without document overflow; primary actions measure 48px.
+- [x] Products/inventory/users/orders/carts/fulfillment searches match 40px desktop and 44px mobile/tablet controls. Search and clearing work; a narrow-phone search occupies a full row.
+- [x] Stable cart checkout appearance during quantity increase/decrease; correct two-unit badge and server total verified again.
+- [ ] Successful Cashfree-hosted checkout, real-device touch behavior and OS reduced-motion settings still require sandbox/hardware. No paid outcomes were fabricated in Browser.
+
 ## Checkout and orders — Browser plus regression tests
 
 - [x] Guest checkout redirects to sign-in and returns after server bag merging.
@@ -49,7 +60,7 @@ This records what was actually checked. Browser checks used disposable demo H2 d
 ## Automated checks and implementation audit
 
 - [x] `npm run lint` and `npm run build` pass.
-- [x] `npm test`: 20 tests pass, including cart normalization/serial queue/pending state/identity reset, stale catalog results, failed refresh retention, rich editor conversion, metadata reuse/retry, aborted metadata isolation, draft/cancel/reopen, atomic Apply, price validation and URL preservation.
+- [x] `npm test`: 24 tests pass, including cart normalization/serial queue/pending state/identity reset, stale catalog results, failed refresh retention, rich editor conversion, metadata reuse/retry, aborted metadata isolation, draft/cancel/reopen, atomic Apply, price validation and URL preservation.
 - [x] Current responsive checks: widths 320/360/390/414/768/1024/1440/1920 and 844×390 landscape; tested pages stay within the viewport, header remains accessible, and management tables scroll internally.
 - [x] On-demand filters: initially closed, draft changes leave results/URL untouched, Cancel/reopen restores applied values, invalid prices retain the drawer, Apply commits/closes/restores focus, and clearing a draft remains cancellable.
 - [x] Product rows start at 195px desktop, 205px on 360/390px phones and 231px at 320px. Native selector arrows align with their vertical centers. Forms/checkout use 48px primary actions and mobile dialog actions use 44px targets.

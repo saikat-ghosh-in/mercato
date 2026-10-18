@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
-import { MdShoppingCart } from "react-icons/md";
+import { FiArrowLeft } from "react-icons/fi";
+import { checkoutIssue, currentDeliveryAddress, paymentHandoff } from "../../utils/checkout";
 import { useCartProducts } from "../../hooks/useCartProducts";
 import {
   selectCartItems,
@@ -49,6 +50,14 @@ const Checkout = () => {
   const [deletingAddress, setDeletingAddress] = useState(false);
   const [deleteAddressId, setDeleteAddressId] = useState(null);
   const [placingOrder, setPlacingOrder] = useState(false);
+  const [paymentError, setPaymentError] = useState("");
+  const [addressError, setAddressError] = useState(false);
+  const paymentPending = useRef(false);
+  const previousStep = useRef(1);
+  const checkoutPanel = useRef(null);
+  const selectedAddress = currentDeliveryAddress(addresses, selectedAddressForCheckout);
+  const visibleStep = selectedAddress ? step : 1;
+  const bagIssue = checkoutIssue({ cartLoaded, cartLoading, cartError, loadingProducts, productsUnavailable, cartQty });
 
   const isChildRoute = location.pathname !== "/checkout";
 
@@ -58,7 +67,14 @@ const Checkout = () => {
       navigate("/cart");
     }
   }, [cartLoaded, cartItems.length, navigate, isChildRoute]);
-  useEffect(() => { dispatch(getUserAddresses(setLoadingAddresses)); }, [dispatch]);
+  useEffect(() => { dispatch(getUserAddresses(setLoadingAddresses, setAddressError)); }, [dispatch]);
+  useEffect(() => {
+    if (previousStep.current !== visibleStep) {
+      checkoutPanel.current?.querySelector("h2")?.focus({ preventScroll: true });
+      checkoutPanel.current?.closest(".site-container")?.querySelector(".checkout-steps")?.scrollIntoView({ block: "start", behavior: "instant" });
+      previousStep.current = visibleStep;
+    }
+  }, [visibleStep]);
 
   if (isChildRoute) return <Outlet />;
 
@@ -79,7 +95,6 @@ const Checkout = () => {
 
   const handleModalClose = () => {
     setOpenAddressModal(false);
-    setEditingAddress(null);
   };
 
   const onDeleteHandler = async () => {
@@ -91,8 +106,9 @@ const Checkout = () => {
   };
 
   const handlePlaceOrder = async () => {
-    if (cartLoading || cartError || loadingProducts || productsUnavailable) { toast.error("Some items could not be checked. Refresh your bag before paying."); return; }
-    if (!selectedAddressForCheckout) {
+    if (paymentPending.current) return;
+    if (bagIssue || loadingAddresses || addressError) { setPaymentError(bagIssue || "Please refresh your delivery address before paying."); return; }
+    if (!selectedAddress) {
       toast.error("Please select a shipping address");
       setStep(1);
       return;
@@ -110,74 +126,65 @@ const Checkout = () => {
       return;
     }
 
+    paymentPending.current = true;
     setPlacingOrder(true);
+    setPaymentError("");
     try {
       const response = await dispatch(
-        placeOrder({ addressId: selectedAddressForCheckout.addressId })
+        placeOrder({ addressId: selectedAddress.addressId })
       );
 
-      dispatch(setPaymentData({
-        totalAmount: response?.order?.totalAmount ?? total,
-        paymentStatus: "initiated",
-        timestamp: Date.now(),
-        paymentId: response?.order?.paymentSummary?.paymentId,
-        orderId: response?.order?.orderId,
-        paymentSessionId: response?.paymentSessionId,
-      }));
-      dispatch(setSelectedAddressForCheckout(selectedAddressForCheckout));
+      dispatch(setPaymentData(paymentHandoff(response)));
+      dispatch(setSelectedAddressForCheckout(selectedAddress));
       navigate("cashfree-payment");
     } catch (err) {
-      toast.error("Failed to place order. Please try again.");
-      console.error("Order placement error:", err);
+      setPaymentError(err?.response?.data?.message || (err.response ? "The payment service is unavailable right now." : err.message) || "The payment service is unavailable right now.");
     } finally {
       setPlacingOrder(false);
+      paymentPending.current = false;
     }
   };
 
   return (
-    <div className="bg-gray-50 min-h-screen py-6">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-
-        {/* Header */}
-        <div className="flex items-center gap-3 mb-6">
-          <div className="p-2 bg-blue-50 rounded-xl">
-            <MdShoppingCart size={20} className="text-blue-500" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-gray-900">Checkout</h1>
-            <p className="text-xs text-gray-500 mt-0.5">Complete your purchase securely</p>
-          </div>
-        </div>
-
-        <ProgressBar step={step} setStep={setStep} />
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-          <div className="lg:col-span-2">
-            {step === 1 && (
+    <div className="checkout-shell">
+      <div className="site-container">
+        <div className="checkout-page-heading"><div><Link className="checkout-bag-link" to="/cart"><FiArrowLeft /> Your bag</Link><h1>Checkout</h1></div><span>{cartQty} {cartQty === 1 ? "item" : "items"}</span></div>
+        <ProgressBar step={visibleStep} setStep={setStep} disabled={placingOrder} />
+        <div className="checkout-layout">
+          <div className="checkout-panel" ref={checkoutPanel} aria-labelledby="checkout-step-heading">
+            {bagIssue && <div className="checkout-bag-notice" role="status">{bagIssue}{!cartLoading && !loadingProducts && <Link to="/cart">Return to bag</Link>}</div>}
+            {visibleStep === 1 && (
               <AddressStep
                 addresses={addresses}
-                selectedAddress={selectedAddressForCheckout}
+                selectedAddress={selectedAddress}
                 loadingAddresses={loadingAddresses}
+                addressError={addressError}
+                onRetry={() => dispatch(getUserAddresses(setLoadingAddresses, setAddressError))}
                 onAddAddress={handleAddAddress}
                 onEditAddress={handleEditAddress}
                 onDeleteAddress={handleDeleteAddress}
-                onNext={() => setStep(2)}
+                onNext={() => { if (selectedAddress && !loadingAddresses && !addressError) setStep(2); }}
               />
             )}
-            {step === 2 && (
+            {visibleStep === 2 && (
               <ReviewStep
-                selectedAddress={selectedAddressForCheckout}
+                selectedAddress={selectedAddress}
                 cartWithProducts={cartWithProducts}
                 onBack={() => setStep(1)}
-                onNext={() => setStep(3)}
+                onNext={() => { if (!bagIssue) setStep(3); }}
+                disabled={Boolean(bagIssue)}
               />
             )}
-            {step === 3 && (
+            {visibleStep === 3 && (
               <PaymentStep
                 onBack={() => setStep(2)}
                 onSubmit={handlePlaceOrder}
+                onChangeAddress={() => setStep(1)}
+                selectedAddress={selectedAddress}
+                total={total}
+                error={paymentError}
                 loading={placingOrder}
-                disabled={cartLoading || Boolean(cartError) || loadingProducts || productsUnavailable}
+                disabled={Boolean(bagIssue) || loadingAddresses || addressError}
               />
             )}
           </div>

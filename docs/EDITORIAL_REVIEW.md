@@ -2,7 +2,36 @@
 
 The approved white / black / soft-blue direction is implemented across storefront, authentication, account, checkout, seller and admin surfaces. Original Mercato SVG branding and a locally bundled WebP campaign photograph replace the green visual system. Existing marketplace categories and server pricing remain authoritative.
 
-## Latest refinement: compact navigation and Apply-based filters
+## Latest refinement: checkout, marketplace campaign and dashboard controls
+
+Checkout now has a cohesive Delivery → Review → Payment flow: accessible saved-address radio cards, clear add/edit/delete actions, complete product names and seller information, unit quantities, backend line totals, a responsive order summary and a Cashfree preparation panel. Completed steps are revisitable; step changes move keyboard focus to the heading and keep progress below the measured persistent header. Mobile primary actions are 48px, secondary targets 44px. The summary is sticky on desktop and follows the step on phones. Help and Account remain available during checkout.
+
+Checkout rejects a deleted/stale delivery selection, waits for verified bag data and blocks repeated payment submissions. It uses the latest saved address rather than an old selected snapshot. Incomplete payment-session responses cannot open a broken hosted-payment screen; the captured backend total remains authoritative. Address-refresh failures offer inline retry. Payment failures retain the address, items and current step, with a stable payment button. The payment-opening screen can retry the existing session or open order status; it no longer falls into an endless loading label. Confirmation, pending, failed and stock-conflict states share the new visual treatment while retaining existing payment polling and inventory behavior.
+
+The homepage now presents Mercato as a marketplace across tech, fashion, home and beauty. Original generated still-life photography replaces the fashion-model campaign; the bundled WebP is 94,578 bytes (about 95 KB). Copy, category navigation, campaign CTA and page metadata reflect multiple sellers and product variety. Text and photography enter once; below-fold sections reveal once as they enter view. Motion uses transform/opacity, does not restart on featured-product refreshes, and is removed for reduced motion. Category hover effects require a fine pointer. No new animation dependency was added.
+
+All six dashboard search locations (products, inventory, users, orders, carts and fulfillment) use the same explicit height: 40px desktop / 44px below 1024px. Inputs no longer add their own minimum height to wrapper padding. Search takes a full row on phones so it cannot collapse into a tiny field. Existing filters, clearing and search behavior are retained; search fields have accessible names and 16px mobile input text.
+
+Validation on 18 October 2026:
+- Frontend lint and production build pass; all 24 frontend tests pass. Four new regression cases cover canonical/deleted addresses, unverified/failed/empty bags, backend-authoritative payment handoff and malformed handoff responses.
+- All 49 backend tests pass (zero failures/errors/skips), including mocked payment/reservation/concurrency coverage. Log: `backend/target/checkout-marketplace-tests.log` (ignored local output). No backend API or schema changes were needed.
+- Browser exercised checkout delivery/review/payment, address add/select/delete, edit prefill, Escape dismissal/focus restoration, keyboard progression, step revisiting, real backend totals, gateway failure and retry, missing-session redirect, and incomplete payment-return recovery. Synthetic address data was used; the temporary extra address was removed.
+- Homepage and checkout layouts were checked at 320, 360, 390, 414, 768, 1024, 1440 and 1920px, with an additional 844×390 landscape checkout check. No horizontal document overflow was measured; prominent actions remained 48px. Detailed desktop/phone visual checks and screenshots accompany the flows.
+- Browser measured 40px desktop and 44px phone/tablet dashboard searches against adjacent selectors, tested product/user search and clearing, and inspected inventory/order/cart/fulfillment search fields. A 320px product search now spans its available 241px row.
+- Homepage category-anchor navigation and featured savings sorting work; the savings collection correctly starts with the 20%-off headphones. Browser reported no errors/warnings during the final check.
+- Bag quantity increase/decrease maintained the existing checkout link label, black background and opacity of 1; the badge and checkout returned the correct two-unit total of ₹47,510.10.
+
+Current screenshots:
+- [Marketplace campaign, desktop](screenshots/marketplace-home-desktop.jpg) · [Phone](screenshots/marketplace-home-mobile.jpg)
+- [Delivery, desktop](screenshots/checkout-delivery-desktop.jpg) · [Phone](screenshots/checkout-delivery-mobile.jpg)
+- [Review, desktop](screenshots/checkout-review-desktop.jpg) · [Phone](screenshots/checkout-review-mobile.jpg)
+- [Payment, desktop](screenshots/checkout-payment-desktop.jpg) · [Phone](screenshots/checkout-payment-mobile.jpg)
+- [Recoverable gateway failure](screenshots/checkout-payment-error-desktop.jpg) · [Incomplete return, phone](screenshots/checkout-payment-recovery-mobile.jpg)
+- [Dashboard search, desktop](screenshots/dashboard-search-desktop.jpg) · [Phone](screenshots/dashboard-search-mobile.jpg)
+
+The local demo deliberately points Cashfree at a closed localhost port. A successful hosted checkout and provider-side method selection/retry still require a configured sandbox. Success/pending/stock-conflict visual branches were reviewed in code and their payment transitions have backend mock coverage; they were not fabricated as paid Browser orders. Reduced-motion CSS and touch safeguards were inspected; OS settings, physical phones and controlled network throttling remain external checks. Startup and production boundaries below are unchanged.
+
+## Previous refinement: compact navigation and Apply-based filters
 
 The utility strip is removed. One persistent header now contains Help and an Account menu with orders, sign-out and role-appropriate dashboards (sign-in/register for guests). The entire header stays at the top: 72px on desktop and 64px below 1024px, including checkout. Narrow phones expose search inside the navigation menu. Expanded search is included in measured sticky offsets.
 

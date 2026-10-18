@@ -1,85 +1,13 @@
-import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
+import { Link } from "react-router-dom";
+import { FiArrowLeft, FiArrowRight, FiPackage } from "react-icons/fi";
 import { formatCurrency } from "../../../utils/formatCurrency";
-
-const ReviewStep = ({ selectedAddress, cartWithProducts, onBack, onNext }) => (
-  <div className="surface overflow-hidden">
-    <div className="px-5 py-4 border-b border-gray-100">
-      <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">
-        Review Your Order
-      </p>
-    </div>
-
-    <div className="p-5 space-y-4">
-      {/* Shipping To */}
-      <div className="bg-gray-50 rounded-xl p-4">
-        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-3">
-          Shipping To
-        </p>
-        {selectedAddress && (
-          <div className="text-sm space-y-0.5">
-            <p className="font-bold text-gray-900">{selectedAddress.recipientName}</p>
-            <p className="text-gray-500">{selectedAddress.addressLine1}</p>
-            {selectedAddress.addressLine2 && (
-              <p className="text-gray-500">{selectedAddress.addressLine2}</p>
-            )}
-            <p className="text-gray-500">
-              {selectedAddress.city}, {selectedAddress.state} {selectedAddress.pincode}
-            </p>
-            <p className="text-gray-500">{selectedAddress.country}</p>
-            <p className="text-xs text-gray-400 pt-1"> Ph. {selectedAddress.recipientPhone}</p>
-          </div>
-        )}
-      </div>
-
-      {/* Items */}
-      <div className="bg-gray-50 rounded-xl p-4">
-        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-3">
-          Items ({cartWithProducts.length})
-        </p>
-        <div className="divide-y divide-gray-100">
-          {cartWithProducts.map((item) => (
-            <div key={item.productId} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
-              <div className="w-10 h-10 rounded-xl bg-white border border-gray-100 overflow-hidden shrink-0">
-                {item?.product?.primaryImageUrl ? (
-                  <img
-                    src={item.product.primaryImageUrl}
-                    alt=""
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-gray-200 text-lg select-none">◈</div>
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-gray-900 truncate">
-                  {item?.product?.productName || "Item"}
-                </p>
-                <p className="text-xs text-gray-400">Qty: {item.quantity}</p>
-              </div>
-              <p className="text-sm font-bold text-gray-900 shrink-0">
-                {formatCurrency(item.lineTotal)}
-              </p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="flex justify-between gap-3 pt-2">
-        <button
-          onClick={onBack}
-          className="control flex items-center gap-2 px-5 py-2.5 bg-white border border-gray-200 hover:border-gray-300 text-gray-700 text-xs font-bold rounded-xl transition-colors"
-        >
-          <FaChevronLeft size={11} /> Back
-        </button>
-        <button
-          onClick={onNext}
-          className="control control-prominent flex items-center gap-2 px-5 py-2.5 bg-blue-500 hover:bg-blue-600 active:scale-[0.98] text-white text-xs font-bold rounded-xl transition-[transform,opacity,background-color]"
-        >
-          Continue to Payment <FaChevronRight size={11} />
-        </button>
-      </div>
-    </div>
-  </div>
-);
-
-export default ReviewStep;
+import DeliveryDetails from "../DeliveryDetails";
+export default function ReviewStep({ selectedAddress, cartWithProducts, onBack, onNext, disabled }) {
+  return <>
+    <div className="checkout-section-heading"><div><p className="eyebrow">STEP 02 · REVIEW</p><h2 id="checkout-step-heading" tabIndex={-1}>Good finds. All accounted for.</h2><p>Check your items and delivery details before paying.</p></div></div>
+    <section className="checkout-delivery-card"><div className="checkout-card-title"><h3>Delivering to</h3><button className="button checkout-edit" onClick={onBack}>Change</button></div><DeliveryDetails address={selectedAddress} /></section>
+    <div className="checkout-card-title checkout-items-title"><h3>Your items</h3><Link className="button checkout-edit" to="/cart">Edit bag</Link></div>
+    <ul className="checkout-review-items">{cartWithProducts.map(item => <li key={item.productId}><Link className="checkout-item-image" to={`/products/${item.productId}`} aria-label={`View ${item.product?.productName || "product"}`}>{item.product?.primaryImageUrl ? <img src={item.product.primaryImageUrl} alt="" width="96" height="112" /> : <FiPackage />}</Link><div className="checkout-item-info"><Link to={`/products/${item.productId}`}>{item.product?.productName || "Product information unavailable"}</Link>{item.product?.sellerName && <p>Sold by {item.product.sellerName}</p>}<p>Quantity {item.quantity}</p><strong>{formatCurrency(item.lineTotal)}</strong></div></li>)}</ul>
+    <div className="checkout-step-actions"><button className="button checkout-back" onClick={onBack}><FiArrowLeft /> Delivery</button><button className="button button-dark button-prominent" onClick={onNext} disabled={disabled}>Continue to payment <FiArrowRight /></button></div>
+  </>;
+}
