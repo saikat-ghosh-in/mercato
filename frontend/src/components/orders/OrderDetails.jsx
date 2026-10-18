@@ -37,7 +37,7 @@ const CancelReasonModal = ({ title, subtitle, onClose, onConfirm, loading, child
             <MdWarning size={20} />
             <h2 className="text-sm font-bold">{title}</h2>
           </div>
-          <button aria-label="Close dialog" onClick={onClose} className="text-gray-400 hover:text-gray-600 cursor-pointer transition-colors">
+          <button aria-label="Close dialog" onClick={onClose} className="icon-action text-gray-400 hover:text-gray-600 cursor-pointer transition-colors">
             <MdClose size={18} />
           </button>
         </div>
@@ -51,7 +51,7 @@ const CancelReasonModal = ({ title, subtitle, onClose, onConfirm, loading, child
             <button
               key={r}
               onClick={() => { setSelected(r); setCustom(""); }}
-              className={`w-full text-left text-xs px-3 py-2 rounded-xl border transition-colors cursor-pointer ${selected === r
+              className={`control w-full text-left text-xs px-3 py-2 rounded-xl border transition-colors cursor-pointer ${selected === r
                 ? "bg-red-50 border-red-200 text-red-700 font-semibold"
                 : "border-gray-100 text-gray-600 hover:bg-gray-50"
                 }`}
@@ -70,13 +70,13 @@ const CancelReasonModal = ({ title, subtitle, onClose, onConfirm, loading, child
           />
         )}
         <div className="flex gap-3 mt-1">
-          <button onClick={onClose} className="flex-1 px-3 py-2.5 text-sm border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 cursor-pointer font-medium">
+          <button onClick={onClose} className="control flex-1 px-3 py-2.5 text-sm border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 cursor-pointer font-medium">
             Keep
           </button>
           <button
             onClick={() => onConfirm(reason)}
             disabled={loading || !canSubmit}
-            className="flex-1 px-3 py-2.5 text-sm bg-red-500 hover:bg-red-600 text-white rounded-xl transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer font-bold active:scale-[0.98]"
+            className="control flex-1 px-3 py-2.5 text-sm bg-red-500 hover:bg-red-600 text-white rounded-xl transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer font-bold active:scale-[0.98]"
           >
             {loading ? "Cancelling..." : "Yes, Cancel"}
           </button>
@@ -108,7 +108,7 @@ const SyncPaymentButton = ({ orderId, onSync }) => {
     <button
       onClick={() => syncPayment({ orderId, onSuccess: onSync, setLoading })}
       disabled={loading}
-      className="flex items-center gap-1.5 text-xs font-bold text-yellow-700 bg-yellow-100
+      className="control flex items-center gap-1.5 text-xs font-bold text-yellow-700 bg-yellow-100
         hover:bg-yellow-200 px-3 py-2 rounded-xl transition-colors cursor-pointer
         disabled:opacity-50 active:scale-[0.98]"
     >
@@ -126,7 +126,7 @@ const RetryPaymentButton = ({ order }) => {
     <button
       onClick={() => retryPayment({ order, dispatch, navigate, setLoading })}
       disabled={loading}
-      className="flex items-center gap-1.5 text-xs font-bold text-white bg-blue-500
+      className="control flex items-center gap-1.5 text-xs font-bold text-white bg-blue-500
         hover:bg-blue-600 px-3 py-2 rounded-xl transition-colors cursor-pointer
         disabled:opacity-50 active:scale-[0.98]"
     >
@@ -408,7 +408,7 @@ const OrderDetails = ({ orderId }) => {
           <p className="text-sm text-gray-400 mb-6">{error || "Unable to load order details"}</p>
           <button
             onClick={() => navigate("/orders")}
-            className="inline-flex items-center gap-2 bg-gray-950 hover:bg-gray-800 text-white text-sm font-bold px-5 py-2.5 rounded-xl transition-[transform,opacity,background-color] active:scale-[0.98]"
+            className="control inline-flex items-center gap-2 bg-gray-950 hover:bg-gray-800 text-white text-sm font-bold px-5 py-2.5 rounded-xl transition-[transform,opacity,background-color] active:scale-[0.98]"
           >
             <MdArrowBack size={14} /> Back to Orders
           </button>
@@ -445,7 +445,7 @@ const OrderDetails = ({ orderId }) => {
           </div>
           <button
             onClick={() => navigate("/orders")}
-            className="ml-auto flex items-center gap-1.5 text-xs font-semibold text-blue-500 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-xl transition-colors"
+            className="control ml-auto flex items-center gap-1.5 text-xs font-semibold text-blue-500 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-xl transition-colors"
           >
             <MdArrowBack size={13} /> All Orders
           </button>

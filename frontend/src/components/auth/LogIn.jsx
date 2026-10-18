@@ -67,7 +67,7 @@ const Login = () => {
                                 <button
                                     type="button"
                                     onClick={() => setShowPassword(v => !v)} aria-label={showPassword ? "Hide password" : "Show password"}
-                                    className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer shrink-0"
+                                    className="icon-action text-gray-400 hover:text-gray-600 transition-colors cursor-pointer shrink-0"
                                 >
                                     {showPassword ? <FiEyeOff size={15} /> : <FiEye size={15} />}
                                 </button>
@@ -88,7 +88,7 @@ const Login = () => {
                         <button
                             type="submit"
                             disabled={!isValid || isSubmitting}
-                            className="w-full flex items-center justify-center gap-2 bg-gray-950 hover:bg-gray-800 active:scale-[0.98] disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed text-white text-sm font-bold py-3 rounded-xl transition-[transform,opacity,background-color] cursor-pointer"
+                            className="control control-prominent w-full flex items-center justify-center gap-2 bg-gray-950 hover:bg-gray-800 active:scale-[0.98] disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed text-white text-sm font-bold py-3 rounded-xl transition-[transform,opacity,background-color] cursor-pointer"
                         >
                             <FiLogIn size={15} />
                             {isSubmitting ? "Signing in..." : "Sign In"}

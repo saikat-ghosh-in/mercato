@@ -55,7 +55,7 @@ const CartDetail = ({ cartId, onBack }) => {
         <div className="space-y-4">
             {/* Header */}
             <div className="flex items-center gap-3">
-                <button onClick={onBack} className="flex items-center gap-1.5 text-xs font-semibold text-blue-500 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-xl transition-colors cursor-pointer">
+                <button onClick={onBack} className="control flex items-center gap-1.5 text-xs font-semibold text-blue-500 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-xl transition-colors cursor-pointer">
                     <MdArrowBack size={13} /> Back
                 </button>
                 <div>
@@ -190,7 +190,7 @@ const CartsTab = () => {
                         placeholder="Search by cart ID or customer..."
                         className="text-xs text-gray-700 focus:outline-none w-full"
                     />
-                    {search && <button aria-label="Clear search" onClick={() => setSearch("")} className="text-gray-300 hover:text-gray-500 cursor-pointer"><MdClose size={13} /></button>}
+                    {search && <button aria-label="Clear search" onClick={() => setSearch("")} className="icon-action text-gray-300 hover:text-gray-500 cursor-pointer"><MdClose size={13} /></button>}
                 </div>
                 <span className="text-xs text-gray-400 font-semibold shrink-0">{filtered.length} cart{filtered.length !== 1 ? "s" : ""}</span>
             </div>

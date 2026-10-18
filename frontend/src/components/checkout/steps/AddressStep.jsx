@@ -17,7 +17,7 @@ const AddressStep = ({
       </p>
       <button
         onClick={onAddAddress}
-        className="flex items-center gap-1.5 text-xs font-bold text-blue-500 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-xl transition-colors"
+        className="control flex items-center gap-1.5 text-xs font-bold text-blue-500 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-xl transition-colors"
       >
         <FaPlus size={10} /> Add New
       </button>
@@ -44,7 +44,7 @@ const AddressStep = ({
           <p className="text-xs text-gray-400 mb-4">Add an address to continue</p>
           <button
             onClick={onAddAddress}
-            className="px-5 py-2.5 bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold rounded-xl transition-colors"
+            className="control px-5 py-2.5 bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold rounded-xl transition-colors"
           >
             Add Your First Address
           </button>
@@ -55,7 +55,7 @@ const AddressStep = ({
         <button
           onClick={onNext}
           disabled={!selectedAddress}
-          className="flex items-center gap-2 px-5 py-2.5 bg-blue-500 hover:bg-blue-600 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-bold rounded-xl transition-[transform,opacity,background-color]"
+          className="control control-prominent flex items-center gap-2 px-5 py-2.5 bg-blue-500 hover:bg-blue-600 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-bold rounded-xl transition-[transform,opacity,background-color]"
         >
           Review Order <FaChevronRight size={11} />
         </button>

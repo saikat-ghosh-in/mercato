@@ -119,7 +119,7 @@ export default function ProductImageUpload({
           <button
             type="button"
             onClick={() => setInputMode('upload')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-[transform,opacity,background-color] ${inputMode === 'upload'
+            className={`control flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-[transform,opacity,background-color] ${inputMode === 'upload'
               ? 'bg-gray-950 text-white'
               : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
@@ -130,7 +130,7 @@ export default function ProductImageUpload({
           <button
             type="button"
             onClick={() => setInputMode('url')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-[transform,opacity,background-color] ${inputMode === 'url'
+            className={`control flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-[transform,opacity,background-color] ${inputMode === 'url'
               ? 'bg-gray-950 text-white'
               : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
@@ -188,7 +188,7 @@ export default function ProductImageUpload({
               <button
                 type="button"
                 onClick={() => handleUrlSubmit(true)}
-                className="px-4 py-2 bg-gray-950 text-white rounded-xl hover:bg-gray-800 transition text-xs font-semibold"
+                className="control px-4 py-2 bg-gray-950 text-white rounded-xl hover:bg-gray-800 transition text-xs font-semibold"
               >
                 Set
               </button>
@@ -258,7 +258,7 @@ export default function ProductImageUpload({
             <button
               type="button"
               onClick={() => handleUrlSubmit(false)}
-              className="px-4 py-2 bg-gray-950 text-white rounded-xl hover:bg-gray-800 transition text-xs font-semibold"
+              className="control px-4 py-2 bg-gray-950 text-white rounded-xl hover:bg-gray-800 transition text-xs font-semibold"
             >
               Add
             </button>

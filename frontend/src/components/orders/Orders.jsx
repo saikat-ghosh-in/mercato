@@ -35,7 +35,7 @@ const EmptyOrders = ({ onShop }) => (
     <p className="text-sm text-gray-400 mb-6">You haven't placed any orders. Start shopping!</p>
     <button
       onClick={onShop}
-      className="flex items-center gap-2 bg-gray-950 hover:bg-gray-800 active:scale-[0.98] text-white text-sm font-bold px-6 py-2.5 rounded-xl transition-[transform,opacity,background-color]"
+      className="control flex items-center gap-2 bg-gray-950 hover:bg-gray-800 active:scale-[0.98] text-white text-sm font-bold px-6 py-2.5 rounded-xl transition-[transform,opacity,background-color]"
     >
       <MdShoppingBag size={15} /> Start Shopping
     </button>
@@ -51,7 +51,7 @@ const ErrorState = ({ message, onRetry }) => (
     <p className="text-sm text-gray-400 mb-6">{message}</p>
     <button
       onClick={onRetry}
-      className="bg-blue-500 hover:bg-blue-600 active:scale-[0.98] text-white text-sm font-bold px-6 py-2.5 rounded-xl transition-[transform,opacity,background-color]"
+      className="control bg-blue-500 hover:bg-blue-600 active:scale-[0.98] text-white text-sm font-bold px-6 py-2.5 rounded-xl transition-[transform,opacity,background-color]"
     >
       Try Again
     </button>
@@ -174,7 +174,7 @@ const Orders = () => {
           </div>
           <button
             onClick={() => navigate("/products")}
-            className="ml-auto flex items-center gap-1.5 text-xs font-semibold text-blue-500 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-xl transition-colors"
+            className="control ml-auto flex items-center gap-1.5 text-xs font-semibold text-blue-500 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-xl transition-colors"
           >
             <MdArrowBack size={13} /> Continue Shopping
           </button>

@@ -54,7 +54,7 @@ const SupplyQtyStepper = ({ value, onChange, min, supplyType }) => {
             <button
                 aria-label="Decrease stock quantity" onClick={decrement}
                 disabled={qty <= min}
-                className="w-8 h-9 flex items-center justify-center text-gray-400 hover:bg-gray-50 hover:text-gray-700 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-gray-400 transition-colors shrink-0"
+                className="icon-action w-8 h-9 flex items-center justify-center text-gray-400 hover:bg-gray-50 hover:text-gray-700 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-gray-400 transition-colors shrink-0"
             >
                 <FiMinus size={12} />
             </button>
@@ -67,7 +67,7 @@ const SupplyQtyStepper = ({ value, onChange, min, supplyType }) => {
             />
             <button
                 aria-label="Increase stock quantity" onClick={increment}
-                className="w-8 h-9 flex items-center justify-center text-gray-400 hover:bg-gray-50 hover:text-gray-700 transition-colors shrink-0"
+                className="icon-action w-8 h-9 flex items-center justify-center text-gray-400 hover:bg-gray-50 hover:text-gray-700 transition-colors shrink-0"
             >
                 <FiPlus size={12} />
             </button>
@@ -139,7 +139,7 @@ const SupplyUpdateModal = ({ products, onClose, onSave }) => {
                             <p className="text-[11px] text-gray-400 mt-0.5">Adjust inventory levels</p>
                         </div>
                     </div>
-                    <button aria-label="Close dialog" onClick={onClose} className="text-gray-400 hover:text-gray-600 cursor-pointer transition-colors">
+                    <button aria-label="Close dialog" onClick={onClose} className="icon-action text-gray-400 hover:text-gray-600 cursor-pointer transition-colors">
                         <MdClose size={18} />
                     </button>
                 </div>
@@ -157,7 +157,7 @@ const SupplyUpdateModal = ({ products, onClose, onSave }) => {
                             <button
                                 key={t.value}
                                 onClick={() => handleTypeChange(t.value)}
-                                className={`flex-1 px-4 py-2.5 rounded-xl border text-left transition-[transform,opacity,background-color] cursor-pointer ${supplyType === t.value
+                                className={`control flex-1 px-4 py-2.5 rounded-xl border text-left transition-[transform,opacity,background-color] cursor-pointer ${supplyType === t.value
                                     ? "bg-gray-950 border-gray-950 text-white"
                                     : "border-gray-200 text-gray-600 hover:bg-gray-50"
                                     }`}
@@ -228,14 +228,14 @@ const SupplyUpdateModal = ({ products, onClose, onSave }) => {
                 <div className="flex gap-3 px-5 py-4 border-t border-gray-100 shrink-0">
                     <button
                         onClick={onClose}
-                        className="flex-1 px-3 py-2.5 text-sm border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer font-medium"
+                        className="control flex-1 px-3 py-2.5 text-sm border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer font-medium"
                     >
                         Cancel
                     </button>
                     <button
                         onClick={handleSave}
                         disabled={saving}
-                        className="flex-1 px-3 py-2.5 text-sm bg-gray-950 hover:bg-gray-800 text-white rounded-xl cursor-pointer font-bold disabled:opacity-50 active:scale-[0.98] flex items-center justify-center gap-2 transition-[transform,opacity,background-color]"
+                        className="control flex-1 px-3 py-2.5 text-sm bg-gray-950 hover:bg-gray-800 text-white rounded-xl cursor-pointer font-bold disabled:opacity-50 active:scale-[0.98] flex items-center justify-center gap-2 transition-[transform,opacity,background-color]"
                     >
                         <MdSave size={14} />
                         {saving ? "Updating..." : "Apply Updates"}

@@ -36,7 +36,7 @@ const CategoryFormModal = ({ category, onClose, onSave }) => {
             <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm">
                 <div className="flex items-center justify-between p-5 border-b border-gray-100">
                     <h2 className="text-sm font-bold text-gray-800">{isEdit ? "Edit Category" : "New Category"}</h2>
-                    <button aria-label="Close dialog" onClick={onClose} className="text-gray-400 hover:text-gray-600 cursor-pointer transition-colors">
+                    <button aria-label="Close dialog" onClick={onClose} className="icon-action text-gray-400 hover:text-gray-600 cursor-pointer transition-colors">
                         <MdClose size={18} />
                     </button>
                 </div>
@@ -55,9 +55,9 @@ const CategoryFormModal = ({ category, onClose, onSave }) => {
                     />
                 </div>
                 <div className="flex gap-3 p-5 border-t border-gray-100">
-                    <button  onClick={onClose} className="flex-1 px-3 py-2.5 text-sm border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 cursor-pointer font-medium">Cancel</button>
+                    <button  onClick={onClose} className="control flex-1 px-3 py-2.5 text-sm border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 cursor-pointer font-medium">Cancel</button>
                     <button onClick={handleSave} disabled={saving || !name.trim()}
-                        className="flex-1 px-3 py-2.5 text-sm bg-gray-950 hover:bg-gray-800 text-white rounded-xl cursor-pointer font-bold disabled:opacity-50 active:scale-[0.98] flex items-center justify-center gap-2">
+                        className="control flex-1 px-3 py-2.5 text-sm bg-gray-950 hover:bg-gray-800 text-white rounded-xl cursor-pointer font-bold disabled:opacity-50 active:scale-[0.98] flex items-center justify-center gap-2">
                         <MdSave size={14} />
                         {saving ? "Saving..." : isEdit ? "Save Changes" : "Create"}
                     </button>
@@ -77,9 +77,9 @@ const DeleteModal = ({ category, onClose, onConfirm, loading }) => (
             <p className="text-sm text-gray-600 mb-1">Delete <span className="font-semibold text-gray-900">"{category.categoryName}"</span>?</p>
             <p className="text-xs text-gray-400 mb-6">Products in this category may be affected.</p>
             <div className="flex gap-3">
-                <button  onClick={onClose} className="flex-1 px-3 py-2.5 text-sm border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 cursor-pointer font-medium">Cancel</button>
+                <button  onClick={onClose} className="control flex-1 px-3 py-2.5 text-sm border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 cursor-pointer font-medium">Cancel</button>
                 <button onClick={onConfirm} disabled={loading}
-                    className="flex-1 px-3 py-2.5 text-sm bg-red-500 hover:bg-red-600 text-white rounded-xl cursor-pointer font-bold disabled:opacity-50 active:scale-[0.98]">
+                    className="control flex-1 px-3 py-2.5 text-sm bg-red-500 hover:bg-red-600 text-white rounded-xl cursor-pointer font-bold disabled:opacity-50 active:scale-[0.98]">
                     {loading ? "Deleting..." : "Delete"}
                 </button>
             </div>
@@ -135,7 +135,7 @@ const CategoriesTab = () => {
                     </p>
                     <button
                         onClick={() => setShowAddModal(true)}
-                        className="flex items-center gap-1.5 bg-gray-950 hover:bg-gray-800 text-white text-xs font-bold px-4 py-2 rounded-xl transition-[transform,opacity,background-color] cursor-pointer active:scale-[0.98]"
+                        className="control flex items-center gap-1.5 bg-gray-950 hover:bg-gray-800 text-white text-xs font-bold px-4 py-2 rounded-xl transition-[transform,opacity,background-color] cursor-pointer active:scale-[0.98]"
                     >
                         <MdAdd size={14} /> New Category
                     </button>
@@ -167,13 +167,13 @@ const CategoriesTab = () => {
                                 <div className="absolute top-3 right-3 flex gap-1 opacity-100">
                                     <button
                                         aria-label={"Edit " + c.categoryName} onClick={() => setEditCategory(c)}
-                                        className="p-1 text-gray-400 hover:text-blue-500 hover:bg-white rounded-lg transition-colors cursor-pointer shadow-sm"
+                                        className="icon-action p-1 text-gray-400 hover:text-blue-500 hover:bg-white rounded-lg transition-colors cursor-pointer shadow-sm"
                                     >
                                         <MdEdit size={13} />
                                     </button>
                                     <button
                                         aria-label={"Delete " + c.categoryName} onClick={() => setDeleteCategory(c)}
-                                        className="p-1 text-gray-400 hover:text-red-500 hover:bg-white rounded-lg transition-colors cursor-pointer shadow-sm"
+                                        className="icon-action p-1 text-gray-400 hover:text-red-500 hover:bg-white rounded-lg transition-colors cursor-pointer shadow-sm"
                                     >
                                         <MdDelete size={13} />
                                     </button>

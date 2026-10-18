@@ -67,13 +67,13 @@ const ReviewStep = ({ selectedAddress, cartWithProducts, onBack, onNext }) => (
       <div className="flex justify-between gap-3 pt-2">
         <button
           onClick={onBack}
-          className="flex items-center gap-2 px-5 py-2.5 bg-white border border-gray-200 hover:border-gray-300 text-gray-700 text-xs font-bold rounded-xl transition-colors"
+          className="control flex items-center gap-2 px-5 py-2.5 bg-white border border-gray-200 hover:border-gray-300 text-gray-700 text-xs font-bold rounded-xl transition-colors"
         >
           <FaChevronLeft size={11} /> Back
         </button>
         <button
           onClick={onNext}
-          className="flex items-center gap-2 px-5 py-2.5 bg-blue-500 hover:bg-blue-600 active:scale-[0.98] text-white text-xs font-bold rounded-xl transition-[transform,opacity,background-color]"
+          className="control control-prominent flex items-center gap-2 px-5 py-2.5 bg-blue-500 hover:bg-blue-600 active:scale-[0.98] text-white text-xs font-bold rounded-xl transition-[transform,opacity,background-color]"
         >
           Continue to Payment <FaChevronRight size={11} />
         </button>

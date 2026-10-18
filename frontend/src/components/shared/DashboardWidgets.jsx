@@ -177,7 +177,7 @@ export const DashboardError = ({ message, onRetry }) => (
         {onRetry && (
             <button
                 onClick={onRetry}
-                className="inline-flex items-center gap-2 bg-gray-950 hover:bg-gray-800 text-white text-xs font-bold px-4 py-2 rounded-xl transition-[transform,opacity,background-color] cursor-pointer active:scale-[0.98]"
+                className="control inline-flex items-center gap-2 bg-gray-950 hover:bg-gray-800 text-white text-xs font-bold px-4 py-2 rounded-xl transition-[transform,opacity,background-color] cursor-pointer active:scale-[0.98]"
             >
                 Retry
             </button>

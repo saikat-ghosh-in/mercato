@@ -1,3 +1,4 @@
+import SelectControl from "./SelectControl";
 import RichProductFields from "./RichProductFields";
 import { detailsForForm, detailsPayload } from "../../utils/productDetails.js";
 import ModalFrame from "./ModalFrame";
@@ -5,7 +6,6 @@ import { useCallback, useEffect, useState } from "react";
 import {
   MdAdd, MdEdit, MdDelete, MdSearch, MdClose,
   MdWarning, MdInventory,
-  MdSave,
 } from "react-icons/md";
 import toast from "react-hot-toast";
 import api from "../../backend/api";
@@ -98,7 +98,7 @@ const ProductFormModal = ({ product, categories, onClose, onSave }) => {
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-5 border-b border-gray-100">
           <h2 className="text-sm font-bold text-gray-800">{isEdit ? "Edit Product" : "Add New Product"}</h2>
-          <button aria-label="Close product editor" onClick={onClose} className="text-gray-400 hover:text-gray-600 cursor-pointer transition-colors">
+          <button aria-label="Close product editor" onClick={onClose} className="icon-action text-gray-400 hover:text-gray-600 cursor-pointer transition-colors">
             <MdClose size={18} />
           </button>
         </div>
@@ -110,7 +110,7 @@ const ProductFormModal = ({ product, categories, onClose, onSave }) => {
               Category <span className="text-red-400">*</span>
             </label>
             <div className="relative group">
-              <select
+              <SelectControl
 id="product-field-1"                 value={form.categoryId}
                 onChange={e => set("categoryId", e.target.value)}
                 className="w-full text-xs border border-gray-200 rounded-xl px-3 py-2.5 pr-10 focus:outline-none focus:ring-1 focus:ring-blue-300 text-gray-700 appearance-none bg-white cursor-pointer"
@@ -119,12 +119,7 @@ id="product-field-1"                 value={form.categoryId}
                 {categories.map(c => (
                   <option key={c.categoryId} value={c.categoryId}>{c.categoryName}</option>
                 ))}
-              </select>
-              <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
-                <svg className="w-4 h-4 text-gray-400 group-hover:text-gray-700 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
+              </SelectControl>
             </div>
           </div>
 
@@ -229,17 +224,17 @@ id="product-field-6"                 type="number"
         <div className="flex gap-3 p-5 border-t border-gray-100">
           <button
             onClick={onClose}
-            className="flex-1 px-3 py-2.5 text-sm border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer font-medium"
+            className="control flex-1 px-3 py-2.5 text-sm border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer font-medium"
           >
             Cancel
           </button>
           <button
             onClick={handleSave}
             disabled={saving}
-            className="flex-1 px-3 py-2.5 text-sm bg-gray-950 hover:bg-gray-800 text-white rounded-xl transition-colors cursor-pointer font-bold active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
+            aria-label={isEdit ? "Save product changes" : "Create product"}
+            className="control flex-1 px-3 py-2.5 text-sm bg-gray-950 hover:bg-gray-800 text-white rounded-xl transition-colors cursor-pointer font-bold active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
           >
-            <MdSave size={14} />
-            {saving ? "Saving..." : isEdit ? "Save Changes" : "Create Product"}
+            {saving ? "Saving…" : isEdit ? "Save" : "Create"}
           </button>
         </div>
       </div>
@@ -260,11 +255,11 @@ const DeleteModal = ({ product, onClose, onConfirm, loading }) => (
       <p className="text-xs text-gray-400 mb-6">This action cannot be undone.</p>
       <div className="flex gap-3">
         <button  onClick={onClose}
-          className="flex-1 px-3 py-2.5 text-sm border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 cursor-pointer font-medium">
+          className="control flex-1 px-3 py-2.5 text-sm border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 cursor-pointer font-medium">
           Cancel
         </button>
         <button onClick={onConfirm} disabled={loading}
-          className="flex-1 px-3 py-2.5 text-sm bg-red-500 hover:bg-red-600 text-white rounded-xl cursor-pointer font-bold disabled:opacity-50 active:scale-[0.98]">
+          className="control flex-1 px-3 py-2.5 text-sm bg-red-500 hover:bg-red-600 text-white rounded-xl cursor-pointer font-bold disabled:opacity-50 active:scale-[0.98]">
           {loading ? "Deleting..." : "Delete"}
         </button>
       </div>
@@ -315,12 +310,12 @@ const PIMTab = ({ products, categories, loading, onRefresh, showSeller = false }
               className="text-xs text-gray-700 focus:outline-none w-full"
             />
             {search && (
-              <button aria-label="Clear product search" onClick={() => setSearch("")} className="text-gray-300 hover:text-gray-500 cursor-pointer">
+              <button aria-label="Clear product search" onClick={() => setSearch("")} className="icon-action text-gray-300 hover:text-gray-500 cursor-pointer">
                 <MdClose size={13} />
               </button>
             )}
           </div>
-          <select
+          <SelectControl
             aria-label="Filter products by category"
             value={categoryFilter}
             onChange={e => setCategoryFilter(e.target.value)}
@@ -330,10 +325,10 @@ const PIMTab = ({ products, categories, loading, onRefresh, showSeller = false }
             {categories.map(c => (
               <option key={c.categoryId} value={c.categoryName}>{c.categoryName}</option>
             ))}
-          </select>
+          </SelectControl>
           <button
             onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-1.5 bg-gray-950 hover:bg-gray-800 text-white text-xs font-bold px-4 py-2 rounded-xl transition-[transform,opacity,background-color] cursor-pointer active:scale-[0.98]"
+            className="control flex items-center gap-1.5 bg-gray-950 hover:bg-gray-800 text-white text-xs font-bold px-4 py-2 rounded-xl transition-[transform,opacity,background-color] cursor-pointer active:scale-[0.98]"
           >
             <MdAdd size={14} /> Add Product
           </button>
@@ -398,13 +393,13 @@ const PIMTab = ({ products, categories, loading, onRefresh, showSeller = false }
                       <div className="flex items-center gap-1 justify-end">
                         <button
                           aria-label={"Edit " + p.productName} onClick={() => setEditProduct(p)}
-                          className="p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+                          className="icon-action p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
                         >
                           <MdEdit size={14} />
                         </button>
                         <button
                           aria-label={"Delete " + p.productName} onClick={() => setDeleteProduct(p)}
-                          className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                          className="icon-action p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
                         >
                           <MdDelete size={14} />
                         </button>
@@ -460,14 +455,14 @@ const InventoryTab = ({ products, loading, onRefresh, showSeller = false }) => {
               className="text-xs text-gray-700 focus:outline-none w-full"
             />
             {search && (
-              <button aria-label="Clear inventory search" onClick={() => setSearch("")} className="text-gray-300 hover:text-gray-500 cursor-pointer">
+              <button aria-label="Clear inventory search" onClick={() => setSearch("")} className="icon-action text-gray-300 hover:text-gray-500 cursor-pointer">
                 <MdClose size={13} />
               </button>
             )}
           </div>
           <button
             onClick={() => setShowSupplyModal(true)}
-            className="flex items-center gap-1.5 bg-gray-950 hover:bg-gray-800 text-white text-xs font-bold px-4 py-2 rounded-xl transition-[transform,opacity,background-color] cursor-pointer active:scale-[0.98]"
+            className="control flex items-center gap-1.5 bg-gray-950 hover:bg-gray-800 text-white text-xs font-bold px-4 py-2 rounded-xl transition-[transform,opacity,background-color] cursor-pointer active:scale-[0.98]"
           >
             <MdInventory size={14} /> Supply Update
           </button>
@@ -578,7 +573,7 @@ const ProductsTab = ({ mode = 'seller' }) => {
           <button
             key={id}
             onClick={() => setSubtab(id)}
-            className={`px-4 py-2 rounded-lg text-xs font-semibold transition-[transform,opacity,background-color] cursor-pointer ${subtab === id
+            className={`control px-4 py-2 rounded-lg text-xs font-semibold transition-[transform,opacity,background-color] cursor-pointer ${subtab === id
               ? "bg-gray-950 text-white"
               : "text-gray-500 hover:text-gray-800 hover:bg-gray-50"
               }`}

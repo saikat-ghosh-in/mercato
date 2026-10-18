@@ -45,7 +45,7 @@ const SellerDashboard = () => {
           </div>
           {/* Mobile nav toggle */}
           <button
-            className="ml-auto lg:hidden p-2 rounded-xl bg-white border border-gray-100 text-gray-500"
+            className="icon-action ml-auto lg:hidden p-2 rounded-xl bg-white border border-gray-100 text-gray-500"
             aria-label="Toggle dashboard navigation" aria-expanded={mobileNavOpen} onClick={() => setMobileNavOpen(v => !v)}
           >
             {mobileNavOpen ? <MdClose size={18} /> : <MdMenu size={18} />}
@@ -59,7 +59,7 @@ const SellerDashboard = () => {
               key={id}
               aria-pressed={activeTab === id}
               onClick={() => { setActiveTab(id); setMobileNavOpen(false); }}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-[transform,opacity,background-color] cursor-pointer flex-1 justify-center lg:justify-start ${activeTab === id
+              className={`control flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-[transform,opacity,background-color] cursor-pointer flex-1 justify-center lg:justify-start ${activeTab === id
                   ? "bg-gray-950 text-white shadow-sm"
                   : "text-gray-500 hover:bg-gray-50 hover:text-gray-800"
                 }`}

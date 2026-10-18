@@ -52,7 +52,7 @@ const Wishlist = () => {
                         <p className="text-sm text-gray-500 mb-4">{error}</p>
                         <button
                             onClick={loadWishlist}
-                            className="px-5 py-2.5 bg-blue-500 hover:bg-blue-600 text-white text-sm font-bold rounded-xl"
+                            className="control px-5 py-2.5 bg-blue-500 hover:bg-blue-600 text-white text-sm font-bold rounded-xl"
                         >
                             Try Again
                         </button>
@@ -63,7 +63,7 @@ const Wishlist = () => {
                         <p className="text-sm text-gray-400 mb-6">Tap the heart on any product to save it here.</p>
                         <button
                             onClick={() => navigate("/products")}
-                            className="inline-flex items-center gap-2 bg-gray-950 hover:bg-gray-800 text-white text-sm font-bold px-6 py-2.5 rounded-xl"
+                            className="control inline-flex items-center gap-2 bg-gray-950 hover:bg-gray-800 text-white text-sm font-bold px-6 py-2.5 rounded-xl"
                         >
                             <MdShoppingBag size={15} /> Browse Products
                         </button>

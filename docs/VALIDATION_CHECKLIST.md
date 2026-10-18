@@ -49,7 +49,11 @@ This records what was actually checked. Browser checks used disposable demo H2 d
 ## Automated checks and implementation audit
 
 - [x] `npm run lint` and `npm run build` pass.
-- [x] `npm test`: 15 tests pass, including cart normalization/serial queue/pending state/identity reset, stale catalog results, failed refresh retention, rich editor conversion, metadata reuse/retry and aborted metadata isolation.
+- [x] `npm test`: 20 tests pass, including cart normalization/serial queue/pending state/identity reset, stale catalog results, failed refresh retention, rich editor conversion, metadata reuse/retry, aborted metadata isolation, draft/cancel/reopen, atomic Apply, price validation and URL preservation.
+- [x] Current responsive checks: widths 320/360/390/414/768/1024/1440/1920 and 844×390 landscape; tested pages stay within the viewport, header remains accessible, and management tables scroll internally.
+- [x] On-demand filters: initially closed, draft changes leave results/URL untouched, Cancel/reopen restores applied values, invalid prices retain the drawer, Apply commits/closes/restores focus, and clearing a draft remains cancellable.
+- [x] Product rows start at 195px desktop, 205px on 360/390px phones and 231px at 320px. Native selector arrows align with their vertical centers. Forms/checkout use 48px primary actions and mobile dialog actions use 44px targets.
+- [x] Mobile product title taps work across wrapped lines; gallery, guest bag/login merge, quantity updates, address save/review and account edit were exercised. The filter footer remains reachable in landscape.
 - [x] Follow-up Browser checks: consistent pill action shapes on account/forms/admin dialogs, unchanged checkout link appearance after quantity mutations, desktop/mobile sticky filter/sort toolbar, scroll containment, search-height offsets, and filter drawer dismissal.
 - [x] `mvnw.cmd test`: 49 tests pass, no failures/errors/skips. Covers authorization/ownership, nested validation, rich persistence/legacy updates/clearing, role inputs, duplicate phone, uploads, cart/reservations, payment callbacks and order transitions.
 - [x] Additive SQL applied twice in H2 PostgreSQL mode, retaining the old product row and checking collection cleanup.

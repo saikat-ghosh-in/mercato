@@ -101,7 +101,7 @@ const ProfileEdit = () => {
           </div>
           <button
             onClick={() => navigate("/profile")}
-            className="ml-auto flex items-center gap-1.5 text-xs font-semibold text-blue-500 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-xl transition-colors cursor-pointer"
+            className="control ml-auto flex items-center gap-1.5 text-xs font-semibold text-blue-500 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-xl transition-colors cursor-pointer"
           >
             <MdArrowBack size={13} /> Back
           </button>
@@ -221,7 +221,7 @@ const ProfileEdit = () => {
           <div className="flex gap-3">
             <button
               onClick={() => navigate("/profile")}
-              className="flex-1 px-4 py-3 text-sm border border-gray-200 text-gray-700 rounded-xl
+              className="control control-prominent flex-1 px-4 py-3 text-sm border border-gray-200 text-gray-700 rounded-xl
               hover:bg-gray-100 transition-colors cursor-pointer font-medium"
             >
               Cancel
@@ -229,7 +229,7 @@ const ProfileEdit = () => {
             <button
               onClick={handleSave}
               disabled={saving}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm bg-gray-950 hover:bg-gray-800 text-white rounded-xl transition-[transform,opacity,background-color] cursor-pointer font-bold active:scale-[0.98] disabled:opacity-50"
+              className="control control-prominent flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm bg-gray-950 hover:bg-gray-800 text-white rounded-xl transition-[transform,opacity,background-color] cursor-pointer font-bold active:scale-[0.98] disabled:opacity-50"
             >
               <MdSave size={15} />
               {saving ? "Saving..." : "Save Changes"}

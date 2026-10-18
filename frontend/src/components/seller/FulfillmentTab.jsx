@@ -98,7 +98,7 @@ const FulfillmentDetail = ({ fulfillmentId, onBack }) => {
       <div className="flex items-center gap-3">
         <button
           onClick={onBack}
-          className="flex items-center gap-1.5 text-xs font-semibold text-blue-500 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-xl transition-colors cursor-pointer"
+          className="control flex items-center gap-1.5 text-xs font-semibold text-blue-500 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-xl transition-colors cursor-pointer"
         >
           <MdArrowBack size={13} /> Back
         </button>
@@ -157,7 +157,7 @@ const FulfillmentDetail = ({ fulfillmentId, onBack }) => {
                               <button
                                 onClick={() => handleLineAction(line, "ACCEPT", line.pendingQty)}
                                 disabled={isUpdating}
-                                className="text-[11px] font-bold px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors cursor-pointer disabled:opacity-40"
+                                className="control text-[11px] font-bold px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors cursor-pointer disabled:opacity-40"
                               >
                                 {isUpdating ? "..." : "Accept"}
                               </button>
@@ -166,7 +166,7 @@ const FulfillmentDetail = ({ fulfillmentId, onBack }) => {
                               <button
                                 onClick={() => handleLineAction(line, "SHIP", line.pendingQty)}
                                 disabled={isUpdating}
-                                className="text-[11px] font-bold px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg transition-colors cursor-pointer disabled:opacity-40"
+                                className="control text-[11px] font-bold px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg transition-colors cursor-pointer disabled:opacity-40"
                               >
                                 {isUpdating ? "..." : "Ship All"}
                               </button>
@@ -312,7 +312,7 @@ const FulfillmentTab = () => {
             <button
               key={id}
               onClick={() => { setSubtab(id); setSearch(""); }}
-              className={`px-4 py-2 rounded-lg text-xs font-semibold transition-[transform,opacity,background-color] cursor-pointer flex items-center gap-1.5 ${subtab === id
+              className={`control px-4 py-2 rounded-lg text-xs font-semibold transition-[transform,opacity,background-color] cursor-pointer flex items-center gap-1.5 ${subtab === id
                 ? "bg-gray-950 text-white"
                 : "text-gray-500 hover:text-gray-800 hover:bg-gray-50"
                 }`}
@@ -339,7 +339,7 @@ const FulfillmentTab = () => {
             className="text-xs text-gray-700 focus:outline-none w-full"
           />
           {search && (
-            <button aria-label="Clear fulfillment search" onClick={() => setSearch("")} className="text-gray-300 hover:text-gray-500 cursor-pointer">
+            <button aria-label="Clear fulfillment search" onClick={() => setSearch("")} className="icon-action text-gray-300 hover:text-gray-500 cursor-pointer">
               <MdClose size={13} />
             </button>
           )}

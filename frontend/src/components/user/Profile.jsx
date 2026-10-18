@@ -69,7 +69,7 @@ const InfoRow = ({ label, value, copyable, last, children }) => {
                     <div className="flex items-center gap-2">
                         <p className="text-sm text-gray-900 break-all">{value}</p>
                         {copyable && (
-                            <button aria-label={"Copy " + label} onClick={handleCopy} className="text-gray-400 hover:text-blue-500 transition-colors shrink-0 cursor-pointer">
+                            <button aria-label={"Copy " + label} onClick={handleCopy} className="icon-action text-gray-400 hover:text-blue-500 transition-colors shrink-0 cursor-pointer">
                                 <MdContentCopy size={14} />
                             </button>
                         )}
@@ -99,7 +99,7 @@ const NavButton = ({ icon: Icon, label, onClick, variant = "blue" }) => {
     return (
         <button
             onClick={onClick}
-            className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-sm font-medium rounded-xl transition-colors cursor-pointer ${colors[variant]}`}
+            className={`control w-full flex items-center gap-2.5 px-3 py-2.5 text-sm font-medium rounded-xl transition-colors cursor-pointer ${colors[variant]}`}
         >
             {Icon && <Icon size={17} />}
             {label}
@@ -115,7 +115,7 @@ const DeleteModal = ({ onClose, onConfirm, loading }) => (
                     <MdWarning size={20} />
                     <h2 className="text-sm font-bold">Deactivate Account</h2>
                 </div>
-                <button aria-label="Close dialog" onClick={onClose} className="text-gray-400 hover:text-gray-600 cursor-pointer transition-colors">
+                <button aria-label="Close dialog" onClick={onClose} className="icon-action text-gray-400 hover:text-gray-600 cursor-pointer transition-colors">
                     <MdClose size={18} />
                 </button>
             </div>
@@ -134,14 +134,14 @@ const DeleteModal = ({ onClose, onConfirm, loading }) => (
             <div className="flex gap-3">
                 <button
                     onClick={onClose}
-                    className="flex-1 px-3 py-2.5 text-sm border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 cursor-pointer font-medium transition-colors"
+                    className="control flex-1 px-3 py-2.5 text-sm border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 cursor-pointer font-medium transition-colors"
                 >
                     Cancel
                 </button>
                 <button
                     onClick={onConfirm}
                     disabled={loading}
-                    className="flex-1 px-3 py-2.5 text-sm bg-amber-500 hover:bg-amber-600 text-white rounded-xl transition-colors disabled:opacity-50 cursor-pointer font-bold active:scale-[0.98]"
+                    className="control flex-1 px-3 py-2.5 text-sm bg-amber-500 hover:bg-amber-600 text-white rounded-xl transition-colors disabled:opacity-50 cursor-pointer font-bold active:scale-[0.98]"
                 >
                     {loading ? "Deactivating..." : "Deactivate"}
                 </button>
@@ -238,7 +238,7 @@ const Profile = () => {
 
                         <button
                             onClick={() => navigate("/edit-profile")}
-                            className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-xl transition-colors cursor-pointer"
+                            className="control flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-xl transition-colors cursor-pointer"
                         >
                             <MdEdit size={16} />
                             Edit Profile

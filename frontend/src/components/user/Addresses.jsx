@@ -1,3 +1,4 @@
+import SelectControl from "../shared/SelectControl";
 import ModalFrame from "../shared/ModalFrame";
 import Field from "../shared/AuthField";
 import { useEffect, useState } from "react";
@@ -32,7 +33,7 @@ const EmptyState = ({ onAdd }) => (
     <p className="text-sm text-gray-400 mb-6">Add a delivery address to get started</p>
     <button
       onClick={onAdd}
-      className="inline-flex items-center gap-2 bg-gray-950 hover:bg-gray-800 text-white text-sm font-bold px-5 py-2.5 rounded-xl transition-[transform,opacity,background-color] cursor-pointer active:scale-[0.98]"
+      className="control inline-flex items-center gap-2 bg-gray-950 hover:bg-gray-800 text-white text-sm font-bold px-5 py-2.5 rounded-xl transition-[transform,opacity,background-color] cursor-pointer active:scale-[0.98]"
     >
       <MdAdd size={15} /> Add Address
     </button>
@@ -56,7 +57,7 @@ const DeleteModal = ({ address, onClose, onConfirm, loading }) => (
           <MdWarning size={20} />
           <h2 className="text-sm font-bold">Delete Address</h2>
         </div>
-        <button aria-label="Close dialog" onClick={onClose} className="text-gray-400 hover:text-gray-600 cursor-pointer transition-colors">
+        <button aria-label="Close dialog" onClick={onClose} className="icon-action text-gray-400 hover:text-gray-600 cursor-pointer transition-colors">
           <MdClose size={18} />
         </button>
       </div>
@@ -66,11 +67,11 @@ const DeleteModal = ({ address, onClose, onConfirm, loading }) => (
       <p className="text-xs text-gray-400 mb-6">{address.addressLine1}, {address.city}</p>
       <div className="flex gap-3">
         <button  onClick={onClose}
-          className="flex-1 px-3 py-2.5 text-sm border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 cursor-pointer font-medium transition-colors">
+          className="control flex-1 px-3 py-2.5 text-sm border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 cursor-pointer font-medium transition-colors">
           Cancel
         </button>
         <button onClick={onConfirm} disabled={loading}
-          className="flex-1 px-3 py-2.5 text-sm bg-red-500 hover:bg-red-600 text-white rounded-xl cursor-pointer font-bold disabled:opacity-50 active:scale-[0.98] transition-[transform,opacity,background-color]">
+          className="control flex-1 px-3 py-2.5 text-sm bg-red-500 hover:bg-red-600 text-white rounded-xl cursor-pointer font-bold disabled:opacity-50 active:scale-[0.98] transition-[transform,opacity,background-color]">
           {loading ? "Deleting..." : "Delete"}
         </button>
       </div>
@@ -140,7 +141,7 @@ const AddressFormModal = ({ address, onClose, onSave }) => {
           <h2 className="text-sm font-bold text-gray-800">
             {isEdit ? "Edit Address" : "Add New Address"}
           </h2>
-          <button aria-label="Close dialog" onClick={onClose} className="text-gray-400 hover:text-gray-600 cursor-pointer transition-colors">
+          <button aria-label="Close dialog" onClick={onClose} className="icon-action text-gray-400 hover:text-gray-600 cursor-pointer transition-colors">
             <MdClose size={18} />
           </button>
         </div>
@@ -218,7 +219,7 @@ const AddressFormModal = ({ address, onClose, onSave }) => {
             </Field>
             <div className="col-span-2 sm:col-span-1">
               <Field label="State" required error={errors.state}>
-                <select
+                <SelectControl
                   value={form.state}
                   onChange={e => set("state", e.target.value)}
                   className="w-full text-sm text-gray-800 focus:outline-none bg-transparent"
@@ -227,7 +228,7 @@ const AddressFormModal = ({ address, onClose, onSave }) => {
                   {INDIAN_STATES.map(s => (
                     <option key={s} value={s}>{s}</option>
                   ))}
-                </select>
+                </SelectControl>
               </Field>
             </div>
           </div>
@@ -246,11 +247,11 @@ const AddressFormModal = ({ address, onClose, onSave }) => {
         {/* Footer */}
         <div className="flex gap-3 px-5 py-4 border-t border-gray-100 shrink-0">
           <button  onClick={onClose}
-            className="flex-1 px-3 py-2.5 text-sm border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 cursor-pointer font-medium transition-colors">
+            className="control flex-1 px-3 py-2.5 text-sm border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 cursor-pointer font-medium transition-colors">
             Cancel
           </button>
           <button onClick={handleSave} disabled={saving}
-            className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 text-sm bg-gray-950 hover:bg-gray-800 text-white rounded-xl cursor-pointer font-bold disabled:opacity-50 active:scale-[0.98] transition-[transform,opacity,background-color]">
+            className="control flex-1 flex items-center justify-center gap-2 px-3 py-2.5 text-sm bg-gray-950 hover:bg-gray-800 text-white rounded-xl cursor-pointer font-bold disabled:opacity-50 active:scale-[0.98] transition-[transform,opacity,background-color]">
             <MdSave size={14} />
             {saving ? "Saving..." : isEdit ? "Save Changes" : "Add Address"}
           </button>
@@ -364,14 +365,14 @@ const Addresses = () => {
           <div className="ml-auto flex items-center gap-2">
             <button
               onClick={() => navigate("/profile")}
-              className="flex items-center gap-1.5 text-xs font-semibold text-blue-500 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-xl transition-colors cursor-pointer"
+              className="control flex items-center gap-1.5 text-xs font-semibold text-blue-500 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-xl transition-colors cursor-pointer"
             >
               <MdArrowBack size={13} /> Back
             </button>
             {addresses.length > 0 && (
               <button
                 onClick={() => { setEditAddress(null); setShowForm(true); }}
-                className="flex items-center gap-1.5 text-xs font-bold bg-gray-950 hover:bg-gray-800 text-white px-3 py-1.5 rounded-xl transition-[transform,opacity,background-color] cursor-pointer active:scale-[0.98]"
+                className="control flex items-center gap-1.5 text-xs font-bold bg-gray-950 hover:bg-gray-800 text-white px-3 py-1.5 rounded-xl transition-[transform,opacity,background-color] cursor-pointer active:scale-[0.98]"
               >
                 <MdAdd size={14} /> Add New
               </button>

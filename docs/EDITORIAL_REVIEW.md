@@ -2,6 +2,26 @@
 
 The approved white / black / soft-blue direction is implemented across storefront, authentication, account, checkout, seller and admin surfaces. Original Mercato SVG branding and a locally bundled WebP campaign photograph replace the green visual system. Existing marketplace categories and server pricing remain authoritative.
 
+## Latest refinement: compact navigation and Apply-based filters
+
+The utility strip is removed. One persistent header now contains Help and an Account menu with orders, sign-out and role-appropriate dashboards (sign-in/register for guests). The entire header stays at the top: 72px on desktop and 64px below 1024px, including checkout. Narrow phones expose search inside the navigation menu. Expanded search is included in measured sticky offsets.
+
+The catalog title/count and filter/sort controls share a compact toolbar. The introductory sentence and persistent sidebar are removed. Filters open only on request; draft edits do not affect results until Apply. Apply validates prices, commits one URL update, resets pagination, closes the drawer and restores focus. Cancel/Escape/backdrop discard edits; Clear inside the drawer remains a draft change. Search and sorting are preserved. Applied chips remain removable. Existing results survive refreshes and show retryable inline errors.
+
+Explicit control sizes replace color-dependent sizing: 40px desktop actions, 44px mobile targets and 48px prominent forms/checkout. Small icon actions keep 44px mobile hit targets. Shared native selectors use a centered decorative chevron with reserved right padding; keyboard/platform option behavior is retained. Authentication fields are 48px instead of adding excessive inner padding. Product-title links fill their wrapped title area, fixing missed taps between lines. Seller product form actions use concise Create/Save labels with full accessible names.
+
+Browser checks covered 320, 360, 390, 414, 768, 1024, 1440 and 1920px widths and 844×390 landscape. No horizontal document overflow was found in the tested catalog, header, product, bag, checkout, account and management screens. Wide tables remain internally scrollable. The first product row begins at 195px on 1440px desktop, 205px on 360/390px phones, and 231px on a 320px phone. Native sort controls measure 40px desktop/44px mobile with aligned arrow centers; account/checkout form actions measure 48px. Landscape filter options scroll while Apply stays visible (44px high, bottom 374px in a 390px viewport).
+
+Interactive checks include draft isolation, Cancel/reopen, negative/inverted prices, Apply/close/focus restoration, sort preservation, clear-draft cancellation, menu dismissal, Help/account reachability after scrolling and at checkout, guest login/cart merge, mobile gallery/add-to-bag, quantity changes without checkout flashing, address save/checkout review, profile edit, seller catalogue/history and management dialogs/selectors. Demo data resets on API restart. Local servers were restarted as hidden background processes after the earlier sessions stopped; reload old Browser tabs to replace stale development assets.
+
+Five new filter regressions bring the frontend suite to **20 passing tests**; lint and production build also pass. The full backend suite was rerun at the end: **49 tests pass, zero failures/errors/skips**. Backend/API/schema are unchanged in this refinement. Physical touch hardware, OS reduced-motion behavior and external-service checks remain the release gates documented below.
+
+- [Compact desktop catalog](screenshots/compact-catalog-desktop.jpg)
+- [Compact mobile catalog](screenshots/compact-catalog-mobile.jpg)
+- [Apply-based mobile filters](screenshots/apply-filter-mobile.jpg)
+- [Persistent account menu while scrolled](screenshots/persistent-account-desktop.jpg)
+- [Compact mobile login](screenshots/compact-login-mobile.jpg)
+
 ## Run locally
 
 Backend: from `backend`, run `.\mvnw.cmd spring-boot:run -Dspring-boot.run.profiles=demo`.
@@ -20,7 +40,7 @@ The migration was exercised twice against H2 in PostgreSQL compatibility mode wi
 
 ## Verification recorded
 
-- Frontend: lint clean, production build successful, 15 regression tests pass.
+- Frontend: lint clean, production build successful, 20 regression tests pass.
 - Backend: 49 tests pass, zero failures/errors/skips. Includes database/security flows, rich product persistence and legacy updates, ownership, invalid nested input, migration idempotency, demo credential isolation, duplicate phone conflicts, role-input validation, upload validation, inventory reservations, payment callbacks and finalization concurrency.
 - Browser desktop: home/navigation/search, catalog filters/sorting, PDP/gallery, bag quantity and badge, guest sign-in/cart merge, failed sign-in, rich product create/edit, inventory adjustment, category create/edit, admin overview/users/roles-dialog/orders/carts, profile edit, address validation/save, checkout delivery/review/payment-provider failure, wishlist add/remove, and seller overview.
 - Local product creation retained ordered highlights/specifications in the editor; a stock delta changed 12 to 14 without removing the product table during refresh. Role editing was inspected and cancelled; no extra privileges were granted.
@@ -31,7 +51,7 @@ The migration was exercised twice against H2 in PostgreSQL compatibility mode wi
 
 ## Screenshots and control coverage
 
-### Follow-up: consistent controls and stable updates
+### Historical follow-up: consistent controls and stable updates
 
 All action buttons now use the shared pill radius, including secondary, destructive and portal-dialog actions. Icon actions remain circular; image thumbnails and underlined tabs retain their respective image/navigation shapes. Browser computed styles confirmed the same 999px action radius on profile navigation, save/cancel and category-dialog create/cancel controls.
 

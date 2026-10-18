@@ -1,3 +1,4 @@
+import SelectControl from "../shared/SelectControl";
 import ModalFrame from "../shared/ModalFrame";
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -83,8 +84,8 @@ const CancelModal = ({ order, onClose, onConfirm, loading }) => (
             <p className="text-sm text-gray-600 mb-1">Cancel order <span className="font-semibold">#{order.orderId}</span>?</p>
             <p className="text-xs text-gray-400 mb-6">Refund will be initiated if payment was completed.</p>
             <div className="flex gap-3">
-                <button aria-label="Close dialog" onClick={onClose} className="flex-1 px-3 py-2.5 text-sm border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 cursor-pointer font-medium">Keep</button>
-                <button onClick={onConfirm} disabled={loading} className="flex-1 px-3 py-2.5 text-sm bg-red-500 hover:bg-red-600 text-white rounded-xl cursor-pointer font-bold disabled:opacity-50 active:scale-[0.98]">
+                <button aria-label="Close dialog" onClick={onClose} className="control flex-1 px-3 py-2.5 text-sm border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 cursor-pointer font-medium">Keep</button>
+                <button onClick={onConfirm} disabled={loading} className="control flex-1 px-3 py-2.5 text-sm bg-red-500 hover:bg-red-600 text-white rounded-xl cursor-pointer font-bold disabled:opacity-50 active:scale-[0.98]">
                     {loading ? "Cancelling..." : "Yes, Cancel"}
                 </button>
             </div>
@@ -138,7 +139,7 @@ const OrderDetail = ({ orderId, onBack }) => {
         <div className="space-y-4">
             {/* Header */}
             <div className="flex items-center gap-3">
-                <button onClick={onBack} className="flex items-center gap-1.5 text-xs font-semibold text-blue-500 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-xl transition-colors cursor-pointer">
+                <button onClick={onBack} className="control flex items-center gap-1.5 text-xs font-semibold text-blue-500 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-xl transition-colors cursor-pointer">
                     <MdArrowBack size={13} /> Back
                 </button>
                 <div>
@@ -148,7 +149,7 @@ const OrderDetail = ({ orderId, onBack }) => {
                 {canCancel && (
                     <button
                         onClick={() => setShowCancel(true)}
-                        className="ml-auto flex items-center gap-1.5 text-xs font-bold text-red-500 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-xl transition-colors cursor-pointer"
+                        className="control ml-auto flex items-center gap-1.5 text-xs font-bold text-red-500 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-xl transition-colors cursor-pointer"
                     >
                         <MdCancel size={13} /> Cancel Order
                     </button>
@@ -298,9 +299,9 @@ const OrdersTab = () => {
                         placeholder="Search by order ID or customer..."
                         className="text-xs text-gray-700 focus:outline-none w-full"
                     />
-                    {search && <button aria-label="Clear search" onClick={() => setSearch("")} className="text-gray-300 hover:text-gray-500 cursor-pointer"><MdClose size={13} /></button>}
+                    {search && <button aria-label="Clear search" onClick={() => setSearch("")} className="icon-action text-gray-300 hover:text-gray-500 cursor-pointer"><MdClose size={13} /></button>}
                 </div>
-                <select aria-label="Filter orders by status"
+                <SelectControl aria-label="Filter orders by status"
                     value={statusFilter}
                     onChange={e => setStatusFilter(e.target.value)}
                     className="text-xs border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-300 text-gray-700"
@@ -309,7 +310,7 @@ const OrdersTab = () => {
                     {ALL_STATUSES.map(s => (
                         <option key={s} value={s}>{STATUS_MAP[s].label}</option>
                     ))}
-                </select>
+                </SelectControl>
                 <span className="text-xs text-gray-400 font-semibold shrink-0">{filtered.length} order{filtered.length !== 1 ? "s" : ""}</span>
             </div>
 

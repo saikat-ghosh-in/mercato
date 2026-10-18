@@ -55,7 +55,7 @@ const ResetPassword = () => {
                     <p className="text-sm text-gray-500 mb-6">Request a new password reset link to continue.</p>
                     <Link
                         to="/forgot-password"
-                        className="inline-block py-3 px-6 bg-blue-500 hover:bg-blue-600 text-white text-sm font-bold rounded-xl transition-colors"
+                        className="control inline-block py-3 px-6 bg-blue-500 hover:bg-blue-600 text-white text-sm font-bold rounded-xl transition-colors"
                     >
                         Request new link
                     </Link>
@@ -99,7 +99,7 @@ const ResetPassword = () => {
                                 <button
                                     type="button"
                                     onClick={() => setShowPassword((v) => !v)} aria-label={showPassword ? "Hide password" : "Show password"}
-                                    className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer shrink-0"
+                                    className="icon-action text-gray-400 hover:text-gray-600 transition-colors cursor-pointer shrink-0"
                                 >
                                     {showPassword ? <FiEyeOff size={15} /> : <FiEye size={15} />}
                                 </button>
@@ -127,7 +127,7 @@ const ResetPassword = () => {
                                 <button
                                     type="button"
                                     onClick={() => setShowConfirm((v) => !v)} aria-label={showConfirm ? "Hide confirmation password" : "Show confirmation password"}
-                                    className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer shrink-0"
+                                    className="icon-action text-gray-400 hover:text-gray-600 transition-colors cursor-pointer shrink-0"
                                 >
                                     {showConfirm ? <FiEyeOff size={15} /> : <FiEye size={15} />}
                                 </button>
@@ -137,7 +137,7 @@ const ResetPassword = () => {
                         <button
                             type="submit"
                             disabled={isSubmitting}
-                            className="w-full py-3 bg-gray-950 hover:bg-gray-800 disabled:opacity-50 text-white text-sm font-bold rounded-xl transition-[transform,opacity,background-color] active:scale-[0.98]"
+                            className="control control-prominent w-full py-3 bg-gray-950 hover:bg-gray-800 disabled:opacity-50 text-white text-sm font-bold rounded-xl transition-[transform,opacity,background-color] active:scale-[0.98]"
                         >
                             {isSubmitting ? "Updating..." : "Update Password"}
                         </button>

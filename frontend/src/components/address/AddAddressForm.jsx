@@ -200,14 +200,14 @@ const AddAddressForm = ({ address, setOpenAddressModal, setLoadingAddresses }) =
           <button
             type="button"
             onClick={() => setOpenAddressModal(false)}
-            className="px-5 py-2.5 text-sm font-semibold text-gray-600 bg-white border border-gray-200 hover:border-gray-300 rounded-xl transition-colors"
+            className="control px-5 py-2.5 text-sm font-semibold text-gray-600 bg-white border border-gray-200 hover:border-gray-300 rounded-xl transition-colors"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={isLoading}
-            className="flex items-center gap-2 px-6 py-2.5 text-sm font-bold text-white bg-blue-500 hover:bg-blue-600 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed rounded-xl transition-[transform,opacity,background-color] shadow-sm"
+            className="control control-prominent flex items-center gap-2 px-6 py-2.5 text-sm font-bold text-white bg-blue-500 hover:bg-blue-600 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed rounded-xl transition-[transform,opacity,background-color] shadow-sm"
           >
             {isLoading ? (
               <>

@@ -38,7 +38,7 @@ export default function Cart() {
             <div className="flex justify-between gap-4 border-t border-gray-200 pt-5 text-base font-semibold"><dt>Total</dt><dd>{formatCurrency(total)}</dd></div>
           </dl>
           <p className="text-[10px] text-gray-500 mt-2 mb-6">Product prices include applicable taxes.</p>
-          <Link className="button button-dark cart-checkout w-full" to="/checkout" aria-disabled={checkoutBlocked} aria-busy={cartLoading || loading} onClick={event => { if (checkoutBlocked) event.preventDefault(); }}>Continue to checkout <FiArrowRight /></Link>
+          <Link className="button button-prominent button-dark cart-checkout w-full" to="/checkout" aria-disabled={checkoutBlocked} aria-busy={cartLoading || loading} onClick={event => { if (checkoutBlocked) event.preventDefault(); }}>Continue to checkout <FiArrowRight /></Link>
           <p className="sr-only" role="status">{cartLoading || loading ? "Updating your bag. Checkout will be available when the update finishes." : failed || cartError ? "Refresh your bag before checkout." : "Your bag is ready for checkout."}</p>
           <p className="flex items-center justify-center gap-2 text-[10px] text-gray-500 mt-4"><FiShield />Secure checkout with Cashfree</p>
         </aside>

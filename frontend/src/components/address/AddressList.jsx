@@ -73,14 +73,14 @@ const AddressList = ({ addresses, selectedAddress, onEditAddress, onDeleteAddres
                                 <button
                                     aria-label={`Edit address for ${address.recipientName}`}
                                     onClick={(e) => { e.stopPropagation(); onEditAddress(address); }}
-                                    className="p-2 rounded-lg text-gray-400 hover:text-blue-500 hover:bg-blue-50 transition-colors"
+                                    className="icon-action p-2 rounded-lg text-gray-400 hover:text-blue-500 hover:bg-blue-50 transition-colors"
                                 >
                                     <FaEdit size={13} />
                                 </button>
                                 <button
                                     aria-label={`Delete address for ${address.recipientName}`}
                                     onClick={(e) => { e.stopPropagation(); onDeleteAddress(address); }}
-                                    className="p-2 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                                    className="icon-action p-2 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
                                 >
                                     <FaTrash size={13} />
                                 </button>

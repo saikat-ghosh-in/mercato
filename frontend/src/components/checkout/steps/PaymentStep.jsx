@@ -30,14 +30,14 @@ const PaymentStep = ({ onBack, onSubmit, loading, disabled }) => (
       <div className="flex justify-between items-center pt-4 border-t border-gray-100">
         <button
           onClick={onBack}
-          className="flex items-center gap-2 px-5 py-2.5 bg-white border border-gray-200 hover:border-gray-300 text-gray-700 text-xs font-bold rounded-xl transition-colors"
+          className="control flex items-center gap-2 px-5 py-2.5 bg-white border border-gray-200 hover:border-gray-300 text-gray-700 text-xs font-bold rounded-xl transition-colors"
         >
           <FaChevronLeft size={11} /> Back
         </button>
         <button
           onClick={onSubmit}
           disabled={loading || disabled}
-          className="flex items-center gap-2 px-6 py-2.5 bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold rounded-xl transition-[transform,opacity,background-color] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+          className="control control-prominent flex items-center gap-2 px-6 py-2.5 bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold rounded-xl transition-[transform,opacity,background-color] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
         >
           {loading ? (
             <><Spinner /> Preparing...</>

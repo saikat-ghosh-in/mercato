@@ -1,3 +1,4 @@
+import SelectControl from "../shared/SelectControl";
 import { Dialog, DialogPanel, DialogTitle } from "@headlessui/react";
 import ModalFrame from "../shared/ModalFrame";
 import { useEffect, useState } from "react";
@@ -72,7 +73,7 @@ const EditRolesModal = ({ user, onClose, onSave }) => {
                         <h2 className="text-sm font-bold text-gray-800">Edit Roles</h2>
                         <p className="text-[11px] text-gray-400 mt-0.5">{user.username}</p>
                     </div>
-                    <button aria-label="Close dialog" onClick={onClose} className="text-gray-400 hover:text-gray-600 cursor-pointer transition-colors">
+                    <button aria-label="Close dialog" onClick={onClose} className="icon-action text-gray-400 hover:text-gray-600 cursor-pointer transition-colors">
                         <MdClose size={18} />
                     </button>
                 </div>
@@ -86,7 +87,7 @@ const EditRolesModal = ({ user, onClose, onSave }) => {
                             <button
                                 key={role}
                                 onClick={() => toggleRole(role)}
-                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border transition-[transform,opacity,background-color] cursor-pointer ${active
+                                className={`control w-full flex items-center gap-3 px-4 py-3 rounded-xl border transition-[transform,opacity,background-color] cursor-pointer ${active
                                         ? "border-gray-950 bg-gray-950 text-white"
                                         : "border-gray-200 text-gray-600 hover:bg-gray-50"
                                     }`}
@@ -101,11 +102,11 @@ const EditRolesModal = ({ user, onClose, onSave }) => {
 
                 <div className="flex gap-3 p-5 border-t border-gray-100">
                     <button  onClick={onClose}
-                        className="flex-1 px-3 py-2.5 text-sm border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 cursor-pointer font-medium">
+                        className="control flex-1 px-3 py-2.5 text-sm border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 cursor-pointer font-medium">
                         Cancel
                     </button>
                     <button onClick={handleSave} disabled={saving}
-                        className="flex-1 px-3 py-2.5 text-sm bg-gray-950 hover:bg-gray-800 text-white rounded-xl cursor-pointer font-bold disabled:opacity-50 active:scale-[0.98]">
+                        className="control flex-1 px-3 py-2.5 text-sm bg-gray-950 hover:bg-gray-800 text-white rounded-xl cursor-pointer font-bold disabled:opacity-50 active:scale-[0.98]">
                         {saving ? "Saving..." : "Save Roles"}
                     </button>
                 </div>
@@ -118,7 +119,7 @@ const UserDrawer = ({ user, onClose, onRolesEdit }) => (
     <Dialog open onClose={onClose} className="relative z-[80]"><div className="dialog-backdrop" aria-hidden="true" /><DialogPanel transition className="mobile-panel management-drawer"><DialogTitle className="sr-only">User details</DialogTitle>
             <div className="flex items-center justify-between p-5 border-b border-gray-100">
                 <h2 className="text-sm font-bold text-gray-800">User Details</h2>
-                <button aria-label="Close dialog" onClick={onClose} className="text-gray-400 hover:text-gray-600 cursor-pointer">
+                <button aria-label="Close dialog" onClick={onClose} className="icon-action text-gray-400 hover:text-gray-600 cursor-pointer">
                     <MdClose size={18} />
                 </button>
             </div>
@@ -246,12 +247,12 @@ const UsersTab = () => {
                         className="text-xs text-gray-700 focus:outline-none w-full"
                     />
                     {search && (
-                        <button aria-label="Clear search" onClick={() => setSearch("")} className="text-gray-300 hover:text-gray-500 cursor-pointer">
+                        <button aria-label="Clear search" onClick={() => setSearch("")} className="icon-action text-gray-300 hover:text-gray-500 cursor-pointer">
                             <MdClose size={13} />
                         </button>
                     )}
                 </div>
-                <select aria-label="Filter users by role"
+                <SelectControl aria-label="Filter users by role"
                     value={roleFilter}
                     onChange={e => setRoleFilter(e.target.value)}
                     className="text-xs border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-300 text-gray-700"
@@ -260,7 +261,7 @@ const UsersTab = () => {
                     {ALL_ROLES.map(r => (
                         <option key={r} value={r}>{ROLE_CONFIG[r]?.label ?? r}</option>
                     ))}
-                </select>
+                </SelectControl>
                 <span className="text-xs text-gray-400 font-semibold shrink-0">
                     {filtered.length} user{filtered.length !== 1 ? "s" : ""}
                 </span>
@@ -329,7 +330,7 @@ const UsersTab = () => {
                                     <td className="px-4 py-3">
                                         <button
                                             aria-label={"Edit roles for " + u.username} onClick={e => { e.stopPropagation(); setEditRolesUser(u); }}
-                                            className="p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+                                            className="icon-action p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
                                         >
                                             <MdEdit size={14} />
                                         </button>
