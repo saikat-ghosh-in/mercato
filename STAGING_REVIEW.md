@@ -2,7 +2,7 @@
 
 ## Current revision: spacious editorial redesign
 
-The approved white / black / soft-blue redesign supersedes the green styling described in the historical baseline below. Read [the current review notes](docs/EDITORIAL_REVIEW.md) for screenshots, rich-product schema deployment, startup instructions, fixes and external-service limitations, and [the validation checklist](docs/VALIDATION_CHECKLIST.md) for route/action coverage. Final checks: frontend lint/build and 13 tests pass; backend 49 tests pass. Browser checks cover desktop and mobile customer, seller and admin flows. This remains a local `stg` review only, with pre-existing README and local configuration edits excluded.
+The approved white / black / soft-blue redesign supersedes the green styling described in the historical baseline below. Read [the current review notes](docs/EDITORIAL_REVIEW.md) for screenshots, rich-product schema deployment, startup instructions, fixes and external-service limitations, and [the validation checklist](docs/VALIDATION_CHECKLIST.md) for route/action coverage. Final checks: frontend lint/build and 15 tests pass; backend 49 tests pass. Browser checks cover desktop and mobile customer, seller and admin flows. The latest follow-up unifies action-button shapes, stabilizes the checkout control during bag updates, caches product metadata and pins the catalog controls while scrolling. This remains a local `stg` review only, with pre-existing README and local configuration edits excluded.
 
 ## Historical baseline
 

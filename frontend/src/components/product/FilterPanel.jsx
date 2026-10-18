@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useId } from "react";
-import { Dialog, DialogPanel, DialogTitle } from "@headlessui/react";
+import { Dialog, DialogBackdrop, DialogPanel, DialogTitle } from "@headlessui/react";
 import {
     MdFilterList, MdClose, MdCategory, MdStorefront,
     MdKeyboardArrowDown, MdKeyboardArrowUp, MdVerified,
@@ -271,22 +271,17 @@ const FilterPanel = ({
     const sharedProps = { categories, sellers, filters, setParam };
 
     if (!asDrawer) return (
-        <aside className="filter-sidebar hidden lg:block w-56 shrink-0 sticky top-32 max-h-[calc(100dvh-160px)] overflow-y-auto">
+        <aside className="filter-sidebar hidden lg:block w-56 shrink-0" aria-label="Product filters">
             <FilterHeader activeFilterCount={activeFilterCount} clearAllFilters={clearAllFilters} />
             <FilterBody {...sharedProps} />
         </aside>
     );
 
-    if (!open) return null;
-
     return (
         <Dialog open={open} onClose={onClose} className="relative z-60">
             <DialogTitle className="sr-only">Filter products</DialogTitle>
-            <div
-                className="fixed inset-0 bg-black/40"
-                aria-hidden="true"
-            />
-            <DialogPanel className="fixed inset-y-0 right-0 w-80 max-w-[90vw] bg-white shadow-2xl flex flex-col">
+            <DialogBackdrop transition className="dialog-backdrop" />
+            <DialogPanel transition className="filter-drawer fixed inset-y-0 right-0 w-80 max-w-[90vw] bg-white shadow-2xl flex flex-col">
                 <div className="p-5 border-b border-gray-100">
                     <FilterHeader activeFilterCount={activeFilterCount} clearAllFilters={clearAllFilters} onClose={onClose} />
                 </div>

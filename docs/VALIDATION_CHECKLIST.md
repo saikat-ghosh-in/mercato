@@ -49,7 +49,8 @@ This records what was actually checked. Browser checks used disposable demo H2 d
 ## Automated checks and implementation audit
 
 - [x] `npm run lint` and `npm run build` pass.
-- [x] `npm test`: 13 tests pass, including cart normalization/serial queue/pending state/identity reset, stale catalog results, failed refresh retention and rich editor conversion.
+- [x] `npm test`: 15 tests pass, including cart normalization/serial queue/pending state/identity reset, stale catalog results, failed refresh retention, rich editor conversion, metadata reuse/retry and aborted metadata isolation.
+- [x] Follow-up Browser checks: consistent pill action shapes on account/forms/admin dialogs, unchanged checkout link appearance after quantity mutations, desktop/mobile sticky filter/sort toolbar, scroll containment, search-height offsets, and filter drawer dismissal.
 - [x] `mvnw.cmd test`: 49 tests pass, no failures/errors/skips. Covers authorization/ownership, nested validation, rich persistence/legacy updates/clearing, role inputs, duplicate phone, uploads, cart/reservations, payment callbacks and order transitions.
 - [x] Additive SQL applied twice in H2 PostgreSQL mode, retaining the old product row and checking collection cleanup.
 - [x] Static motion audit: transform/opacity feedback, reduced-motion override, retained content during refresh, image dimensions reserved, no page-wide update fade.

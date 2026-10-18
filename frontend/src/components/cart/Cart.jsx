@@ -16,6 +16,7 @@ export default function Cart() {
   const { shipping, platformFee, processingAndHandling } = useSelector(selectCharges);
   const { cartLoading, cartError, cartLoaded } = useSelector(s => s.cart);
   const { items: enriched, loading, failed } = useCartProducts(items);
+  const checkoutBlocked = cartLoading || loading || failed || Boolean(cartError);
 
   return <div className="site-container pb-16">
     <div className="page-heading"><p className="eyebrow"><Link to="/">HOME</Link> / YOUR BAG</p><h1>Bag</h1><p>{qty} item{qty === 1 ? "" : "s"} in your shopping bag.</p></div>
@@ -37,7 +38,8 @@ export default function Cart() {
             <div className="flex justify-between gap-4 border-t border-gray-200 pt-5 text-base font-semibold"><dt>Total</dt><dd>{formatCurrency(total)}</dd></div>
           </dl>
           <p className="text-[10px] text-gray-500 mt-2 mb-6">Product prices include applicable taxes.</p>
-          {cartLoading || loading || failed || cartError ? <button className="button button-dark w-full" disabled>{cartLoading || loading ? "Updating your bag…" : "Refresh bag to continue"}</button> : <Link className="button button-dark w-full" to="/checkout">Continue to checkout <FiArrowRight /></Link>}
+          <Link className="button button-dark cart-checkout w-full" to="/checkout" aria-disabled={checkoutBlocked} aria-busy={cartLoading || loading} onClick={event => { if (checkoutBlocked) event.preventDefault(); }}>Continue to checkout <FiArrowRight /></Link>
+          <p className="sr-only" role="status">{cartLoading || loading ? "Updating your bag. Checkout will be available when the update finishes." : failed || cartError ? "Refresh your bag before checkout." : "Your bag is ready for checkout."}</p>
           <p className="flex items-center justify-center gap-2 text-[10px] text-gray-500 mt-4"><FiShield />Secure checkout with Cashfree</p>
         </aside>
       </div>}

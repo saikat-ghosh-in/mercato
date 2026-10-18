@@ -9,7 +9,7 @@ import QuantityStepper from "../shared/QuantityStepper";
 export default function CartItem({ productId, product }) {
   const dispatch = useDispatch();
   const item = useSelector(selectCartItemByProductId(productId));
-  const pending = useSelector(s => s.cart.cartLoading);
+  const pending = useSelector(s => Boolean(s.cart.pendingProducts?.[productId] || s.cart.pendingProducts?.["*"]));
   if (!item) return null;
   return <div className="bag-item">
     <Link className="bag-image" to={"/products/" + productId}>{product?.primaryImageUrl ? <img src={product.primaryImageUrl} alt={product.productName} /> : <FiImage />}</Link>

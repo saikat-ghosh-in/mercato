@@ -53,8 +53,8 @@ function PageFrame({ children }) {
   return <main id="main-content" tabIndex={-1} className={"app-page " + kind + "-page"}>{children}</main>;
 }
 function NavigationReset() {
-  const { pathname, search } = useLocation();
-  useEffect(() => { window.scrollTo(0, 0); }, [pathname, search]);
+  const { pathname } = useLocation();
+  useEffect(() => { window.scrollTo(0, 0); }, [pathname]);
   return null;
 }
 

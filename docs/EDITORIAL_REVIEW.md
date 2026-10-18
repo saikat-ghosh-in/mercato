@@ -20,7 +20,7 @@ The migration was exercised twice against H2 in PostgreSQL compatibility mode wi
 
 ## Verification recorded
 
-- Frontend: lint clean, production build successful, 13 regression tests pass.
+- Frontend: lint clean, production build successful, 15 regression tests pass.
 - Backend: 49 tests pass, zero failures/errors/skips. Includes database/security flows, rich product persistence and legacy updates, ownership, invalid nested input, migration idempotency, demo credential isolation, duplicate phone conflicts, role-input validation, upload validation, inventory reservations, payment callbacks and finalization concurrency.
 - Browser desktop: home/navigation/search, catalog filters/sorting, PDP/gallery, bag quantity and badge, guest sign-in/cart merge, failed sign-in, rich product create/edit, inventory adjustment, category create/edit, admin overview/users/roles-dialog/orders/carts, profile edit, address validation/save, checkout delivery/review/payment-provider failure, wishlist add/remove, and seller overview.
 - Local product creation retained ordered highlights/specifications in the editor; a stock delta changed 12 to 14 without removing the product table during refresh. Role editing was inspected and cancelled; no extra privileges were granted.
@@ -30,6 +30,20 @@ The migration was exercised twice against H2 in PostgreSQL compatibility mode wi
 - Seller catalogue/inventory, active/history fulfillment tabs and search; admin user drawer via Enter and Escape; signed-in password recovery; incomplete payment return and order recovery; help disclosure and missing-page recovery were exercised in Browser.
 
 ## Screenshots and control coverage
+
+### Follow-up: consistent controls and stable updates
+
+All action buttons now use the shared pill radius, including secondary, destructive and portal-dialog actions. Icon actions remain circular; image thumbnails and underlined tabs retain their respective image/navigation shapes. Browser computed styles confirmed the same 999px action radius on profile navigation, save/cancel and category-dialog create/cancel controls.
+
+The bag checkout link no longer swaps into a dimmed button while quantities update. Its element, label, background and opacity remain stable; `aria-disabled` and a click guard prevent checkout during pending writes or errors. Only the affected item's quantity controls become pending. Cart presentation metadata is cached separately from live server prices and stock flags, avoiding redundant product/image fetches for quantity-only updates. Failed metadata lookups can retry, and aborted responses cannot populate the cache.
+
+The catalog now pins its count, filters, selected chips and sorting below the sticky header on desktop and mobile. The desktop filter column scrolls independently. ResizeObserver measures header/search and toolbar height, with no React state updates on scroll. Query-only changes retain browsing position; pagination returns to the toolbar. Search focus uses preventScroll. Filter/mobile drawers use interruptible 240ms transform transitions, backdrops/popovers use 180ms opacity, and press feedback uses 140ms. Reduced motion removes movement and retains a gentle opacity transition.
+
+Validated in Browser at 1440×1000 and 390×844: scrolled toolbar top aligns with header bottom (89px desktop, 73px mobile); sorting and opening/dismissing filters remain reachable; expanded search adjusts the sticky offset. No horizontal document overflow. Quantity changes retained the black checkout link at opacity 1. Lint, build and all 15 frontend tests pass; two new regressions check metadata reuse/retry and aborted lookup isolation. Backend source is unchanged in this follow-up; its previously recorded 49-test result still applies.
+
+- [Scrolled desktop catalog](screenshots/plp-sticky-desktop.jpg)
+- [Scrolled mobile catalog](screenshots/plp-sticky-mobile.jpg)
+- [Stable cart checkout](screenshots/cart-stable-desktop.jpg)
 
 See [the route/action checklist](VALIDATION_CHECKLIST.md) for the distinction between interactive checks, regression coverage and remaining service-dependent checks.
 
