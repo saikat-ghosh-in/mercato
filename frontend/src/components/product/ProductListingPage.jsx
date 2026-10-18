@@ -8,9 +8,8 @@ import { formatCurrency } from "../../utils/formatCurrency";
 import ProductCard, { CardSkeleton } from "./ProductCard";
 import FilterPanel from "./FilterPanel";
 import Pagination from "./Pagination";
-import { SORT_OPTIONS, buildQueryString, parseParams, countActiveFilters } from "../../utils/productUtils";
+import { buildQueryString, parseParams, countActiveFilters } from "../../utils/productUtils";
 import { useMeasuredHeight } from "../../hooks/useMeasuredHeight";
-import SelectControl from "../shared/SelectControl";
 import { applyFilterDraft, emptyFilterDraft, filterDraftReducer, validateFilterDraft } from "../../utils/filterDraft.js";
 
 export default function ProductListingPage() {
@@ -70,10 +69,7 @@ export default function ProductListingPage() {
       <div className="catalog-toolbar-row">
         <div className="catalog-heading"><h1>{keyword ? 'Results for “' + keyword + '”' : category || "Explore the collection"}</h1><p className="catalog-result-count" role="status">{loading ? "Updating results…" : error ? "Collection unavailable" : (pagination.totalElements ?? 0) + (pagination.totalElements === 1 ? " product" : " products")}</p></div>
         <div className="catalog-toolbar-actions">
-          <button className="button button-outline" aria-expanded={drawer.open} aria-haspopup="dialog" onClick={() => updateDrawer({ type: "OPEN", filters })}><FiSliders />Filters{filterCount > 0 ? " (" + filterCount + ")" : ""}</button>
-          <SelectControl aria-label="Sort products" value={sortBy + ":" + sortingOrder} onChange={e => { const [sort, order] = e.target.value.split(":"); setParam({ sortBy: sort, sortingOrder: order }); }}>
-            {SORT_OPTIONS.map(o => <option key={o.label} value={o.sortBy + ":" + o.sortingOrder}>{o.label}</option>)}
-          </SelectControl>
+          <button className="icon-button catalog-filter-trigger" aria-label={"Filter and sort products" + (filterCount ? `, ${filterCount} active filter${filterCount === 1 ? "" : "s"}` : "")} title="Filter and sort" aria-expanded={drawer.open} aria-haspopup="dialog" onClick={() => updateDrawer({ type: "OPEN", filters })}><FiSliders aria-hidden="true" />{(filterCount > 0 || sortBy !== "createdAt" || sortingOrder !== "desc") && <span className="filter-active-dot" aria-hidden="true" />}</button>
         </div>
       </div>
       {(filterCount > 0 || keyword) && <div className="catalog-filter-chips">

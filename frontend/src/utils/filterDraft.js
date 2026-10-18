@@ -4,7 +4,7 @@ export function filterDraftReducer(state, action) {
   switch (action.type) {
     case "OPEN": return { open: true, error: "", draft: { ...emptyFilterDraft(), ...action.filters, sellers: [...(action.filters.sellers ?? [])] } };
     case "CHANGE": return { ...state, error: "", draft: { ...state.draft, ...action.updates } };
-    case "CLEAR": return { ...state, error: "", draft: emptyFilterDraft() };
+    case "CLEAR": return { ...state, error: "", draft: { ...emptyFilterDraft(), sortBy: state.draft.sortBy, sortingOrder: state.draft.sortingOrder } };
     case "ERROR": return { ...state, error: action.message };
     case "CLOSE": return { ...state, open: false };
     default: return state;
@@ -18,7 +18,7 @@ export function validateFilterDraft(draft) {
   return "";
 }
 
-// One URL update commits the draft; unrelated search/sort parameters stay intact.
+// Commit filters and an optional sort together; preserve search and legacy sort callers.
 export function applyFilterDraft(current, draft) {
   const error = validateFilterDraft(draft);
   if (error) throw new Error(error);
@@ -27,6 +27,10 @@ export function applyFilterDraft(current, draft) {
   for (const [key, value] of Object.entries(fields)) {
     if (value) next.set(key, value);
     else next.delete(key);
+  }
+  if (draft.sortBy && draft.sortingOrder) {
+    next.set("sortBy", draft.sortBy);
+    next.set("sortingOrder", draft.sortingOrder);
   }
   next.set("pageNumber", "0");
   return next;

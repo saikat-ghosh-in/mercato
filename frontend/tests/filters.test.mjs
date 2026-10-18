@@ -36,12 +36,45 @@ test("clearing a draft is reversible and only removes filters when applied", () 
   const url = new URLSearchParams("category=Fashion&minPrice=200&maxPrice=900&sellers=Studio&inStock=true&keyword=shirt&sortBy=productName");
   let drawer = filterDraftReducer(undefined, { type: "OPEN", filters: parseParams(url) });
   drawer = filterDraftReducer(drawer, { type: "CLEAR" });
-  assert.deepEqual(drawer.draft, emptyFilterDraft());
+  assert.deepEqual(drawer.draft, { ...emptyFilterDraft(), sortBy: "productName", sortingOrder: "desc" });
   assert.equal(url.get("category"), "Fashion");
   const result = applyFilterDraft(url, drawer.draft);
   for (const key of ["category", "minPrice", "maxPrice", "sellers", "inStock"]) assert.equal(result.has(key), false);
   assert.equal(result.get("keyword"), "shirt");
   assert.equal(result.get("sortBy"), "productName");
+});
+
+test("sorting stays draft-only until Apply, and Cancel restores the current URL", () => {
+  const url = new URLSearchParams("keyword=camera&sortBy=createdAt&sortingOrder=desc");
+  let drawer = filterDraftReducer(undefined, { type: "OPEN", filters: parseParams(url) });
+  drawer = filterDraftReducer(drawer, { type: "CHANGE", updates: { sortBy: "sellingPrice", sortingOrder: "asc" } });
+  assert.equal(url.get("sortBy"), "createdAt");
+  drawer = filterDraftReducer(drawer, { type: "CLOSE" });
+  drawer = filterDraftReducer(drawer, { type: "OPEN", filters: parseParams(url) });
+  assert.equal(drawer.draft.sortBy, "createdAt");
+  assert.equal(drawer.draft.sortingOrder, "desc");
+});
+
+test("Apply updates sorting and filters atomically while retaining search", () => {
+  const url = new URLSearchParams("keyword=home&pageNumber=5&category=Fashion");
+  const result = applyFilterDraft(url, { ...emptyFilterDraft(), category: "Home & Living", sortBy: "sellingPrice", sortingOrder: "asc" });
+  assert.equal(result.get("keyword"), "home");
+  assert.equal(result.get("category"), "Home & Living");
+  assert.equal(result.get("sortBy"), "sellingPrice");
+  assert.equal(result.get("sortingOrder"), "asc");
+  assert.equal(result.get("pageNumber"), "0");
+  assert.equal(url.get("category"), "Fashion");
+});
+
+test("Clear filters preserves the draft sort and external clearing preserves URL sorting", () => {
+  const url = new URLSearchParams("category=Fashion&sortBy=discountPercent&sortingOrder=desc");
+  let drawer = filterDraftReducer(undefined, { type: "OPEN", filters: parseParams(url) });
+  drawer = filterDraftReducer(drawer, { type: "CHANGE", updates: { sortBy: "sellingPrice", sortingOrder: "asc" } });
+  drawer = filterDraftReducer(drawer, { type: "CLEAR" });
+  assert.equal(drawer.draft.category, "");
+  assert.equal(drawer.draft.sortBy, "sellingPrice");
+  assert.equal(drawer.draft.sortingOrder, "asc");
+  assert.equal(applyFilterDraft(url, emptyFilterDraft()).get("sortBy"), "discountPercent");
 });
 
 test("invalid prices never commit and validation keeps the drawer open", () => {

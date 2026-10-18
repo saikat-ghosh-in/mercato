@@ -25,7 +25,17 @@ This records what was actually checked. Browser checks used disposable demo H2 d
 - [ ] Real verification/reset emails and completed reset link require SMTP sandbox. No existing user's credentials were changed.
 - [ ] Account deactivation and role grants were not performed interactively. The dialogs were inspected without changing access; permission/validation boundaries have backend tests.
 
-## Current follow-up — checkout, homepage and dashboard search
+## Current follow-up — Explore, icon-only filters and compact controls
+
+- [x] Header replaces its three shopping links with one Explore control; category, curated selections, search and Browse everything work in Browser.
+- [x] Icon-only catalog action; sorting appears only inside the filter drawer. Draft edits/cancellation, atomic Apply, search preservation and retained sort after Clear have regression coverage and Browser checks.
+- [x] Shared controls measure 36px desktop / 44px prominent and mobile; glyphs are smaller while phone hit targets stay 44px. Admin search/select/Add controls align at 36px.
+- [x] Catalog/header measured at 320/360/390/414/768/1024/1440/1920 without document overflow. First row: 173px on typical phones, 199px at 320px, 195px desktop. Header/toolbar remain accessible after scrolling.
+- [x] Pointer drawers use 240ms transform/opacity motion; keyboard opening measures 0ms. Escape and search-close restore focus. Reduced motion and hover guards inspected in source.
+- [x] Sign-out/sign-in restores the bag; quantity changes keep checkout appearance stable. Primary controls measure 44px on sign-in, PDP and checkout. Admin product dialog dismissed without saving.
+- [ ] Physical phones/OS motion settings remain external checks. Backend unchanged in this follow-up; previous 49-test backend run remains documented.
+
+## Previous follow-up — checkout, homepage and dashboard search
 
 - [x] Original multi-category campaign image and marketplace copy, working catalog/category links, once-only entry/scroll reveals, reduced-motion and fine-pointer hover safeguards.
 - [x] Delivery/review/payment redesign; saved address add/select/delete, edit prefill, Escape/focus restoration and keyboard progression in Browser.
@@ -60,7 +70,7 @@ This records what was actually checked. Browser checks used disposable demo H2 d
 ## Automated checks and implementation audit
 
 - [x] `npm run lint` and `npm run build` pass.
-- [x] `npm test`: 24 tests pass, including cart normalization/serial queue/pending state/identity reset, stale catalog results, failed refresh retention, rich editor conversion, metadata reuse/retry, aborted metadata isolation, draft/cancel/reopen, atomic Apply, price validation and URL preservation.
+- [x] `npm test`: 27 tests pass, including cart normalization/serial queue/pending state/identity reset, stale catalog results, failed refresh retention, rich editor conversion, metadata reuse/retry, aborted metadata isolation, draft/cancel/reopen, atomic Apply, price validation and URL preservation.
 - [x] Current responsive checks: widths 320/360/390/414/768/1024/1440/1920 and 844×390 landscape; tested pages stay within the viewport, header remains accessible, and management tables scroll internally.
 - [x] On-demand filters: initially closed, draft changes leave results/URL untouched, Cancel/reopen restores applied values, invalid prices retain the drawer, Apply commits/closes/restores focus, and clearing a draft remains cancellable.
 - [x] Product rows start at 195px desktop, 205px on 360/390px phones and 231px at 320px. Native selector arrows align with their vertical centers. Forms/checkout use 48px primary actions and mobile dialog actions use 44px targets.

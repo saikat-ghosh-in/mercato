@@ -2,7 +2,27 @@
 
 The approved white / black / soft-blue direction is implemented across storefront, authentication, account, checkout, seller and admin surfaces. Original Mercato SVG branding and a locally bundled WebP campaign photograph replace the green visual system. Existing marketplace categories and server pricing remain authoritative.
 
-## Latest refinement: checkout, marketplace campaign and dashboard controls
+## Latest refinement: quiet controls and a single Explore entry
+
+The catalog toolbar now has one icon-only Filter and sort action, with an accessible name and a small dot when filters or a non-default sort are active. Sorting lives inside the drawer. Category, seller, price, availability and sort changes remain drafts until Apply commits one URL update, resets pagination and closes the drawer. Cancel/Escape discard pending sort changes. Clearing filters preserves sorting, and applying preserves the current search. Loaded products remain visible during the refresh.
+
+Shop / New & Featured / Collections have been removed from the header. A single Explore control opens a focus-managed panel with real marketplace categories, Just added and More for less selections, marketplace search and Browse everything. It works on desktop and mobile; the narrower header uses the same grid icon. Help, Account, orders/sign-out, saved items and the bag retain their existing supported destinations. The header remains persistent at 72px desktop / 64px mobile.
+
+Shared controls are smaller: standard desktop buttons/selects/searches are 36px, primary actions are 44px, and desktop icon actions are 28–36px with 14–18px glyphs. Phone targets remain 44px while labels, padding and visible icon surfaces are lighter. A coarse-pointer capability query preserves those targets and 16px input text on larger touch screens too. Product save circles are visually 32px inside 44px phone targets. Admin/seller search fields still match their adjacent selectors; mobile text inputs stay at 16px to avoid focus zoom.
+
+Motion follows the existing Emil tokens: 140ms press feedback, 180ms menus/backdrops and 240ms drawers with interruptible transform/opacity transitions. Keyboard-driven menus, drawers and search changes are immediate, without press transforms. Input modality changes update a DOM attribute only when the modality actually changes; they do not trigger application re-renders. Homepage reveals are shorter (240ms copy/sections, 320ms photography), with gentler movement. Reduced-motion variants and fine-pointer hover gates remain in place. Data refreshes do not trigger page-wide fades.
+
+Validation for this frontend-only revision:
+- All 27 frontend tests pass; lint and production build pass. Three added regressions cover draft-sort cancellation/reopening, atomic filter/sort application and sort preservation when clearing filters.
+- Browser exercised category selection, curated savings (20%-off headphones first), Explore search, Browse everything, sort draft/cancel/reopen/apply, search preservation with category/sort, inverted-price validation, Escape/focus return and keyboard-versus-pointer transition durations.
+- Measured widths 320/360/390/414/768/1024/1440/1920 have no document overflow in the catalog/header. Unfiltered products begin at 173px on 360–414px phones, 199px at 320px, 187px on the 768px tablet and 195px on desktop. Header targets measure 44px on phones/tablets and 36px on desktop. The header/toolbar remain at 0px/64px after mobile scrolling; the filter footer stays at the viewport bottom in 844×390 landscape.
+- Sign-out/sign-in restored the saved two-unit bag. Sign-in, product purchase and checkout primary controls measure 44px; the desktop wishlist action is 36px. Quantity increase/decrease kept the checkout link label, black background and opacity of 1. Search Escape restores focus to its trigger without scrolling.
+- Admin products search/select/Add controls all measure 36px. Product-editor Close/Cancel/Create actions were inspected and cancelled without modifying data. Shared seller product/inventory controls use the same classes. Narrow product-page and sign-in layouts have no measured overflow.
+- No backend API/schema changes were made. The preceding checkout revision's 49 backend tests remain the latest backend run; they were not rerun for this UI-only change. Physical touch-device behavior and OS reduced-motion settings remain hardware checks; reduced-motion rules were inspected in code. Existing payment/email sandbox limitations below are unchanged.
+
+Current screenshots: [catalog, desktop](screenshots/icon-filter-catalog-desktop.jpg) · [phone](screenshots/icon-filter-catalog-mobile.jpg) · [Explore, desktop](screenshots/explore-panel-desktop.jpg) · [phone](screenshots/explore-panel-mobile.jpg) · [Filter and sort, desktop](screenshots/filter-sort-desktop.jpg) · [phone](screenshots/filter-sort-mobile.jpg).
+
+## Previous refinement: checkout, marketplace campaign and dashboard controls
 
 Checkout now has a cohesive Delivery → Review → Payment flow: accessible saved-address radio cards, clear add/edit/delete actions, complete product names and seller information, unit quantities, backend line totals, a responsive order summary and a Cashfree preparation panel. Completed steps are revisitable; step changes move keyboard focus to the heading and keep progress below the measured persistent header. Mobile primary actions are 48px, secondary targets 44px. The summary is sticky on desktop and follows the step on phones. Help and Account remain available during checkout.
 

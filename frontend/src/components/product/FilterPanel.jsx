@@ -1,6 +1,8 @@
 import { useId, useState } from "react";
 import { Dialog, DialogBackdrop, DialogPanel, DialogTitle } from "@headlessui/react";
 import { FiChevronDown, FiX } from "react-icons/fi";
+import SelectControl from "../shared/SelectControl";
+import { SORT_OPTIONS } from "../../utils/productUtils";
 
 function FilterSection({ title, children }) {
   const [open, setOpen] = useState(true);
@@ -23,9 +25,10 @@ export default function FilterPanel({ open, categories, sellers, draft, error, o
   return <Dialog open={open} onClose={onClose} className="relative z-60">
     <DialogBackdrop transition className="dialog-backdrop" />
     <DialogPanel transition className="filter-drawer">
-      <div className="filter-drawer-heading"><DialogTitle>Filter products</DialogTitle><button type="button" className="icon-button" aria-label="Close filters" onClick={onClose}><FiX /></button></div>
+      <div className="filter-drawer-heading"><DialogTitle>Filter &amp; sort</DialogTitle><button type="button" className="icon-button" aria-label="Close filters" onClick={onClose}><FiX /></button></div>
       <form className="filter-form" noValidate onSubmit={event => { event.preventDefault(); onApply(); }}>
         <div className="filter-drawer-body">
+          <section className="filter-section filter-sort"><label htmlFor={id + "-sort"}>Sort by</label><SelectControl id={id + "-sort"} value={(draft.sortBy || "createdAt") + ":" + (draft.sortingOrder || "desc")} onChange={event => { const [sortBy, sortingOrder] = event.target.value.split(":"); onChange({ sortBy, sortingOrder }); }}>{SORT_OPTIONS.map(option => <option key={option.label} value={option.sortBy + ":" + option.sortingOrder}>{option.label}</option>)}</SelectControl></section>
           <FilterSection title="Category"><FilterOptions items={categories.map(category => category.categoryName)} selected={draft.category} onChange={category => onChange({ category })} /></FilterSection>
           {sellers.length > 0 && <FilterSection title="Seller"><FilterOptions multiple items={sellers.map(seller => seller.sellerDisplayName)} selected={draft.sellers} onChange={values => onChange({ sellers: values })} /></FilterSection>}
           <FilterSection title="Price range"><div className="filter-price-fields">
