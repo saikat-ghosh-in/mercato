@@ -31,6 +31,8 @@ export const statusReducer = (state = initialState, action) => {
                 categoryLoader: false,
                 categoryError: null,
             };
+        case "CATEGORY_ERROR":
+            return { ...state, categoryLoader: false, categoryError: action.payload };
         case "CATEGORY_LOADER":
             return {
                 ...state,
@@ -41,5 +43,5 @@ export const statusReducer = (state = initialState, action) => {
 
         default:
             return state;
-    }  
+    }
 };

@@ -135,8 +135,20 @@ public class OrderReservationServiceImpl implements OrderReservationService {
     }
 
     private void transferSingleReservation(Order order, OrderLine orderLine, CartReservation cartReservation) {
-        Product product = cartReservation.getProduct();
-        cartReservationRepository.delete(cartReservation);
+        Product product = productRepository.findByProductIdForUpdate(orderLine.getProductId())
+                .orElseThrow(() -> new ResourceNotFoundException("Product", "productId", orderLine.getProductId()));
+        int held = cartReservation.getReservedQty();
+        int ordered = orderLine.getOrderedQty();
+        if (held > ordered) {
+            cartReservation.updateReservedQuantity(held - ordered);
+            cartReservationRepository.save(cartReservation);
+        } else {
+            if (held < ordered) {
+                product.adjustReservedQty(ordered - held);
+                productRepository.save(product);
+            }
+            cartReservationRepository.delete(cartReservation);
+        }
 
         OrderReservation reservation = OrderReservation.builder()
                 .order(order)

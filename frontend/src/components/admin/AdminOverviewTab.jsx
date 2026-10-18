@@ -1,3 +1,4 @@
+import { ORDER_STATUS_MAP } from "../../utils/dashboardStatus";
 import { useEffect, useState } from "react";
 import {
     MdPeople, MdShoppingBag, MdAccessTime, MdHourglassEmpty,
@@ -10,7 +11,7 @@ import {
     DashboardSkeleton, DashboardError,
     RevenueCards, StatCard, SectionCard, SectionLabel,
     TopSellingProducts, StatusBreakdownBars,
-    ORDER_STATUS_MAP,
+
 } from "../shared/DashboardWidgets";
 
 const RecentOrders = ({ orders, statusMap }) => {

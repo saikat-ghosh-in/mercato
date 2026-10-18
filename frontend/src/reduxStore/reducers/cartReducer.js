@@ -21,6 +21,8 @@ export const cartReducer = (state = initialState, action) => {
 
         case "CART_IDLE":
             return { ...state, cartLoading: false };
+        case "CART_ERROR":
+            return { ...state, cartLoading: false, cartLoaded: true, cartError: action.payload };
 
         case "CART_ITEM_UPDATE_FAILED":
             return { ...state, cartLoading: false, updateSeq: state.updateSeq + 1 };
@@ -51,6 +53,7 @@ export const cartReducer = (state = initialState, action) => {
                 itemPrice: item.itemPrice,
                 lineTotal: item.lineTotal,
                 canAddMore: item.canAddMore ?? true,
+                outOfStock: item.outOfStock ?? false,
             }));
 
             let shipping = 0, platformFee = 0, processingAndHandling = 0;

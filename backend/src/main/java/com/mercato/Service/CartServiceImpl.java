@@ -45,6 +45,8 @@ public class CartServiceImpl implements CartService {
                     .orElseThrow(() -> new ResourceNotFoundException(
                             "Product", "productId", productId
                     ));
+            if (!product.isActive())
+                throw new IllegalArgumentException("This product is no longer available");
             cart.addProduct(product, requestedQuantity);
 
             CartItem cartItem = cart.findItemByProductId(productId)
@@ -134,6 +136,25 @@ public class CartServiceImpl implements CartService {
 
     @Override
     @Transactional
+    public void removePurchasedItems(Cart cart, com.mercato.Entity.fulfillment.Order order) {
+        for (var line : order.getOrderLines()) {
+            cart.findItemByProductId(line.getProductId()).ifPresent(item -> {
+                int remaining = Math.max(0, item.getQuantity() - line.getOrderedQty());
+                if (remaining == 0) {
+                    cartReservationService.release(item);
+                    cart.removeCartItem(item);
+                } else {
+                    item.updateQuantity(remaining);
+                    cartReservationService.reserve(item);
+                }
+            });
+        }
+        cartPricingService.applyCharges(cart);
+        cartRepository.save(cart);
+    }
+
+    @Override
+    @Transactional
     public void mergeGuestCartOnLogin(String userId, String guestToken) {
         Optional<Cart> guestCartOpt =
                 cartRepository.findByGuestToken(guestToken);
@@ -147,8 +168,14 @@ public class CartServiceImpl implements CartService {
 
         Cart userCart = resolveCart(new CartContext(userId, null));
 
+        // Release guest holds before reserving the merged cart. Both operations are in
+        // this transaction, so a failed merge restores the original guest holds.
+        cartReservationService.releaseAllForCart(guestCart);
+
         for (CartItem guestItem : guestCart.getCartItems()) {
-            Product product = guestItem.getProduct();
+            Product product = productRepository.findByProductIdForUpdate(guestItem.getProduct().getProductId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Product", "productId", guestItem.getProduct().getProductId()));
+            if (!product.isActive()) continue;
             userCart.findItemByProductId(product.getProductId())
                     .ifPresentOrElse(
                             existing -> {
@@ -165,7 +192,6 @@ public class CartServiceImpl implements CartService {
                     );
         }
 
-        cartReservationService.releaseAllForCart(guestCart);
         cartPricingService.applyCharges(userCart);
         cartRepository.save(userCart);
         cartRepository.delete(guestCart);

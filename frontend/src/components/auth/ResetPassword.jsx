@@ -1,30 +1,11 @@
+import Field from "../shared/AuthField";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { FiLock, FiEye, FiEyeOff, FiArrowLeft } from "react-icons/fi";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { useState } from "react";
 import toast from "react-hot-toast";
 import api from "../../backend/api";
 import { passwordRules } from "../../utils/validationRules";
-
-const Field = ({ label, error, errors, icon: Icon, required = false, children }) => (
-    <div>
-        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1.5">
-            {label}
-            {required && <span className="text-red-400 ml-0.5">*</span>}
-        </label>
-        <div className={`flex items-center gap-2.5 border rounded-xl px-3 py-2.5 transition-colors focus-within:ring-1 ${error || errors?.length
-                ? "border-red-300 focus-within:ring-red-300 bg-red-50/30"
-                : "border-gray-200 focus-within:ring-blue-300"
-            }`}>
-            {Icon && <Icon size={15} className={error || errors?.length ? "text-red-400" : "text-gray-400"} />}
-            {children}
-        </div>
-        {error && <p className="text-[11px] text-red-500 mt-1 font-medium">{error}</p>}
-        {errors?.map((msg) => (
-            <p key={msg} className="text-[11px] text-red-500 mt-1 font-medium">{msg}</p>
-        ))}
-    </div>
-);
 
 const inputCls = "w-full text-sm text-gray-800 focus:outline-none bg-transparent placeholder-gray-300";
 
@@ -38,12 +19,13 @@ const ResetPassword = () => {
     const {
         register,
         handleSubmit,
-        watch,
+        control,
         trigger,
         formState: { errors, isSubmitting },
     } = useForm({ mode: "onTouched" });
 
-    const passwordValue = watch("password");
+    const passwordValue = useWatch({ control, name: "password", defaultValue: "" });
+    const confirmValue = useWatch({ control, name: "confirmPassword", defaultValue: "" });
     const passwordErrors = errors.password
         ? Object.values(errors.password.types ?? {})
         : [];
@@ -116,7 +98,7 @@ const ResetPassword = () => {
                             {passwordValue?.length > 0 && (
                                 <button
                                     type="button"
-                                    onClick={() => setShowPassword((v) => !v)}
+                                    onClick={() => setShowPassword((v) => !v)} aria-label={showPassword ? "Hide password" : "Show password"}
                                     className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer shrink-0"
                                 >
                                     {showPassword ? <FiEyeOff size={15} /> : <FiEye size={15} />}
@@ -141,10 +123,10 @@ const ResetPassword = () => {
                                 autoComplete="new-password"
                                 className={inputCls}
                             />
-                            {watch("confirmPassword")?.length > 0 && (
+                            {confirmValue.length > 0 && (
                                 <button
                                     type="button"
-                                    onClick={() => setShowConfirm((v) => !v)}
+                                    onClick={() => setShowConfirm((v) => !v)} aria-label={showConfirm ? "Hide confirmation password" : "Show confirmation password"}
                                     className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer shrink-0"
                                 >
                                     {showConfirm ? <FiEyeOff size={15} /> : <FiEye size={15} />}

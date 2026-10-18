@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import {
@@ -12,7 +12,7 @@ import { formatCurrency } from "../../utils/formatCurrency";
 import { formatDate } from "../../utils/formatDate";
 import QuantityStepper from "../shared/QuantityStepper";
 import {
-  getOrderStatus, getLineStatus,
+  getOrderStatus,
   CANCEL_REASONS, getCancelWindowRemaining, formatTimeRemaining,
   getPaymentStatusStyle, getRefundStatusStyle,
   getPaymentMessage, getRefundMessage,
@@ -86,19 +86,19 @@ const CancelReasonModal = ({ title, subtitle, onClose, onConfirm, loading, child
 };
 
 const useCancelCountdown = (completedAt) => {
-  const [remaining, setRemaining] = useState(() => getCancelWindowRemaining(completedAt));
+  const [now, setNow] = useState(Date.now);
   const intervalRef = useRef(null);
 
   useEffect(() => {
     if (!completedAt) return;
-    setRemaining(getCancelWindowRemaining(completedAt));
+
     intervalRef.current = setInterval(() => {
-      setRemaining(getCancelWindowRemaining(completedAt));
+      setNow(Date.now());
     }, 1000);
     return () => clearInterval(intervalRef.current);
   }, [completedAt]);
 
-  return remaining;
+  return getCancelWindowRemaining(completedAt, now);
 };
 
 const SyncPaymentButton = ({ orderId, onSync }) => {
@@ -243,7 +243,7 @@ const OrderLineItem = ({ line, orderStatus, onLineUpdate, cancelWindowRemaining 
         .catch(err => console.error(`Failed to fetch product ${line.product.productId}:`, err))
         .finally(() => setImageLoading(false));
     }
-  }, [line.product?.productId]);
+  }, [line.product?.productId, line.product?.primaryImageUrl]);
 
   const lineStatus = line.orderLineStatus?.toUpperCase();
 
@@ -354,7 +354,7 @@ const OrderDetails = ({ orderId }) => {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelling, setCancelling] = useState(false);
 
-  const fetchOrder = async (silent = false) => {
+  const fetchOrder = useCallback(async (silent = false) => {
     try {
       if (!silent) setLoading(true);
       setError("");
@@ -365,9 +365,9 @@ const OrderDetails = ({ orderId }) => {
     } finally {
       if (!silent) setLoading(false);
     }
-  };
+  }, [orderId]);
 
-  useEffect(() => { if (orderId) fetchOrder(); }, [orderId]);
+  useEffect(() => { if (orderId) fetchOrder(); }, [fetchOrder, orderId]);
 
   const cancelWindowRemaining = useCancelCountdown(
     order?.orderStatus === "CONFIRMED" ? order?.paymentSummary?.completedAt : null

@@ -138,9 +138,9 @@ export const refundFooterBg = {
 
 const CANCEL_WINDOW_MS = 60 * 60 * 1000;
 
-export const getCancelWindowRemaining = (completedAt) => {
+export const getCancelWindowRemaining = (completedAt, now = Date.now()) => {
   if (!completedAt) return null;
-  const elapsed = Date.now() - new Date(completedAt).getTime();
+  const elapsed = now - new Date(completedAt).getTime();
   const remaining = CANCEL_WINDOW_MS - elapsed;
   return remaining > 0 ? remaining : 0;
 };

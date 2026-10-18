@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   MdLocalShipping, MdCheckCircle, MdAccessTime,
   MdCancel, MdHourglassEmpty, MdArrowForward,
@@ -26,12 +26,6 @@ const LINE_STATUS = {
 const getLineStatus = (raw) =>
   LINE_STATUS[raw?.toUpperCase()] ?? { label: raw ?? "—", color: "bg-gray-100 text-gray-500", icon: MdAccessTime };
 
-const isActiveFulfillment = (fo) =>
-  fo.orderLines?.some(l => {
-    const s = l.orderLineStatus?.toUpperCase();
-    return s !== "FULFILLED" && s !== "PARTIALLY_FULFILLED" && s !== "CANCELLED";
-  });
-
 const CardSkeleton = () => (
   <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 animate-pulse space-y-3">
     <div className="flex justify-between">
@@ -57,19 +51,19 @@ const FulfillmentDetail = ({ fulfillmentId, onBack }) => {
   const [loading, setLoading] = useState(true);
   const [updatingLine, setUpdatingLine] = useState(null);
 
-  const fetchFo = async () => {
+  const fetchFo = useCallback(async () => {
     try {
       setLoading(true);
       const { data } = await api.get(`/seller/fulfillment-orders/${fulfillmentId}`);
       setFo(data);
-    } catch (err) {
+    } catch {
       toast.error("Failed to load fulfillment details");
     } finally {
       setLoading(false);
     }
-  };
+  }, [fulfillmentId]);
 
-  useEffect(() => { fetchFo(); }, [fulfillmentId]);
+  useEffect(() => { fetchFo(); }, [fetchFo]);
 
   const handleLineAction = async (line, action, qty) => {
     setUpdatingLine(line.orderLineNumber);
@@ -287,7 +281,7 @@ const FulfillmentTab = () => {
         setLoading(true);
         const { data } = await api.get("/seller/open-fulfillment-orders");
         setActiveFulfillments(data ?? []);
-      } catch (err) {
+      } catch {
         toast.error("Failed to load active fulfillment orders");
       } finally {
         setLoading(false);
@@ -296,7 +290,7 @@ const FulfillmentTab = () => {
         setLoading(true);
         const { data } = await api.get("/seller/closed-fulfillment-orders");
         setClosedFulfillments(data ?? []);
-      } catch (err) {
+      } catch {
         toast.error("Failed to load closedfulfillment orders");
       } finally {
         setLoading(false);

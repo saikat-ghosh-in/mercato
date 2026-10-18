@@ -40,7 +40,7 @@ const CashfreePayment = () => {
         };
 
         initAndRedirect();
-    }, []);
+    }, [navigate, paymentData]);
 
     return (
         <div className="bg-gray-50 min-h-screen py-6">

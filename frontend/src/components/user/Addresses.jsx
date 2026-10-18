@@ -333,7 +333,7 @@ const Addresses = () => {
       setLoading(true);
       const { data } = await api.get("/user/addresses");
       setAddresses(data ?? []);
-    } catch (err) {
+    } catch {
       toast.error("Failed to load addresses");
     } finally {
       setLoading(false);

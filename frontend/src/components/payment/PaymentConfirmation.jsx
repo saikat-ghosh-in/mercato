@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { FaCheckCircle, FaTimesCircle, FaClock } from "react-icons/fa";
 import { MdShoppingBag } from "react-icons/md";
 import api from "../../backend/api";
-import { clearCart } from "../../reduxStore/actions/cartActions";
+import { syncCartFromBackend } from "../../reduxStore/actions/cartActions";
 import { clearPaymentData } from "../../reduxStore/actions/paymentActions";
 
 const TERMINAL_FAILURE = new Set(["FAILED", "USER_DROPPED", "CANCELLED"]);
@@ -18,23 +18,23 @@ const PaymentConfirmation = () => {
   const searchParams = new URLSearchParams(window.location.search);
   const orderId = searchParams.get("order_id");
 
-  const [status, setStatus] = useState("loading");
+  const [status, setStatus] = useState(orderId ? "loading" : "failed");
   const [paymentStatus, setPaymentStatus] = useState(null);
 
   useEffect(() => {
     if (!orderId) {
-      setStatus("failed");
       return;
     }
 
     let cancelled = false;
-    let attempts = 0;
-    const maxAttempts = Math.ceil(POLL_TIMEOUT_MS / POLL_INTERVAL_MS);
+    let timeoutId;
+    const deadline = Date.now() + POLL_TIMEOUT_MS;
+    const controller = new AbortController();
 
     const resolveStatus = async () => {
       try {
-        await api.post(`/orders/${orderId}/sync-payment-refund`);
-        const { data: order } = await api.get(`/user/orders/${orderId}`);
+        await api.post(`/orders/${orderId}/sync-payment-refund`, undefined, { signal: controller.signal, timeout: 10000 });
+        const { data: order } = await api.get(`/user/orders/${orderId}`, { signal: controller.signal, timeout: 10000 });
         if (cancelled) return true;
 
         const currentStatus = order?.paymentSummary?.status;
@@ -47,7 +47,7 @@ const PaymentConfirmation = () => {
         }
 
         if (currentStatus === "SUCCESS") {
-          dispatch(clearCart());
+          dispatch(syncCartFromBackend());
           dispatch(clearPaymentData());
           setStatus("success");
           return true;
@@ -72,19 +72,21 @@ const PaymentConfirmation = () => {
       const done = await resolveStatus();
       if (done || cancelled) return;
 
-      attempts += 1;
-      if (attempts >= maxAttempts) {
+      if (Date.now() >= deadline) {
         dispatch(clearPaymentData());
         setStatus("pending");
+      } else {
+        timeoutId = setTimeout(poll, POLL_INTERVAL_MS);
       }
     };
 
     poll();
-    const intervalId = setInterval(poll, POLL_INTERVAL_MS);
+
 
     return () => {
       cancelled = true;
-      clearInterval(intervalId);
+      controller.abort();
+      clearTimeout(timeoutId);
     };
   }, [orderId, dispatch]);
 
@@ -114,7 +116,7 @@ const PaymentConfirmation = () => {
             </div>
             <h2 className="text-xl font-bold text-gray-900 mb-2">Payment received, stock unavailable</h2>
             <p className="text-sm text-gray-500 mb-6">
-              Your payment went through, but the items are no longer held in stock. Please contact support or try placing a new order.
+              Your payment went through, but stock could not be confirmed. Check your order for updates and contact support. Avoid paying again for this order.
             </p>
             <div className="flex flex-col gap-3">
               <button

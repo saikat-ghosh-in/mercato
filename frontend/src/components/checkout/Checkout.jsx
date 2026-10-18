@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { MdShoppingCart } from "react-icons/md";
-import api from "../../backend/api";
+import { useCartProducts } from "../../hooks/useCartProducts";
 import {
   selectCartItems,
   selectCartQty,
@@ -38,8 +38,8 @@ const Checkout = () => {
   const total = useSelector(selectTotal);
   const { shipping, platformFee, processingAndHandling } = useSelector(selectCharges);
 
-  const [cartWithProducts, setCartWithProducts] = useState([]);
-  const [loadingProducts, setLoadingProducts] = useState(false);
+  const { items: cartWithProducts, loading: loadingProducts, failed: productsUnavailable } = useCartProducts(cartItems);
+
   const [step, setStep] = useState(1);
   const [loadingAddresses, setLoadingAddresses] = useState(false);
   const [openAddressModal, setOpenAddressModal] = useState(false);
@@ -49,46 +49,6 @@ const Checkout = () => {
   const [placingOrder, setPlacingOrder] = useState(false);
 
   const isChildRoute = location.pathname !== "/checkout";
-
-  // Fetch product details for all cart items
-  useEffect(() => {
-    if (cartItems.length === 0) {
-      setCartWithProducts([]);
-      return;
-    }
-
-    const fetchProducts = async () => {
-      setLoadingProducts(true);
-      try {
-        const products = await Promise.all(
-          cartItems.map(item =>
-            api.get(`/public/products/${item.productId}`)
-              .then(res => res.data)
-              .catch(() => null)
-          )
-        );
-
-        const productMap = {};
-        products.forEach(p => {
-          if (p) productMap[p.productId] = p;
-        });
-
-        const enriched = cartItems.map(item => ({
-          ...item,
-          product: productMap[item.productId] || null
-        }));
-
-        setCartWithProducts(enriched);
-      } catch (error) {
-        console.error("Failed to fetch product details:", error);
-        setCartWithProducts(cartItems);
-      } finally {
-        setLoadingProducts(false);
-      }
-    };
-
-    fetchProducts();
-  }, [cartItems]);
 
   useEffect(() => {
     if (cartLoaded && cartItems.length === 0 && !isChildRoute) {
@@ -126,6 +86,7 @@ const Checkout = () => {
   };
 
   const handlePlaceOrder = async () => {
+    if (loadingProducts || productsUnavailable) { toast.error("Some items could not be checked. Refresh your bag before paying."); return; }
     if (!selectedAddressForCheckout) {
       toast.error("Please select a shipping address");
       setStep(1);

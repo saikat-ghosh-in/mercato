@@ -31,7 +31,7 @@ const AddToCartControl = ({ product, stopPropagation = false, className = "", sh
         try {
             await dispatch(addToCart(product.productId, 1));
         } finally {
-            setTimeout(() => setOptimisticLoading(false), 100);
+            setOptimisticLoading(false);
         }
     });
 
@@ -58,8 +58,9 @@ const AddToCartControl = ({ product, stopPropagation = false, className = "", sh
             <div className={`h-9 min-w-45 flex items-center border border-gray-200 rounded-xl overflow-hidden bg-white ${className}`}>
                 <button
                     onClick={handleDecrease}
+                    aria-label={cartQty === 1 ? "Remove item" : "Decrease quantity"}
                     disabled={pendingSync}
-                    className={`w-1/4 h-9 flex items-center justify-center transition-colors cursor-pointer shrink-0 text-gray-400 
+                    className={`w-1/4 h-9 flex items-center justify-center transition-colors cursor-pointer shrink-0 text-gray-400
                         disabled:opacity-50 disabled:cursor-not-allowed
                         ${cartQty === 1 ? "hover:bg-gray-100 hover:text-red-500" : "hover:bg-gray-100 hover:text-gray-900"}`}
                 >
@@ -83,9 +84,10 @@ const AddToCartControl = ({ product, stopPropagation = false, className = "", sh
 
                 <button
                     onClick={handleIncrease}
+                    aria-label="Increase quantity"
                     disabled={!canAddMore || pendingSync}
-                    className="w-1/4 h-9 flex items-center justify-center text-gray-400 hover:bg-gray-100 hover:text-gray-900 
-                    transition-colors cursor-pointer shrink-0 disabled:opacity-30 disabled:cursor-not-allowed 
+                    className="w-1/4 h-9 flex items-center justify-center text-gray-400 hover:bg-gray-100 hover:text-gray-900
+                    transition-colors cursor-pointer shrink-0 disabled:opacity-30 disabled:cursor-not-allowed
                     disabled:hover:bg-transparent disabled:hover:text-gray-400"
                 >
                     <FiPlus size={14} />

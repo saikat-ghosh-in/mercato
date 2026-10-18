@@ -72,6 +72,13 @@ class CashfreeFinalizeConcurrencyTest {
     private CountDownLatch threadsAtInsert;
     private CountDownLatch releaseInsert;
 
+    @Test
+    void alreadyConfirmedOrderDoesNotTouchTheCurrentCart() {
+        order.setOrderStatus(OrderStatus.CONFIRMED);
+        org.junit.jupiter.api.Assertions.assertFalse(cashfreeService.finalizeOrderAfterPaymentSuccess(order));
+        org.mockito.Mockito.verifyNoInteractions(cartService);
+    }
+
     @BeforeEach
     void setUp() {
         OrderReservationServiceImpl orderReservationService = new OrderReservationServiceImpl(

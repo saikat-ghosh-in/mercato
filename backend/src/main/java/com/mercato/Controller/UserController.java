@@ -49,7 +49,7 @@ public class UserController {
     }
 
     @PostMapping("/user/addresses/add")
-    public ResponseEntity<AddressResponseDTO> createAddress(@RequestBody AddressRequestDTO addressRequestDTO) {
+    public ResponseEntity<AddressResponseDTO> createAddress(@Valid @RequestBody AddressRequestDTO addressRequestDTO) {
         AddressResponseDTO savedAddressResponseDTO = addressService.createAddress(addressRequestDTO);
         return new ResponseEntity<>(savedAddressResponseDTO, HttpStatus.CREATED);
     }
@@ -62,7 +62,7 @@ public class UserController {
 
     @PutMapping("/user/addresses/{addressId}")
     public ResponseEntity<AddressResponseDTO> updateAddress(@PathVariable String addressId,
-                                                            @RequestBody AddressRequestDTO addressRequestDTO) {
+                                                            @Valid @RequestBody AddressRequestDTO addressRequestDTO) {
         AddressResponseDTO updatedAddressResponseDTO = addressService.updateAddress(addressId, addressRequestDTO);
         return new ResponseEntity<>(updatedAddressResponseDTO, HttpStatus.OK);
     }

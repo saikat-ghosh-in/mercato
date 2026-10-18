@@ -16,6 +16,7 @@ import java.util.Set;
 
 @Slf4j
 @Component
+@org.springframework.core.annotation.Order(0)
 @RequiredArgsConstructor
 public class DataInitializer implements CommandLineRunner {
 

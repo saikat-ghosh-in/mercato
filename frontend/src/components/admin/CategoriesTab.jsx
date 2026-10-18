@@ -97,7 +97,7 @@ const CategoriesTab = () => {
             setLoading(true);
             const { data } = await api.get("/public/categories");
             setCategories(data ?? []);
-        } catch (err) {
+        } catch {
             toast.error("Failed to load categories");
         } finally {
             setLoading(false);

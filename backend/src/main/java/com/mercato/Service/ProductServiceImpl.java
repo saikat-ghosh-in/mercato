@@ -72,7 +72,8 @@ public class ProductServiceImpl implements ProductService {
     @Override
     @Transactional(readOnly = true)
     public ProductResponse getActiveProducts(ProductFilterRequestDTO filter) {
-        Sort sort = buildSort(filter.getSortBy(), filter.getSortingOrder());
+        filter.validate();
+        Sort sort = buildSort(filter.getSortBy(), filter.getSortingOrder()).and(Sort.by("productId"));
         Specification<Product> spec = buildActiveSpec(filter);
 
         long totalElements = productRepository.count(spec);
@@ -169,6 +170,10 @@ public class ProductServiceImpl implements ProductService {
             product.setCategory(category);
         }
 
+        if (productRequestDTO.getPhysicalQty() != product.getPhysicalQty()) {
+            forceSetInventory(product, productRequestDTO.getPhysicalQty());
+        }
+
         try {
             if (!productRequestDTO.getPrimaryImageUrl().equals(product.getPrimaryImageUrl())) {
                 fileService.deleteImage(product.getPrimaryImageUrl());
@@ -176,7 +181,7 @@ public class ProductServiceImpl implements ProductService {
 
             if (product.getSecondaryImageUrls() != null) {
                 for (String oldUrl : product.getSecondaryImageUrls()) {
-                    if (!productRequestDTO.getSecondaryImageUrls().contains(oldUrl)) {
+                    if (productRequestDTO.getSecondaryImageUrls() == null || !productRequestDTO.getSecondaryImageUrls().contains(oldUrl)) {
                         fileService.deleteImage(oldUrl);
                     }
                 }
@@ -215,6 +220,13 @@ public class ProductServiceImpl implements ProductService {
     @Override
     @Transactional
     public List<ProductSupplyUpdateResponseDTO> updateProductInventory(List<ProductSupplyUpdateRequestDTO> productSupplyUpdateRequestDTOs) {
+        if (productSupplyUpdateRequestDTOs == null || productSupplyUpdateRequestDTOs.isEmpty() || productSupplyUpdateRequestDTOs.size() > 100)
+            throw new IllegalArgumentException("Provide between 1 and 100 stock updates");
+        for (ProductSupplyUpdateRequestDTO dto : productSupplyUpdateRequestDTOs) {
+            if (dto == null || dto.getProductId() == null || dto.getProductId().isBlank()
+                    || dto.getQuantity() == null || dto.getSupplyType() == null)
+                throw new IllegalArgumentException("Each stock update requires a product, quantity and supply type");
+        }
         List<ProductSupplyUpdateResponseDTO> responses = new ArrayList<>();
         EcommUser seller = authUtil.getLoggedInUser();
 
@@ -258,9 +270,16 @@ public class ProductServiceImpl implements ProductService {
         if (newPhysicalQty < 0)
             throw new IllegalArgumentException("Physical qty cannot be negative");
 
+        int paidReservedQty = orderReservationRepository
+                .findAllByProductIdOrderByCreatedAtDesc(product.getProductId()).stream()
+                .mapToInt(OrderReservation::getReservedQty).sum();
+        if (newPhysicalQty < paidReservedQty)
+            throw new IllegalArgumentException("Stock cannot be reduced below quantities reserved for paid orders");
+
         int excess = product.getReservedQty() - newPhysicalQty;
         if (excess > 0) excess = releaseCartReservations(product, excess);
-        if (excess > 0) releaseOrderReservations(product, excess);
+        if (excess > 0)
+            throw new IllegalArgumentException("Stock cannot be reduced while inventory reservations are inconsistent");
 
         product.setInventoryAbsolute(newPhysicalQty);
         productRepository.save(product);
@@ -269,6 +288,8 @@ public class ProductServiceImpl implements ProductService {
     private int releaseCartReservations(Product product, int excess) {
         List<CartReservation> cartReservations = cartReservationRepository
                 .findAllByProductIdOrderByCreatedAtDesc(product.getProductId());
+        if (cartReservations.stream().mapToInt(CartReservation::getReservedQty).sum() < excess)
+            throw new IllegalArgumentException("Inventory reservations are inconsistent; stock correction was not applied");
 
         for (CartReservation reservation : cartReservations) {
             if (excess <= 0) break;
@@ -284,25 +305,6 @@ public class ProductServiceImpl implements ProductService {
             }
         }
         return excess;
-    }
-
-    private void releaseOrderReservations(Product product, int excess) {
-        List<OrderReservation> orderReservations = orderReservationRepository
-                .findAllByProductIdOrderByCreatedAtDesc(product.getProductId());
-
-        for (OrderReservation reservation : orderReservations) {
-            if (excess <= 0) break;
-            int toRelease = Math.min(reservation.getReservedQty(), excess);
-            product.adjustReservedQty(-toRelease);
-            excess -= toRelease;
-
-            if (toRelease == reservation.getReservedQty()) {
-                orderReservationRepository.delete(reservation);
-            } else {
-                reservation.setReservedQty(reservation.getReservedQty() - toRelease);
-                orderReservationRepository.save(reservation);
-            }
-        }
     }
 
     @Transactional

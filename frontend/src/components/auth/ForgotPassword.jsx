@@ -1,26 +1,10 @@
+import Field from "../shared/AuthField";
 import { Link } from "react-router-dom";
 import { FiMail, FiArrowLeft } from "react-icons/fi";
 import { useForm } from "react-hook-form";
 import { useState } from "react";
 import toast from "react-hot-toast";
 import api from "../../backend/api";
-
-const Field = ({ label, error, icon: Icon, required = false, children }) => (
-    <div>
-        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1.5">
-            {label}
-            {required && <span className="text-red-400 ml-0.5">*</span>}
-        </label>
-        <div className={`flex items-center gap-2.5 border rounded-xl px-3 py-2.5 transition-colors focus-within:ring-1 ${error
-                ? "border-red-300 focus-within:ring-red-300 bg-red-50/30"
-                : "border-gray-200 focus-within:ring-blue-300"
-            }`}>
-            {Icon && <Icon size={15} className={error ? "text-red-400" : "text-gray-400"} />}
-            {children}
-        </div>
-        {error && <p className="text-[11px] text-red-500 mt-1 font-medium">{error}</p>}
-    </div>
-);
 
 const inputCls = "w-full text-sm text-gray-800 focus:outline-none bg-transparent placeholder-gray-300";
 

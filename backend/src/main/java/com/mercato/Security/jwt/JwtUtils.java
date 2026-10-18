@@ -47,6 +47,7 @@ public class JwtUtils {
 
     public String generateGuestTokenValue() {
         return Jwts.builder()
+                .id(java.util.UUID.randomUUID().toString())
                 .subject("guest")
                 .claim("type", "guest")
                 .issuedAt(new Date())

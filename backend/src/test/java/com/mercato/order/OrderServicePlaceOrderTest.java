@@ -47,6 +47,24 @@ class OrderServicePlaceOrderTest {
     private OrderServiceImpl orderService;
 
     @Test
+    void expiredHoldDoesNotCreateAGatewayOrder() {
+        EcommUser user = new EcommUser();
+        Product product = Product.builder().productId("P-1").build();
+        CartItem item = CartItem.builder().product(product).quantity(1).build();
+        Cart cart = new Cart();
+        cart.setCartItems(List.of(item));
+        when(authUtil.getLoggedInUser()).thenReturn(user);
+        when(cartService.getCartByUser(user)).thenReturn(cart);
+        doThrow(new com.mercato.ExceptionHandler.InsufficientInventoryException("P-1", 0))
+                .when(cartReservationService).validateHeld(item);
+
+        org.junit.jupiter.api.Assertions.assertThrows(com.mercato.ExceptionHandler.InsufficientInventoryException.class,
+                () -> orderService.placeOrder(new OrderCaptureRequestDTO()));
+
+        verifyNoInteractions(cashfreeService, addressRepository, orderRepository);
+    }
+
+    @Test
     void placeOrder_doesNotClearCartOrReleaseReservationsBeforePayment() {
         EcommUser user = new EcommUser();
         user.setUserId("U-1");

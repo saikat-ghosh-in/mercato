@@ -120,6 +120,32 @@ class OrderReservationServiceImplTest {
     }
 
     @Test
+    void transferKeepsAdditionalCartUnitsReserved() {
+        product.setReservedQty(5);
+        cartReservation.setReservedQty(5);
+        cartItem.setQuantity(5);
+
+        orderReservationService.finalizeInventoryForPaidOrder(order, cart);
+
+        assertEquals(5, product.getReservedQty());
+        assertEquals(3, cartReservation.getReservedQty());
+        assertEquals(2, storedOrderReservation.get().getReservedQty());
+        verify(cartReservationRepository, never()).delete(cartReservation);
+    }
+
+    @Test
+    void transferReservesTheDifferenceWhenCartWasReducedDuringPayment() {
+        product.setReservedQty(1);
+        cartReservation.setReservedQty(1);
+        cartItem.setQuantity(1);
+
+        orderReservationService.finalizeInventoryForPaidOrder(order, cart);
+
+        assertEquals(2, product.getReservedQty());
+        assertEquals(2, storedOrderReservation.get().getReservedQty());
+    }
+
+    @Test
     void reserveForOrder_incrementsReservedQtyAndPersistsReservation() {
         product.setReservedQty(1);
 

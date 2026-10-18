@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
     MdSearch, MdClose, MdArrowBack, MdArrowForward,
     MdCheckCircle, MdCancel, MdHourglassEmpty,
@@ -97,19 +97,19 @@ const OrderDetail = ({ orderId, onBack }) => {
     const [showCancel, setShowCancel] = useState(false);
     const [cancelling, setCancelling] = useState(false);
 
-    const fetchOrder = async () => {
+    const fetchOrder = useCallback(async () => {
         try {
             setLoading(true);
             const { data } = await api.get(`/admin/orders/${orderId}`);
             setOrder(data);
-        } catch (err) {
+        } catch {
             toast.error("Failed to load order");
         } finally {
             setLoading(false);
         }
-    };
+    }, [orderId]);
 
-    useEffect(() => { fetchOrder(); }, [orderId]);
+    useEffect(() => { fetchOrder(); }, [fetchOrder]);
 
     const handleCancel = async () => {
         setCancelling(true);
@@ -262,7 +262,7 @@ const OrdersTab = () => {
                 setLoading(true);
                 const { data } = await api.get("/admin/orders/summary");
                 setOrders(data ?? []);
-            } catch (err) {
+            } catch {
                 toast.error("Failed to load orders");
             } finally {
                 setLoading(false);

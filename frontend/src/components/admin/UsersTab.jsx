@@ -214,7 +214,7 @@ const UsersTab = () => {
             setLoading(true);
             const { data } = await api.get("/admin/users");
             setUsers(data ?? []);
-        } catch (err) {
+        } catch {
             toast.error("Failed to load users");
         } finally {
             setLoading(false);

@@ -27,15 +27,20 @@ export const addUpdateUserAddress = (sendData, addressId, setOpenAddressModal, s
         } else {
             await api.put(`/user/addresses/${addressId}`, sendData);
         }
-        dispatch(getUserAddresses(setLoadingAddresses));
+        await dispatch(getUserAddresses(setLoadingAddresses));
+        if (addressId) {
+            dispatch((innerDispatch, getState) => {
+                if (getState().auth.selectedAddressForCheckout?.addressId === addressId)
+                    innerDispatch(setSelectedAddressForCheckout({ ...sendData, addressId }));
+            });
+        }
         toast.success("Address saved successfully");
         dispatch({ type: "IS_SUCCESS" });
+        setOpenAddressModal(false);
     } catch (error) {
         console.error(error);
-        toast.error("Oops! Something went wrong!");
+        toast.error(error?.response?.data?.message || "Couldn’t save the address. Please try again.");
         dispatch({ type: "IS_ERROR", payload: null });
-    } finally {
-        setOpenAddressModal(false);
     }
 };
 

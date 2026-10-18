@@ -13,9 +13,7 @@ export const authenticateUser = (loginRequest, navigate, resetForm, redirect = "
         dispatch({ type: "SET_USER_DETAILS", payload: userDetails });
 
         resetForm();
-        const destination = redirect.startsWith("/")
-            ? decodeURIComponent(redirect)
-            : "/";
+        const destination = redirect.startsWith("/") && !redirect.startsWith("//") ? redirect : "/";
         navigate(destination);
         dispatch(syncCartFromBackend());
     } catch (error) {
@@ -68,7 +66,9 @@ export const fetchUserDetails = () => async (dispatch) => {
         dispatch({ type: "SET_USER_DETAILS", payload: userDetails });
     } catch (error) {
         console.error("Failed to fetch user details:", error);
-        clearUserToken();
-        dispatch({ type: "LOGOUT" });
+        if ([401, 403].includes(error?.response?.status)) {
+            clearUserToken();
+            dispatch({ type: "LOGOUT" });
+        }
     }
 };

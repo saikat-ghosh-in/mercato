@@ -39,7 +39,7 @@ const CartDetail = ({ cartId, onBack }) => {
                 setLoading(true);
                 const { data } = await api.get(`/admin/carts/${cartId}`);
                 setCart(data);
-            } catch (err) {
+            } catch {
                 toast.error("Failed to load cart");
             } finally {
                 setLoading(false);
@@ -157,7 +157,7 @@ const CartsTab = () => {
                 setLoading(true);
                 const { data } = await api.get("/admin/carts");
                 setCarts(data ?? []);
-            } catch (err) {
+            } catch {
                 toast.error("Failed to load carts");
             } finally {
                 setLoading(false);

@@ -11,6 +11,7 @@ import toast from "react-hot-toast";
 import { logOutUser } from "../../reduxStore/actions/authActions";
 import profilePlaceholderImage from "../../assets/profile-placeholder.png";
 import { formatDate } from "../../utils/formatDate";
+import api from "../../backend/api";
 
 const getRoleBadge = (role) => {
     const map = {

@@ -50,6 +50,11 @@ public class OrderServiceImpl implements OrderService {
             throw new CustomBadRequestException("Cart is empty");
         }
 
+        cart.getCartItems().forEach(item -> {
+            if (!item.getProduct().isActive()) throw new CustomBadRequestException("An item in your cart is no longer available");
+            cartReservationService.validateHeld(item);
+        });
+
         Address address = addressRepository.findByAddressIdAndUser_UserId(
                         request.getAddressId(), user.getUserId())
                 .orElseThrow(() -> new ResourceNotFoundException(
@@ -64,7 +69,6 @@ public class OrderServiceImpl implements OrderService {
                 cashfreeOrder
         );
 
-        cart.getCartItems().forEach(cartReservationService::validateHeld);
         orderRepository.save(order);
 
         return new OrderPlacementResponseDTO(

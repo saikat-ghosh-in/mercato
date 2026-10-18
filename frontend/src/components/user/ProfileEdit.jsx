@@ -53,7 +53,6 @@ const ProfileEdit = () => {
   });
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
-  const [previewError, setPreviewError] = useState(false);
 
   const set = (key, val) => {
     setForm(f => ({ ...f, [key]: val }));
@@ -100,10 +99,6 @@ const ProfileEdit = () => {
       setSaving(false);
     }
   };
-
-  const initials = user?.firstName
-    ? `${user.firstName[0]}${user.lastName?.[0] ?? ""}`.toUpperCase()
-    : user?.username?.[0]?.toUpperCase() ?? "?";
 
   return (
     <div className="bg-gray-50 min-h-screen py-6">
@@ -240,7 +235,7 @@ const ProfileEdit = () => {
           <div className="flex gap-3">
             <button
               onClick={() => navigate("/profile")}
-              className="flex-1 px-4 py-3 text-sm border border-gray-200 text-gray-700 rounded-xl 
+              className="flex-1 px-4 py-3 text-sm border border-gray-200 text-gray-700 rounded-xl
               hover:bg-gray-100 transition-colors cursor-pointer font-medium"
             >
               Cancel

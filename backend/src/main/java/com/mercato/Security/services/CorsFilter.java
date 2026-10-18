@@ -14,7 +14,7 @@ import java.io.IOException;
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class CorsFilter implements Filter {
 
-    @Value("${frontend.base.url}")
+    @Value("${cors.allowed.origins:${frontend.base.url}}")
     private String frontendBaseUrl;
 
     @Override
@@ -23,7 +23,12 @@ public class CorsFilter implements Filter {
         HttpServletResponse response = (HttpServletResponse) res;
         HttpServletRequest request = (HttpServletRequest) req;
 
-        response.setHeader("Access-Control-Allow-Origin", frontendBaseUrl);
+        String origin = request.getHeader("Origin");
+        response.setHeader("Vary", "Origin");
+        if (origin != null && java.util.Arrays.stream(frontendBaseUrl.split(","))
+                .map(String::trim).anyMatch(origin::equals)) {
+            response.setHeader("Access-Control-Allow-Origin", origin);
+        }
         response.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
         response.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type, Accept, X-Requested-With");
         response.setHeader("Access-Control-Expose-Headers", "X-Guest-Token");

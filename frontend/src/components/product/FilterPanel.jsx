@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useId } from "react";
+import { Dialog, DialogPanel, DialogTitle } from "@headlessui/react";
 import {
     MdFilterList, MdClose, MdCategory, MdStorefront,
     MdKeyboardArrowDown, MdKeyboardArrowUp, MdVerified,
@@ -12,6 +13,7 @@ const FilterSection = ({ title, children, defaultOpen = true }) => {
         <div className="border-b border-gray-100 pb-4 mb-4 last:border-0 last:mb-0 last:pb-0">
             <button
                 onClick={() => setOpen(v => !v)}
+                aria-expanded={open}
                 className="w-full flex items-center justify-between text-xs font-bold text-gray-700 uppercase tracking-widest mb-3 cursor-pointer"
             >
                 {title}
@@ -25,7 +27,8 @@ const FilterSection = ({ title, children, defaultOpen = true }) => {
 const FilterBtn = ({ active, onClick, children }) => (
     <button
         onClick={onClick}
-        className={`w-full text-left text-xs px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 
+        aria-pressed={Boolean(active)}
+        className={`w-full text-left text-xs px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5
             ${active
                 ? "bg-blue-50 text-blue-600 font-semibold"
                 : "text-gray-600 hover:bg-gray-50"
@@ -81,24 +84,26 @@ const CollapsibleList = ({ items, renderItem, getKey, selected, onSelect }) => {
     );
 };
 
-const PriceFilter = ({ minPrice, maxPrice, setParam }) => (
+const PriceFilter = ({ minPrice, maxPrice, setParam }) => {
+    const id = useId();
+    return (
     <div className="space-y-3">
         <div className="space-y-2">
             <div>
-                <label className="text-[10px] text-gray-400 mb-1 block">Min</label>
+                <label htmlFor={id + "-min"} className="text-[10px] text-gray-400 mb-1 block">Min</label>
                 <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden focus-within:ring-1 focus-within:ring-blue-400">
                     <span className="px-2 text-xs text-gray-400 bg-gray-50 border-r border-gray-200 py-2 shrink-0">₹</span>
-                    <input type="number" placeholder="0" value={minPrice}
+                    <input id={id + "-min"} type="number" min="0" step="0.01" placeholder="0" value={minPrice}
                         onChange={e => setParam({ minPrice: e.target.value })}
                         className="w-full px-2 py-2 text-xs text-gray-700 focus:outline-none"
                     />
                 </div>
             </div>
             <div>
-                <label className="text-[10px] text-gray-400 mb-1 block">Max</label>
+                <label htmlFor={id + "-max"} className="text-[10px] text-gray-400 mb-1 block">Max</label>
                 <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden focus-within:ring-1 focus-within:ring-blue-400">
                     <span className="px-2 text-xs text-gray-400 bg-gray-50 border-r border-gray-200 py-2 shrink-0">₹</span>
-                    <input type="number" placeholder="Any" value={maxPrice}
+                    <input id={id + "-max"} type="number" min="0" step="0.01" placeholder="Any" value={maxPrice}
                         onChange={e => setParam({ maxPrice: e.target.value })}
                         className="w-full px-2 py-2 text-xs text-gray-700 focus:outline-none"
                     />
@@ -112,7 +117,7 @@ const PriceFilter = ({ minPrice, maxPrice, setParam }) => (
             </button>
         )}
     </div>
-);
+); };
 
 const MultiCollapsibleList = ({ items, renderItem, getKey, selected, onToggle, onClearAll }) => {
     const [expanded, setExpanded] = useState(false);
@@ -220,16 +225,8 @@ const FilterBody = ({ categories, sellers, filters, setParam }) => {
             </FilterSection>
 
             <FilterSection title="Availability">
-                <label className="flex items-center gap-2.5 cursor-pointer group"
-                    onClick={() => setParam({ inStock: inStockOnly ? "" : "true" })}>
-                    <span className={`w-4 h-4 rounded flex items-center justify-center border shrink-0 transition-colors ${inStockOnly ? "bg-blue-500 border-blue-500" : "border-gray-300 group-hover:border-blue-300"
-                        }`}>
-                        {inStockOnly && (
-                            <svg viewBox="0 0 10 8" className="w-2.5 h-2.5">
-                                <path d="M1 4l3 3 5-6" stroke="white" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-                            </svg>
-                        )}
-                    </span>
+                <label className="flex items-center gap-2.5 cursor-pointer group">
+                    <input type="checkbox" checked={inStockOnly} onChange={e => setParam({ inStock: e.target.checked ? "true" : "" })} />
                     <span className="text-xs text-gray-600 flex items-center gap-1">
                         <MdVerified size={12} className={inStockOnly ? "text-blue-500" : "text-gray-300"} />
                         In Stock Only
@@ -258,7 +255,7 @@ const FilterHeader = ({ activeFilterCount, clearAllFilters, onClose }) => (
                 </button>
             )}
             {onClose && (
-                <button onClick={onClose} className="text-gray-400 hover:text-gray-700 cursor-pointer transition-colors">
+                <button onClick={onClose} aria-label="Close filters" className="text-gray-400 hover:text-gray-700 cursor-pointer transition-colors">
                     <MdClose size={20} />
                 </button>
             )}
@@ -274,7 +271,7 @@ const FilterPanel = ({
     const sharedProps = { categories, sellers, filters, setParam };
 
     if (!asDrawer) return (
-        <aside className="hidden lg:block w-56 shrink-0 bg-white rounded-2xl border border-gray-100 shadow-sm p-5 sticky top-20">
+        <aside className="hidden lg:block w-56 shrink-0 bg-white rounded-lg border border-gray-100 p-5 sticky top-40 max-h-[calc(100dvh-180px)] overflow-y-auto">
             <FilterHeader activeFilterCount={activeFilterCount} clearAllFilters={clearAllFilters} />
             <FilterBody {...sharedProps} />
         </aside>
@@ -283,12 +280,13 @@ const FilterPanel = ({
     if (!open) return null;
 
     return (
-        <>
+        <Dialog open={open} onClose={onClose} className="relative z-60">
+            <DialogTitle className="sr-only">Filter products</DialogTitle>
             <div
-                className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 lg:hidden"
-                onClick={onClose}
+                className="fixed inset-0 bg-black/40"
+                aria-hidden="true"
             />
-            <div className="fixed inset-y-0 right-0 z-50 w-72 bg-white shadow-2xl flex flex-col lg:hidden">
+            <DialogPanel className="fixed inset-y-0 right-0 w-80 max-w-[90vw] bg-white shadow-2xl flex flex-col">
                 <div className="p-5 border-b border-gray-100">
                     <FilterHeader activeFilterCount={activeFilterCount} clearAllFilters={clearAllFilters} onClose={onClose} />
                 </div>
@@ -300,11 +298,11 @@ const FilterPanel = ({
                         onClick={onClose}
                         className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2.5 rounded-xl text-sm transition-colors cursor-pointer"
                     >
-                        Show {totalElements} Results
+                        Show {totalElements} {totalElements === 1 ? "result" : "results"}
                     </button>
                 </div>
-            </div>
-        </>
+            </DialogPanel>
+        </Dialog>
     );
 };
 

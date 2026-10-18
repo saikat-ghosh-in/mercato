@@ -14,7 +14,7 @@ const AddressList = ({ addresses, selectedAddress, onEditAddress, onDeleteAddres
                     <div
                         key={address.addressId}
                         onClick={() => dispatch(setSelectedAddressForCheckout(address))}
-                        className={`relative p-4 rounded-xl border-2 cursor-pointer transition-all duration-150
+                        className={`relative p-4 rounded-xl border-2 cursor-pointer transition-colors duration-150
                             ${isSelected
                                 ? "border-blue-500 bg-blue-50"
                                 : "border-gray-100 bg-gray-50 hover:border-gray-200"
@@ -25,6 +25,9 @@ const AddressList = ({ addresses, selectedAddress, onEditAddress, onDeleteAddres
 
                                 {/* Name + checkmark */}
                                 <div className="flex items-center gap-2">
+                                    <input type="radio" name="shipping-address" checked={isSelected}
+                                        aria-label={`Deliver to ${address.recipientName}, ${address.addressLine1}`}
+                                        onChange={() => dispatch(setSelectedAddressForCheckout(address))} />
                                     <p className="text-sm font-bold text-gray-900">{address.recipientName}</p>
                                     {isSelected && (
                                         <FaCheckCircle size={14} className="text-blue-500 shrink-0" />
@@ -68,12 +71,14 @@ const AddressList = ({ addresses, selectedAddress, onEditAddress, onDeleteAddres
                             {/* Actions */}
                             <div className="flex items-center gap-1 shrink-0">
                                 <button
+                                    aria-label={`Edit address for ${address.recipientName}`}
                                     onClick={(e) => { e.stopPropagation(); onEditAddress(address); }}
                                     className="p-2 rounded-lg text-gray-400 hover:text-blue-500 hover:bg-blue-50 transition-colors"
                                 >
                                     <FaEdit size={13} />
                                 </button>
                                 <button
+                                    aria-label={`Delete address for ${address.recipientName}`}
                                     onClick={(e) => { e.stopPropagation(); onDeleteAddress(address); }}
                                     className="p-2 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
                                 >

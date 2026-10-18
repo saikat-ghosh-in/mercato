@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   MdAdd, MdEdit, MdDelete, MdSearch, MdClose,
   MdWarning, MdInventory,
@@ -551,7 +551,7 @@ const ProductsTab = ({ mode = 'seller' }) => {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchProducts = async () => {
+  const fetchProducts = useCallback(async () => {
     try {
       setLoading(true);
       const [productsRes, catsRes] = await Promise.all([
@@ -560,14 +560,14 @@ const ProductsTab = ({ mode = 'seller' }) => {
       ]);
       setProducts(productsRes.data ?? []);
       setCategories(catsRes.data ?? []);
-    } catch (err) {
+    } catch {
       toast.error("Failed to load products");
     } finally {
       setLoading(false);
     }
-  };
+  }, [mode]);
 
-  useEffect(() => { fetchProducts(); }, []);
+  useEffect(() => { fetchProducts(); }, [fetchProducts]);
 
   return (
     <div className="space-y-4">

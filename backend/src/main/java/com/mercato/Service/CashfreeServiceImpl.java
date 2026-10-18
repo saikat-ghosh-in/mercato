@@ -523,6 +523,7 @@ public class CashfreeServiceImpl implements CashfreeService {
      */
     boolean finalizeOrderAfterPaymentSuccess(Order order) {
         boolean wasAlreadyConfirmed = OrderStatus.CONFIRMED.equals(order.getOrderStatus());
+        if (order.getOrderStatus() != OrderStatus.CREATED && !order.isInventoryFinalizationFailed()) return false;
 
         Optional<EcommUser> buyer = userRepository.findByEmail(order.getCustomerEmail());
         Cart cart = buyer.map(cartService::getCartByUser).orElse(null);
@@ -544,8 +545,8 @@ public class CashfreeServiceImpl implements CashfreeService {
             recordConfirmationTransitions(order);
         }
 
-        if (buyer.isPresent() && cart != null && !cart.isEmpty()) {
-            cartService.clearCart(new CartContext(buyer.get().getUserId(), null));
+        if (inventoryOwned && cart != null && !cart.isEmpty()) {
+            cartService.removePurchasedItems(cart, order);
         }
 
         orderRepository.save(order);

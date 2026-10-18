@@ -21,6 +21,8 @@ public interface CartService {
 
     void clearCart(CartContext context);
 
+    void removePurchasedItems(Cart cart, com.mercato.Entity.fulfillment.Order order);
+
     Cart getCartByUser(EcommUser user);
 
     List<CartResponseDTO> getAllCarts();

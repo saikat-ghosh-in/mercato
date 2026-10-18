@@ -1,4 +1,4 @@
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import { useForm, Controller } from "react-hook-form";
 import { MdLocationOn } from "react-icons/md";
 import { addUpdateUserAddress } from "../../reduxStore/actions/addressActions";
@@ -21,6 +21,8 @@ const InputField = ({ field, placeholder, error, type = "text", prefix, maxLengt
     )}
     <input
       {...field}
+      aria-label={{ recipientName: "Recipient name", recipientPhone: "Phone number", addressLine1: "Address line 1", addressLine2: "Address line 2", city: "City", state: "State", pincode: "Pincode", country: "Country" }[field.name]}
+      aria-invalid={Boolean(error)}
       type={type}
       placeholder={placeholder}
       maxLength={maxLength}
@@ -36,9 +38,8 @@ const FieldError = ({ message }) =>
 
 const AddAddressForm = ({ address, setOpenAddressModal, setLoadingAddresses }) => {
   const dispatch = useDispatch();
-  const { isLoading } = useSelector((s) => s.status || { isLoading: false });
 
-  const { control, handleSubmit, formState: { errors } } = useForm({
+  const { control, handleSubmit, formState: { errors, isSubmitting: isLoading } } = useForm({
     mode: "onTouched",
     defaultValues: {
       recipientName: address?.recipientName || "",
@@ -48,12 +49,12 @@ const AddAddressForm = ({ address, setOpenAddressModal, setLoadingAddresses }) =
       city: address?.city || "",
       state: address?.state || "",
       pincode: address?.pincode || "",
-      country: address?.country || "",
+      country: address?.country || "India",
     },
   });
 
   const onSubmit = (data) => {
-    dispatch(addUpdateUserAddress(data, address?.addressId, setOpenAddressModal, setLoadingAddresses));
+    return dispatch(addUpdateUserAddress(data, address?.addressId, setOpenAddressModal, setLoadingAddresses));
   };
 
   const isEditing = !!address?.addressId;
@@ -171,7 +172,7 @@ const AddAddressForm = ({ address, setOpenAddressModal, setLoadingAddresses }) =
             <Controller
               name="pincode"
               control={control}
-              rules={{ required: "Pincode is required" }}
+              rules={{ required: "Pincode is required", pattern: { value: /^[1-9][0-9]{5}$/, message: "Enter a valid 6-digit Indian pincode" } }}
               render={({ field }) => (
                 <InputField field={field} placeholder="Postal code" error={errors.pincode} inputMode="numeric" />
               )}

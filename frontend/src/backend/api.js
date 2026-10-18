@@ -7,8 +7,9 @@ import {
 
 const api = axios.create({
     baseURL: import.meta.env.VITE_BACKEND_BASE_URL
-        ? `${import.meta.env.VITE_BACKEND_BASE_URL}/api`
+        ? `${import.meta.env.VITE_BACKEND_BASE_URL.replace(/\/+$/, "")}/api`
         : "/api",
+    timeout: 20000,
     paramsSerializer: (params) => {
         return Object.entries(params)
             .map(([key, val]) => `${key}=${encodeURIComponent(val)}`)
@@ -20,8 +21,7 @@ const PROTECTED_ENDPOINTS = [
     "/user/",
     "/admin/",
     "/seller/",
-    "/orders",
-    "/cart"
+    "/orders"
 ];
 
 const isProtectedEndpoint = (url) => {
@@ -36,7 +36,7 @@ api.interceptors.request.use(
             console.warn("Token expired");
             clearUserToken();
 
-            toast.info("Your session has expired. Please log in again.");
+            toast("Your session has expired. Please log in again.", { id: "session-expired" });
             if (isProtectedEndpoint(config.url)) {
                 window.location.href = "/login";
                 return Promise.reject(new Error("Token expired"));

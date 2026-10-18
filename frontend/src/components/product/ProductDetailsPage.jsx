@@ -7,7 +7,7 @@ import {
 } from "react-icons/md";
 import toast from "react-hot-toast";
 import { clearProductToDisplay, setProductToDisplay } from "../../reduxStore/actions/productActions";
-import { useSubHeader } from "../shared/SubHeaderContext";
+import { useSubHeader } from "../../hooks/useSubHeader";
 import { formatDate } from "../../utils/formatDate";
 import { formatCurrency } from "../../utils/formatCurrency";
 import ProductCard from "./ProductCard";
@@ -51,21 +51,22 @@ const ProductDetailsPage = () => {
     const cartItem = useSelector(selectCartItemByProductId(productId));
 
     useEffect(() => {
+        const controller = new AbortController();
         const fetchProduct = async () => {
             try {
                 setLoading(true);
-                await dispatch(setProductToDisplay(productId));
+                await dispatch(setProductToDisplay(productId, controller.signal));
             } catch {
+                if (controller.signal.aborted) return;
                 toast.error("Product not found");
                 navigate("/products");
             } finally {
-                setLoading(false);
+                if (!controller.signal.aborted) setLoading(false);
             }
         };
         fetchProduct();
-        window.scrollTo({ top: 0, behavior: "smooth" });
-        return () => dispatch(clearProductToDisplay());
-    }, [productId]);
+        return () => { controller.abort(); dispatch(clearProductToDisplay()); };
+    }, [productId, dispatch, navigate]);
 
     useEffect(() => {
         if (loading || !product?.categoryName) return;
@@ -86,7 +87,7 @@ const ProductDetailsPage = () => {
                         .filter((p) => p.productId !== product.productId)
                         .slice(0, 4)
                 );
-            } catch (error) {
+            } catch {
                 console.warn("Failed to fetch related products");
             }
         };
@@ -103,7 +104,7 @@ const ProductDetailsPage = () => {
                 </button>
                 <span className="text-xs text-gray-300">/</span>
                 <button
-                    onClick={() => navigate(`/products?category=${product?.categoryName}`)}
+                    onClick={() => navigate(`/products?category=${encodeURIComponent(product?.categoryName || "")}`)}
                     className="text-xs text-gray-400 hover:text-blue-500 transition-colors cursor-pointer shrink-0"
                 >
                     {product?.categoryName}
@@ -113,7 +114,7 @@ const ProductDetailsPage = () => {
             </div>
         );
         return () => setSubHeader(null);
-    }, [product]);
+    }, [product, navigate, setSubHeader]);
 
     useEffect(() => {
         const onScroll = () => setStickyVisible(window.scrollY > 500);
@@ -127,7 +128,7 @@ const ProductDetailsPage = () => {
     const hasDiscount = product?.discountPercent > 0;
     const savings = product?.retailPrice - product?.sellingPrice;
     const cartQty = cartItem?.quantity ?? 0;
-    
+
     // availableQty from backend ALREADY INCLUDES user's cart reservation
     // So: canAddMore = availableQty (DON'T subtract cartQuantity!)
     const canAddMore = product?.availableQty ?? 0;
@@ -161,7 +162,7 @@ const ProductDetailsPage = () => {
                     <div className="space-y-6">
                         <div className="flex items-center gap-2 flex-wrap">
                             <button
-                                onClick={() => navigate(`/products?category=${product?.categoryName}`)}
+                                onClick={() => navigate(`/products?category=${encodeURIComponent(product?.categoryName || "")}`)}
                                 className="inline-flex items-center gap-1 text-xs font-semibold text-blue-500 hover:text-blue-700 bg-blue-50 px-2.5 py-1 rounded-full transition-colors cursor-pointer"
                             >
                                 <MdCategory size={11} /> {product?.categoryName}
@@ -206,7 +207,7 @@ const ProductDetailsPage = () => {
                         />
 
                         <div className="grid grid-cols-3 gap-3">
-                            {[["🚚", "Free Delivery", "Above ₹999"], ["↩️", "7-Day Returns", "Hassle-free"], ["🔒", "Secure Pay", "Encrypted"]].map(([icon, title, sub]) => (
+                            {[["🚚", "Free Delivery", "Above ₹" + (import.meta.env.VITE_FREE_SHIPPING_ABOVE || 999)], ["▤", "Order updates", "In your account"], ["🔒", "Secure Pay", "Encrypted"]].map(([icon, title, sub]) => (
                                 <div key={title} className="bg-gray-50 rounded-xl p-3 text-center border border-gray-100">
                                     <div className="text-lg mb-1">{icon}</div>
                                     <div className="text-xs font-semibold text-gray-800">{title}</div>
@@ -244,7 +245,7 @@ const ProductDetailsPage = () => {
                                 <p className="text-xs text-gray-400 mt-0.5">You might also like these</p>
                             </div>
                             <button
-                                onClick={() => navigate(`/products?category=${product?.categoryName}`)}
+                                onClick={() => navigate(`/products?category=${encodeURIComponent(product?.categoryName || "")}`)}
                                 className="inline-flex items-center gap-1 text-xs font-semibold text-blue-500 hover:text-blue-700 transition-colors cursor-pointer"
                             >
                                 See all <MdArrowForward size={14} />
@@ -263,7 +264,7 @@ const ProductDetailsPage = () => {
                 )}
             </div>
 
-            <div className={`fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 shadow-2xl transition-all duration-300 ${stickyVisible ? "translate-y-0 opacity-100" : "translate-y-full opacity-0 pointer-events-none"}`}>
+            <div aria-hidden={!stickyVisible} inert={!stickyVisible} className={`fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 shadow-2xl transition-[transform,opacity] duration-200 ${stickyVisible ? "translate-y-0 opacity-100" : "translate-y-full opacity-0 pointer-events-none"}`}>
                 <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
                     <div className="min-w-0 flex items-center gap-3">
                         {product?.primaryImageUrl && (

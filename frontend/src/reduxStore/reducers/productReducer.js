@@ -1,14 +1,25 @@
 const initialState = {
     products: [],
     pagination: {},
-    productToDisplay: null
+    productToDisplay: null,
+    loading: false,
+    error: null,
+    requestId: null,
 };
 
 export const productReducer = (state = initialState, action) => {
     switch (action.type) {
+        case "PRODUCTS_LOADING":
+            return { ...state, loading: true, error: null, requestId: action.requestId };
+        case "PRODUCTS_ERROR":
+            if (state.requestId !== action.requestId) return state;
+            return { ...state, loading: false, error: action.payload, products: [], pagination: {} };
         case "FETCH_PRODUCTS":
+            if (state.requestId !== action.requestId) return state;
             return {
                 ...state,
+                loading: false,
+                error: null,
                 products: action.payload,
                 pagination: {
                     ...state.pagination,

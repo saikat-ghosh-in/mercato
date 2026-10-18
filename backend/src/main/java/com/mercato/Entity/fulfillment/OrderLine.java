@@ -84,6 +84,7 @@ public class OrderLine {
     private BigDecimal lineTotal;
 
     @Column(nullable = false, precision = 15, scale = 2)
+    @Builder.Default
     private BigDecimal revenue = BigDecimal.valueOf(0);
 
     @Column(updatable = false, length = 100)

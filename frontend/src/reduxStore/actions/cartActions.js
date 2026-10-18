@@ -2,98 +2,63 @@ import api from "../../backend/api";
 import toast from "react-hot-toast";
 import { showWarningToast } from "../../utils/toastUtils";
 
-export const syncCartFromBackend = () => async (dispatch) => {
+export const syncCartFromBackend = () => async dispatch => {
   try {
-    const { data } = await api.get(`/cart`);
+    const { data } = await api.get("/cart");
     dispatch({ type: "SYNC_CART_SUCCESS", payload: data });
   } catch (error) {
-    console.error("Failed to sync cart:", error);
-    if (error?.response?.status === 404) {
-      dispatch({ type: "CLEAR_CART" });
-    }
+    dispatch({ type: "CART_ERROR", payload: error?.response?.data?.message || "Your bag couldn’t be refreshed. Please try again." });
+    if (error?.response?.status === 404) dispatch({ type: "CLEAR_CART" });
   }
 };
 
-export const addToCart = (productId, quantity = 1) => async (dispatch) => {
+export const addToCart = (productId, quantity = 1) => async dispatch => {
   dispatch({ type: "CART_PENDING" });
   try {
-    const { data } = await api.post(`/cart/add`, { cartItems: [{ productId, quantity }] });
+    const { data } = await api.post("/cart/add", { cartItems: [{ productId, quantity }] });
     dispatch({ type: "SYNC_CART_SUCCESS", payload: data });
-    toast.success("Added to cart ✓");
+    toast.success("Added to your bag");
   } catch (error) {
     dispatch({ type: "CART_IDLE" });
-    const status = error?.response?.status;
-    if (status === 409) {
-      const availableQty = error?.response?.data?.availableQty;
-      toast.error(
-        availableQty === 0
-          ? "This item is out of stock"
-          : `Only ${availableQty} unit${availableQty !== 1 ? "s" : ""} available`
-      );
-    } else {
-      toast.error(error?.response?.data?.message || "Failed to add to cart");
-    }
+    toast.error(error?.response?.data?.message || "Couldn’t add this item. Please try again.");
   }
 };
 
-const _qtyUpdateTimers = {};
-const _pendingDeltas = {};
-
-export const updateCartItemQuantity = (productId, newQuantity) => (dispatch, getState) => {
-  const currentQty = getState().cart.cartItems.find((i) => i.productId === productId)?.quantity ?? 0;
+export const updateCartItemQuantity = (productId, newQuantity) => async (dispatch, getState) => {
+  if (!Number.isInteger(newQuantity) || newQuantity < 1) return;
+  const currentQty = getState().cart.cartItems.find(i => i.productId === productId)?.quantity;
   if (newQuantity === currentQty) return;
-
-  const clickDelta = newQuantity - currentQty;
-  _pendingDeltas[productId] = (_pendingDeltas[productId] ?? 0) + clickDelta;
-
-  if (_qtyUpdateTimers[productId]) clearTimeout(_qtyUpdateTimers[productId]);
-
-  _qtyUpdateTimers[productId] = setTimeout(async () => {
-    delete _qtyUpdateTimers[productId];
-
-    const totalDelta = _pendingDeltas[productId] ?? 0;
-    delete _pendingDeltas[productId];
-
-    if (totalDelta === 0) return;
-
-    const confirmedQty = getState().cart.cartItems.find((i) => i.productId === productId)?.quantity ?? 0;
-    const targetQty = confirmedQty + totalDelta;
-
-    if (targetQty <= 0) {
-      dispatch(removeFromCart(productId));
-      return;
-    }
-
-    try {
-      const { data } = await api.put(`/cart`, { productId, quantity: targetQty });
-      dispatch({ type: "SYNC_CART_SUCCESS", payload: data });
-      if (data.warning) showWarningToast(data.warning);
-    } catch (error) {
-      toast.error(error?.response?.data?.message || "Failed to update quantity");
-      dispatch({ type: "CART_ITEM_UPDATE_FAILED", payload: productId });
-    }
-  }, 500);
-};
-
-export const removeFromCart = (productId) => async (dispatch) => {
   dispatch({ type: "CART_PENDING" });
   try {
-    const { data } = await api.delete(`/cart/remove/${productId}`);
+    const { data } = await api.put("/cart", { productId, quantity: newQuantity });
     dispatch({ type: "SYNC_CART_SUCCESS", payload: data });
-    toast.success("Removed from cart ✓");
+    if (data.warning) showWarningToast(data.warning);
   } catch (error) {
-    dispatch({ type: "CART_IDLE" });
-    toast.error("Couldn't remove item. Please try again.");
+    dispatch({ type: "CART_ITEM_UPDATE_FAILED", payload: productId });
+    toast.error(error?.response?.data?.message || "Couldn’t update quantity. Please try again.");
   }
 };
 
-export const clearCart = () => async (dispatch) => {
+export const removeFromCart = productId => async dispatch => {
   dispatch({ type: "CART_PENDING" });
   try {
-    await api.delete(`/cart`);
+    // DELETE returns a text acknowledgement, not the updated cart.
+    await api.delete("/cart/remove/" + productId);
+    await dispatch(syncCartFromBackend());
+    toast.success("Removed from your bag");
+  } catch (error) {
+    dispatch({ type: "CART_IDLE" });
+    toast.error(error?.response?.data?.message || "Couldn’t remove this item. Please try again.");
+  }
+};
+
+export const clearCart = () => async dispatch => {
+  dispatch({ type: "CART_PENDING" });
+  try {
+    await api.delete("/cart");
     dispatch({ type: "CLEAR_CART" });
   } catch (error) {
     dispatch({ type: "CART_IDLE" });
-    toast.error("Failed to clear cart. Please try again.");
+    toast.error(error?.response?.data?.message || "Couldn’t clear your bag. Please try again.");
   }
 };

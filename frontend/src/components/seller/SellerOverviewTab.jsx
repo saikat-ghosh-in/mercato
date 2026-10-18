@@ -1,3 +1,4 @@
+import { ORDER_LINE_STATUS_MAP } from "../../utils/dashboardStatus";
 import { useEffect, useState } from "react";
 import { MdShoppingBag, MdAccessTime, MdHourglassEmpty, MdTrendingUp } from "react-icons/md";
 import api from "../../backend/api";
@@ -6,7 +7,7 @@ import {
     DashboardSkeleton, DashboardError,
     RevenueCards, StatCard, SectionLabel,
     TopSellingProducts, InventoryAlerts,
-    StatusBreakdownBars, ORDER_LINE_STATUS_MAP,
+    StatusBreakdownBars,
 } from "../shared/DashboardWidgets";
 
 const SellerOverviewTab = () => {

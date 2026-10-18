@@ -116,6 +116,7 @@ public class CartReservationServiceImpl implements CartReservationService {
     @Transactional(readOnly = true)
     public void validateHeld(@NonNull CartItem cartItem) {
         cartReservationRepository.findByCartItem_CartItemId(cartItem.getCartItemId())
+                .filter(reservation -> reservation.getExpiresAt() != null && reservation.getExpiresAt().isAfter(Instant.now()))
                 .filter(reservation -> reservation.getReservedQty() >= cartItem.getQuantity())
                 .orElseThrow(() -> new InsufficientInventoryException(
                         cartItem.getProduct().getProductId(),

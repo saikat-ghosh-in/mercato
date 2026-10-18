@@ -1,6 +1,7 @@
+import Field from "../shared/AuthField";
 import { Link, useNavigate } from "react-router-dom";
 import { FiUserPlus, FiUser, FiMail, FiLock, FiEye, FiEyeOff, FiPhone } from "react-icons/fi";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { useState } from "react";
 import { useDispatch } from "react-redux";
 import { registerNewUser } from "../../reduxStore/actions/authActions";
@@ -10,34 +11,6 @@ import {
     passwordRules,
     phoneRules,
 } from "../../utils/validationRules";
-
-const Field = ({ label, error, errors, icon: Icon, required = false, children }) => (
-    <div>
-        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1.5">
-            {label}
-            {required && <span className="text-red-400 ml-0.5">*</span>}
-        </label>
-        <div className={`flex items-center gap-2.5 border rounded-xl px-3 py-2.5 transition-colors focus-within:ring-1 ${(error || errors?.length > 0)
-            ? "border-red-300 focus-within:ring-red-300 bg-red-50/30"
-            : "border-gray-200 focus-within:ring-blue-300"
-            }`}>
-            {Icon && <Icon size={15} className={(error || errors?.length > 0) ? "text-red-400" : "text-gray-400"} />}
-            {children}
-        </div>
-
-        {error && <p className="text-[11px] text-red-500 mt-1 font-medium">{error}</p>}
-        {errors?.length > 0 && (
-            <ul className="mt-1.5 space-y-0.5">
-                {errors.map((e, i) => (
-                    <li key={i} className="text-[11px] text-red-500 font-medium flex items-center gap-1">
-                        <span className="w-1 h-1 rounded-full bg-red-400 shrink-0" />
-                        {e}
-                    </li>
-                ))}
-            </ul>
-        )}
-    </div>
-);
 
 const inputCls = "w-full text-sm text-gray-800 focus:outline-none bg-transparent placeholder-gray-300";
 
@@ -51,12 +24,12 @@ const Register = () => {
         register,
         handleSubmit,
         reset,
-        watch,
+        control,
         trigger,
         formState: { errors, isSubmitting, isValid },
     } = useForm({ mode: "onTouched", criteriaMode: "all" });
 
-    const passwordValue = watch("password");
+    const passwordValue = useWatch({ control, name: "password", defaultValue: "" });
     const passwordErrors = errors.password
         ? Object.values(errors.password.types ?? {})
             .filter(Boolean)
@@ -64,11 +37,11 @@ const Register = () => {
         : [];
 
     const onSubmit = (data) => {
-        dispatch(registerNewUser(data, reset, navigate));
+        return dispatch(registerNewUser(data, reset, navigate));
     };
 
     return (
-        <main className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-10">
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-10">
             <div className="w-full max-w-md">
 
                 {/* Brand */}
@@ -160,7 +133,7 @@ const Register = () => {
                             {passwordValue?.length > 0 && (
                                 <button
                                     type="button"
-                                    onClick={() => setShowPassword(v => !v)}
+                                    onClick={() => setShowPassword(v => !v)} aria-label={showPassword ? "Hide password" : "Show password"}
                                     className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer shrink-0"
                                 >
                                     {showPassword ? <FiEyeOff size={15} /> : <FiEye size={15} />}
@@ -172,7 +145,7 @@ const Register = () => {
                         <button
                             type="submit"
                             disabled={!isValid || isSubmitting}
-                            className="w-full mt-2 flex items-center justify-center gap-2 bg-gray-950 hover:bg-gray-800 active:scale-[0.98] 
+                            className="w-full mt-2 flex items-center justify-center gap-2 bg-gray-950 hover:bg-gray-800 active:scale-[0.98]
                             disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed text-white text-sm font-bold py-3 rounded-xl transition-all cursor-pointer"
                         >
                             <FiUserPlus size={15} />
@@ -202,7 +175,7 @@ const Register = () => {
                     </div>
                 </div>
             </div>
-        </main>
+        </div>
     );
 };
 
