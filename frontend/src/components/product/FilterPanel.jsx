@@ -250,7 +250,7 @@ const FilterHeader = ({ activeFilterCount, clearAllFilters, onClose }) => (
         <div className="flex items-center gap-2">
             {activeFilterCount > 0 && (
                 <button onClick={clearAllFilters}
-                    className="flex items-center gap-1 text-[11px] font-semibold text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 px-2 py-1 rounded-lg transition-colors cursor-pointer">
+                    className="flex items-center gap-1 text-[11px] font-semibold text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 px-2 py-1 rounded-lg transition-colors cursor-pointer" aria-label="Clear all filters">
                     <MdClose size={11} /> Clear
                 </button>
             )}
@@ -271,7 +271,7 @@ const FilterPanel = ({
     const sharedProps = { categories, sellers, filters, setParam };
 
     if (!asDrawer) return (
-        <aside className="hidden lg:block w-56 shrink-0 bg-white rounded-lg border border-gray-100 p-5 sticky top-40 max-h-[calc(100dvh-180px)] overflow-y-auto">
+        <aside className="filter-sidebar hidden lg:block w-56 shrink-0 sticky top-32 max-h-[calc(100dvh-160px)] overflow-y-auto">
             <FilterHeader activeFilterCount={activeFilterCount} clearAllFilters={clearAllFilters} />
             <FilterBody {...sharedProps} />
         </aside>

@@ -30,7 +30,7 @@ const SellerOverviewTab = () => {
 
     useEffect(() => { fetchStats(); }, []);
 
-    if (loading) return <DashboardSkeleton />;
+    if (loading && !stats) return <DashboardSkeleton />;
     if (error) return <DashboardError message={error} onRetry={fetchStats} />;
 
     const { revenue, fulfillment, topSellingProducts, inventoryAlerts, orderLineStatusBreakdown } = stats;

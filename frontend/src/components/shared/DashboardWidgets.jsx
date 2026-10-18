@@ -6,7 +6,7 @@ import {
 import { formatCurrency } from "../../utils/formatCurrency";
 
 export const StatSkeleton = () => (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 animate-pulse">
+    <div className="surface p-5 animate-pulse">
         <div className="h-3 bg-gray-100 rounded w-1/3 mb-3" />
         <div className="h-7 bg-gray-100 rounded w-1/2 mb-1" />
         <div className="h-2.5 bg-gray-100 rounded w-1/4" />
@@ -14,7 +14,7 @@ export const StatSkeleton = () => (
 );
 
 export const StatCard = ({ label, value, sub, icon: Icon, iconBg }) => (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+    <div className="surface p-5">
         <div className="flex items-start justify-between mb-3">
             <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">{label}</p>
             <div className={`p-2 rounded-xl ${iconBg}`}>
@@ -27,7 +27,7 @@ export const StatCard = ({ label, value, sub, icon: Icon, iconBg }) => (
 );
 
 export const SectionCard = ({ title, icon: Icon, children }) => (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+    <div className="surface p-5">
         {title && (
             <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-1.5">
                 {Icon && <Icon size={13} />}{title}
@@ -45,7 +45,7 @@ export const RevenueCards = ({ revenue }) => (
     <div>
         <SectionLabel>Revenue</SectionLabel>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard label="All-Time" value={formatCurrency(revenue.allTime)} icon={MdTrendingUp} iconBg="bg-green-500" />
+            <StatCard label="All-Time" value={formatCurrency(revenue.allTime)} icon={MdTrendingUp} iconBg="bg-blue-500" />
             <StatCard label="This Month" value={formatCurrency(revenue.thisMonth)} icon={MdTrendingUp} iconBg="bg-blue-500" />
             <StatCard label="Today" value={formatCurrency(revenue.today)} icon={MdTrendingUp} iconBg="bg-indigo-500" />
             <StatCard
@@ -104,7 +104,7 @@ export const InventoryAlerts = ({ alerts }) => (
                 ))}
             </div>
         ) : (
-            <div className="flex items-center gap-2 text-green-600 py-4 justify-center">
+            <div className="flex items-center gap-2 text-blue-700 py-4 justify-center">
                 <MdCheckCircle size={16} />
                 <p className="text-sm font-semibold">All products well stocked</p>
             </div>
@@ -137,7 +137,7 @@ export const StatusBreakdownBars = ({ title, entries, statusMap, icon }) => {
                             </span>
                             <div className="flex-1 bg-gray-100 rounded-full h-1.5 overflow-hidden">
                                 <div
-                                    className="h-full bg-gray-800 rounded-full transition-all duration-500"
+                                    className="h-full bg-gray-800 rounded-full transition-[transform,opacity,background-color] duration-500"
                                     style={{ width: `${pct}%` }}
                                 />
                             </div>
@@ -160,7 +160,7 @@ export const DashboardSkeleton = () => (
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {[1, 2].map(i => (
-                <div key={i} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 animate-pulse space-y-3">
+                <div key={i} className="surface p-5 animate-pulse space-y-3">
                     <div className="h-3 bg-gray-100 rounded w-1/3" />
                     {[1, 2, 3].map(j => <div key={j} className="h-10 bg-gray-100 rounded" />)}
                 </div>
@@ -170,14 +170,14 @@ export const DashboardSkeleton = () => (
 );
 
 export const DashboardError = ({ message, onRetry }) => (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-10 text-center">
+    <div className="surface p-10 text-center">
         <MdWarning size={28} className="text-red-300 mx-auto mb-3" />
         <p className="text-sm font-semibold text-gray-700 mb-1">Failed to load stats</p>
         <p className="text-xs text-gray-400 mb-5">{message}</p>
         {onRetry && (
             <button
                 onClick={onRetry}
-                className="inline-flex items-center gap-2 bg-gray-950 hover:bg-gray-800 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all cursor-pointer active:scale-[0.98]"
+                className="inline-flex items-center gap-2 bg-gray-950 hover:bg-gray-800 text-white text-xs font-bold px-4 py-2 rounded-xl transition-[transform,opacity,background-color] cursor-pointer active:scale-[0.98]"
             >
                 Retry
             </button>

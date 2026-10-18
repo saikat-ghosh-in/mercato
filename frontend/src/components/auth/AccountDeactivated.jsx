@@ -33,7 +33,7 @@ const AccountDeactivated = () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center">
+        <div className="surface p-8 text-center">
 
           {/* Icon */}
           <div className="w-16 h-16 rounded-2xl bg-amber-50 flex items-center justify-center mx-auto mb-5">
@@ -102,7 +102,7 @@ const AccountDeactivated = () => {
           <div className="space-y-2.5">
             <button
               onClick={() => navigate("/login")}
-              className="w-full flex items-center justify-center gap-2 py-3 text-sm font-bold bg-gray-950 hover:bg-gray-800 text-white rounded-xl transition-all cursor-pointer active:scale-[0.98]"
+              className="w-full flex items-center justify-center gap-2 py-3 text-sm font-bold bg-gray-950 hover:bg-gray-800 text-white rounded-xl transition-[transform,opacity,background-color] cursor-pointer active:scale-[0.98]"
             >
               <MdLogin size={15} /> Log In to Reactivate
             </button>

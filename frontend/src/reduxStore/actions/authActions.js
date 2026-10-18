@@ -1,21 +1,24 @@
 import api from "../../backend/api";
 import { setUserData, clearUserToken, getUserData } from "../../utils/tokenManager";
 import toast from "react-hot-toast";
-import { syncCartFromBackend } from "./cartActions";
+import { syncCartFromBackend, waitForCartRequests, invalidateCartRequests } from "./cartActions";
 
-export const authenticateUser = (loginRequest, navigate, resetForm, redirect = "/") => async (dispatch) => {
+export const authenticateUser = (loginRequest, navigate, resetForm, redirect = "/") => async (dispatch, getState) => {
     try {
+        await waitForCartRequests();
         const { data: loginResponse } = await api.post("/auth/signin", loginRequest);
+        invalidateCartRequests();
+        dispatch({ type: "RESET_CART" });
         setUserData(loginResponse);
         dispatch({ type: "LOGIN", payload: loginResponse });
 
         const { data: userDetails } = await api.get("/auth/user");
         dispatch({ type: "SET_USER_DETAILS", payload: userDetails });
 
+        await dispatch(syncCartFromBackend());
         resetForm();
         const destination = redirect.startsWith("/") && !redirect.startsWith("//") ? redirect : "/";
-        navigate(destination);
-        dispatch(syncCartFromBackend());
+        navigate(destination.startsWith("/checkout") && getState().cart.cartError ? "/cart" : destination);
     } catch (error) {
         toast.error(error?.response?.data?.message || "Oops! Something went wrong!");
     }
@@ -33,6 +36,7 @@ export const registerNewUser = (signUpRequest, resetForm, navigate) => async () 
 };
 
 export const logOutUser = (navigate) => async (dispatch) => {
+    invalidateCartRequests();
     try {
         await api.post("/auth/signout");
     } catch (error) {
@@ -40,6 +44,7 @@ export const logOutUser = (navigate) => async (dispatch) => {
     } finally {
         clearUserToken();
         dispatch({ type: "LOGOUT" });
+        dispatch({ type: "CLEAR_WISHLIST" });
         dispatch({ type: "CLEAR_CART" });
         dispatch({ type: "CLEAR_PAYMENT_DATA" });
         toast.success("Logged out successfully");

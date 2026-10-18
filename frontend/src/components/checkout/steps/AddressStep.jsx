@@ -10,7 +10,7 @@ const AddressStep = ({
   onDeleteAddress,
   onNext,
 }) => (
-  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+  <div className="surface overflow-hidden">
     <div className="flex justify-between items-center px-5 py-4 border-b border-gray-100">
       <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">
         Shipping Address
@@ -24,7 +24,7 @@ const AddressStep = ({
     </div>
 
     <div className="p-5">
-      {loadingAddresses ? (
+      {loadingAddresses && !addresses?.length ? (
         <div className="space-y-3">
           {[1, 2].map((i) => (
             <div key={i} className="h-20 bg-gray-50 rounded-xl animate-pulse" />
@@ -55,7 +55,7 @@ const AddressStep = ({
         <button
           onClick={onNext}
           disabled={!selectedAddress}
-          className="flex items-center gap-2 px-5 py-2.5 bg-blue-500 hover:bg-blue-600 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-bold rounded-xl transition-all"
+          className="flex items-center gap-2 px-5 py-2.5 bg-blue-500 hover:bg-blue-600 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-bold rounded-xl transition-[transform,opacity,background-color]"
         >
           Review Order <FaChevronRight size={11} />
         </button>

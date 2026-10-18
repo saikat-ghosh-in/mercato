@@ -6,11 +6,13 @@ export const fetchWishlistIds = () => async (dispatch) => {
         const { data } = await api.get("/wishlist/ids");
         dispatch({ type: "SET_WISHLIST_IDS", payload: Array.from(data) });
     } catch {
-        dispatch({ type: "CLEAR_WISHLIST" });
+        // Keep saved items visible during transient connection failures.
     }
 };
 
 export const toggleWishlist = (productId) => async (dispatch, getState) => {
+    if (getState().wishlist.pending?.[productId]) return;
+    dispatch({ type: "WISHLIST_PENDING", productId, value: true });
     const isWishlisted = getState().wishlist.productIds.includes(productId);
     try {
         if (isWishlisted) {
@@ -24,7 +26,7 @@ export const toggleWishlist = (productId) => async (dispatch, getState) => {
         }
     } catch (err) {
         toast.error(err?.response?.data?.message || "Failed to update wishlist");
-    }
+    } finally { dispatch({ type: "WISHLIST_PENDING", productId, value: false }); }
 };
 
 export const clearWishlist = () => ({ type: "CLEAR_WISHLIST" });

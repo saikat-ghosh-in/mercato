@@ -35,7 +35,7 @@ const EmptyCart = () => {
             {/* CTA */}
             <button
                 onClick={() => navigate("/products")}
-                className="inline-flex items-center gap-2 bg-blue-500 hover:bg-blue-600 active:scale-[0.98] text-white font-bold px-6 py-3 rounded-xl text-sm transition-all shadow-sm cursor-pointer mb-10"
+                className="inline-flex items-center gap-2 bg-blue-500 hover:bg-blue-600 active:scale-[0.98] text-white font-bold px-6 py-3 rounded-xl text-sm transition-[transform,opacity,background-color] shadow-sm cursor-pointer mb-10"
             >
                 Start Shopping <FiArrowRight size={16} />
             </button>
@@ -50,7 +50,7 @@ const EmptyCart = () => {
                         <button
                             key={label}
                             onClick={() => navigate(`/products?category=${encodeURIComponent(label)}`)}
-                            className="flex items-center gap-3 bg-white border border-gray-100 hover:border-blue-200 hover:bg-blue-50 rounded-2xl px-4 py-3 text-sm font-semibold text-gray-700 hover:text-blue-600 transition-all cursor-pointer shadow-sm"
+                            className="flex items-center gap-3 bg-white border border-gray-100 hover:border-blue-200 hover:bg-blue-50 rounded-2xl px-4 py-3 text-sm font-semibold text-gray-700 hover:text-blue-600 transition-[transform,opacity,background-color] cursor-pointer shadow-sm"
                         >
                             <span className="text-xl">{emoji}</span>
                             {label}

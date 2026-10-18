@@ -36,7 +36,7 @@ const ForgotPassword = () => {
                     <FiArrowLeft size={14} /> Back to login
                 </Link>
 
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8">
+                <div className="surface p-8">
                     <h1 className="text-xl font-bold text-gray-900 mb-1">Forgot password?</h1>
                     <p className="text-sm text-gray-500 mb-6">
                         Enter your email and we&apos;ll send you a link to reset your password.
@@ -69,7 +69,7 @@ const ForgotPassword = () => {
                             <button
                                 type="submit"
                                 disabled={isSubmitting}
-                                className="w-full py-3 bg-gray-950 hover:bg-gray-800 disabled:opacity-50 text-white text-sm font-bold rounded-xl transition-all active:scale-[0.98]"
+                                className="w-full py-3 bg-gray-950 hover:bg-gray-800 disabled:opacity-50 text-white text-sm font-bold rounded-xl transition-[transform,opacity,background-color] active:scale-[0.98]"
                             >
                                 {isSubmitting ? "Sending..." : "Send Reset Link"}
                             </button>

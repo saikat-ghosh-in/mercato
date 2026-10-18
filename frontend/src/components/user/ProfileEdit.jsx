@@ -1,3 +1,4 @@
+import Field from "../shared/AuthField";
 import { useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
@@ -9,22 +10,6 @@ import toast from "react-hot-toast";
 import api from "../../backend/api";
 import { fetchUserDetails } from "../../reduxStore/actions/authActions";
 
-const Field = ({ label, error, icon: Icon, required = false, hint, children }) => (
-  <div>
-    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1.5">
-      {label}{required && <span className="text-red-400 ml-0.5">*</span>}
-    </label>
-    <div className={`flex items-center gap-2.5 border rounded-xl px-3 py-2.5 transition-colors focus-within:ring-1 ${error
-      ? "border-red-300 focus-within:ring-red-300 bg-red-50/30"
-      : "border-gray-200 focus-within:ring-blue-300"
-      }`}>
-      {Icon && <Icon size={15} className={error ? "text-red-400" : "text-gray-400"} />}
-      {children}
-    </div>
-    {error && <p className="text-[11px] text-red-500 mt-1 font-medium">{error}</p>}
-    {hint && !error && <p className="text-[11px] text-gray-400 mt-1">{hint}</p>}
-  </div>
-);
 
 const inputCls = "w-full text-sm text-gray-800 focus:outline-none bg-transparent placeholder-gray-300";
 
@@ -44,6 +29,7 @@ const ProfileEdit = () => {
   const dispatch = useDispatch();
   const user = useSelector(s => s.auth?.userDetails);
 
+  const isSeller = user?.roles?.some(role => ["ROLE_SELLER", "ROLE_ADMIN"].includes(role));
   const [form, setForm] = useState({
     firstName: user?.firstName ?? "",
     lastName: user?.lastName ?? "",
@@ -83,11 +69,11 @@ const ProfileEdit = () => {
     setSaving(true);
     try {
       const payload = {
-        firstName: form.firstName || null,
-        lastName: form.lastName || null,
+        firstName: form.firstName,
+        lastName: form.lastName,
         phoneNumber: form.phoneNumber || null,
         profileImageUrl: form.profileImageUrl || null,
-        sellerDisplayName: user?.isSeller ? (form.sellerDisplayName || null) : undefined,
+        sellerDisplayName: isSeller ? form.sellerDisplayName : undefined,
       };
       await api.put("/user/edit-profile", payload);
       await dispatch(fetchUserDetails());
@@ -124,7 +110,7 @@ const ProfileEdit = () => {
         <div className="space-y-4">
 
           {/* Avatar preview */}
-          {/* <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+          {/* <div className="surface p-5">
             <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Profile Picture</h3>
             <div className="flex items-center gap-5">
               <div className="shrink-0">
@@ -157,7 +143,7 @@ const ProfileEdit = () => {
           </div> */}
 
           {/* Personal info */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
+          <div className="surface p-5 space-y-4">
             <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Personal Information</h3>
 
             <div className="grid grid-cols-2 gap-3">
@@ -196,7 +182,7 @@ const ProfileEdit = () => {
           </div>
 
           {/* Locked fields */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
+          <div className="surface p-5 space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Account Details</h3>
               <span className="text-[10px] font-semibold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">Read only</span>
@@ -214,8 +200,8 @@ const ProfileEdit = () => {
           </div>
 
           {/* Seller section */}
-          {user?.isSeller && (
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
+          {isSeller && (
+            <div className="surface p-5 space-y-4">
               <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
                 <MdStorefront size={13} /> Seller Information
               </h3>
@@ -243,7 +229,7 @@ const ProfileEdit = () => {
             <button
               onClick={handleSave}
               disabled={saving}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm bg-gray-950 hover:bg-gray-800 text-white rounded-xl transition-all cursor-pointer font-bold active:scale-[0.98] disabled:opacity-50"
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm bg-gray-950 hover:bg-gray-800 text-white rounded-xl transition-[transform,opacity,background-color] cursor-pointer font-bold active:scale-[0.98] disabled:opacity-50"
             >
               <MdSave size={15} />
               {saving ? "Saving..." : "Save Changes"}

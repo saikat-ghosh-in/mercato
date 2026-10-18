@@ -50,7 +50,7 @@ const ResetPassword = () => {
     if (!token) {
         return (
             <div className="bg-gray-50 min-h-screen flex items-center justify-center py-10 px-4">
-                <div className="w-full max-w-md bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center">
+                <div className="w-full max-w-md surface p-8 text-center">
                     <h1 className="text-lg font-bold text-gray-900 mb-2">Invalid reset link</h1>
                     <p className="text-sm text-gray-500 mb-6">Request a new password reset link to continue.</p>
                     <Link
@@ -74,7 +74,7 @@ const ResetPassword = () => {
                     <FiArrowLeft size={14} /> Back to login
                 </Link>
 
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8">
+                <div className="surface p-8">
                     <h1 className="text-xl font-bold text-gray-900 mb-1">Set a new password</h1>
                     <p className="text-sm text-gray-500 mb-6">Choose a strong password for your account.</p>
 
@@ -137,7 +137,7 @@ const ResetPassword = () => {
                         <button
                             type="submit"
                             disabled={isSubmitting}
-                            className="w-full py-3 bg-gray-950 hover:bg-gray-800 disabled:opacity-50 text-white text-sm font-bold rounded-xl transition-all active:scale-[0.98]"
+                            className="w-full py-3 bg-gray-950 hover:bg-gray-800 disabled:opacity-50 text-white text-sm font-bold rounded-xl transition-[transform,opacity,background-color] active:scale-[0.98]"
                         >
                             {isSubmitting ? "Updating..." : "Update Password"}
                         </button>

@@ -1,3 +1,4 @@
+import ModalFrame from "../shared/ModalFrame";
 import { useCallback, useEffect, useState } from "react";
 import {
     MdSearch, MdClose, MdArrowBack, MdArrowForward,
@@ -14,7 +15,7 @@ const STATUS_MAP = {
     CREATED: { label: "Awaiting Payment", color: "bg-yellow-100 text-yellow-700", icon: MdHourglassEmpty },
     CONFIRMED: { label: "Confirmed", color: "bg-blue-100 text-blue-700", icon: MdCheckCircle },
     FULFILLMENT_PROCESSING: { label: "Processing", color: "bg-indigo-100 text-indigo-700", icon: MdAccessTime },
-    FULFILLMENT_COMPLETE: { label: "Delivered", color: "bg-green-100 text-green-700", icon: MdCheckCircle },
+    FULFILLMENT_COMPLETE: { label: "Delivered", color: "bg-blue-100 text-blue-700", icon: MdCheckCircle },
     CANCELLED: { label: "Cancelled", color: "bg-red-100 text-red-600", icon: MdCancel },
 };
 const getStatus = (raw) =>
@@ -35,7 +36,7 @@ const TableSkeleton = () => (
 const DetailSkeleton = () => (
     <div className="animate-pulse space-y-4">
         {[1, 2, 3].map(i => (
-            <div key={i} className="bg-white rounded-2xl border border-gray-100 p-5 space-y-3">
+            <div key={i} className="surface p-5 space-y-3">
                 <div className="h-3 bg-gray-100 rounded w-1/3" />
                 <div className="h-4 bg-gray-100 rounded w-full" />
                 <div className="h-4 bg-gray-100 rounded w-2/3" />
@@ -45,7 +46,7 @@ const DetailSkeleton = () => (
 );
 
 const SectionCard = ({ title, icon: Icon, children }) => (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+    <div className="surface p-5">
         {title && (
             <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-1.5">
                 {Icon && <Icon size={13} />}{title}
@@ -73,7 +74,7 @@ const InfoRow = ({ label, value, mono, copyable, last }) => {
 };
 
 const CancelModal = ({ order, onClose, onConfirm, loading }) => (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <ModalFrame title="Cancel Order" onClose={onClose}>
         <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl">
             <div className="flex items-center gap-2 text-red-600 mb-3">
                 <MdWarning size={20} />
@@ -82,13 +83,13 @@ const CancelModal = ({ order, onClose, onConfirm, loading }) => (
             <p className="text-sm text-gray-600 mb-1">Cancel order <span className="font-semibold">#{order.orderId}</span>?</p>
             <p className="text-xs text-gray-400 mb-6">Refund will be initiated if payment was completed.</p>
             <div className="flex gap-3">
-                <button onClick={onClose} className="flex-1 px-3 py-2.5 text-sm border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 cursor-pointer font-medium">Keep</button>
+                <button aria-label="Close dialog" onClick={onClose} className="flex-1 px-3 py-2.5 text-sm border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 cursor-pointer font-medium">Keep</button>
                 <button onClick={onConfirm} disabled={loading} className="flex-1 px-3 py-2.5 text-sm bg-red-500 hover:bg-red-600 text-white rounded-xl cursor-pointer font-bold disabled:opacity-50 active:scale-[0.98]">
                     {loading ? "Cancelling..." : "Yes, Cancel"}
                 </button>
             </div>
         </div>
-    </div>
+    </ModalFrame>
 );
 
 const OrderDetail = ({ orderId, onBack }) => {
@@ -125,13 +126,13 @@ const OrderDetail = ({ orderId, onBack }) => {
         }
     };
 
-    if (loading) return <DetailSkeleton />;
+    if (loading && !order) return <DetailSkeleton />;
     if (!order) return null;
 
     const { label, color, icon: StatusIcon } = getStatus(order.orderStatus);
     const canCancel = order.orderStatus === "CREATED" || order.orderStatus === "CONFIRMED";
 
-    const PAYMENT_COLOR = { SUCCESS: "text-green-600", PENDING: "text-yellow-600", FAILED: "text-red-500", CANCELLED: "text-gray-400" };
+    const PAYMENT_COLOR = { SUCCESS: "text-blue-700", PENDING: "text-yellow-600", FAILED: "text-red-500", CANCELLED: "text-gray-400" };
 
     return (
         <div className="space-y-4">
@@ -156,13 +157,13 @@ const OrderDetail = ({ orderId, onBack }) => {
 
             {/* Status banner */}
             <div className={`flex items-center gap-3 px-5 py-4 rounded-2xl border ${order.orderStatus === "CANCELLED" ? "bg-red-50 border-red-100" :
-                    order.orderStatus === "FULFILLMENT_COMPLETE" ? "bg-green-50 border-green-100" :
+                    order.orderStatus === "FULFILLMENT_COMPLETE" ? "bg-blue-50 border-blue-100" :
                         order.orderStatus === "CONFIRMED" ? "bg-blue-50 border-blue-100" :
                             "bg-yellow-50 border-yellow-100"
                 }`}>
                 <StatusIcon size={22} className={
                     order.orderStatus === "CANCELLED" ? "text-red-400" :
-                        order.orderStatus === "FULFILLMENT_COMPLETE" ? "text-green-500" :
+                        order.orderStatus === "FULFILLMENT_COMPLETE" ? "text-blue-500" :
                             order.orderStatus === "CONFIRMED" ? "text-blue-500" : "text-yellow-500"
                 } />
                 <div>
@@ -285,7 +286,7 @@ const OrdersTab = () => {
     });
 
     return (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="surface overflow-hidden">
             {/* Toolbar */}
             <div className="flex items-center gap-3 p-4 border-b border-gray-50 flex-wrap">
                 <div className="flex items-center gap-2 flex-1 min-w-48 border border-gray-200 rounded-xl px-3 py-2 focus-within:ring-1 focus-within:ring-blue-300">
@@ -297,9 +298,9 @@ const OrdersTab = () => {
                         placeholder="Search by order ID or customer..."
                         className="text-xs text-gray-700 focus:outline-none w-full"
                     />
-                    {search && <button onClick={() => setSearch("")} className="text-gray-300 hover:text-gray-500 cursor-pointer"><MdClose size={13} /></button>}
+                    {search && <button aria-label="Clear search" onClick={() => setSearch("")} className="text-gray-300 hover:text-gray-500 cursor-pointer"><MdClose size={13} /></button>}
                 </div>
-                <select
+                <select aria-label="Filter orders by status"
                     value={statusFilter}
                     onChange={e => setStatusFilter(e.target.value)}
                     className="text-xs border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-300 text-gray-700"
@@ -312,7 +313,7 @@ const OrdersTab = () => {
                 <span className="text-xs text-gray-400 font-semibold shrink-0">{filtered.length} order{filtered.length !== 1 ? "s" : ""}</span>
             </div>
 
-            {loading ? <TableSkeleton /> : (
+            {loading && !orders.length ? <TableSkeleton /> : (
                 <div className="overflow-x-auto">
                     <table className="w-full">
                         <thead>
@@ -328,7 +329,7 @@ const OrdersTab = () => {
                             ) : filtered.map(o => {
                                 const { label, color, icon: StatusIcon } = getStatus(o.orderStatus);
                                 return (
-                                    <tr key={o.orderId} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors cursor-pointer" onClick={() => setSelectedOrderId(o.orderId)}>
+                                    <tr key={o.orderId} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors cursor-pointer" tabIndex={0} onKeyDown={e => { if (e.target === e.currentTarget && ["Enter", " "].includes(e.key)) { e.preventDefault(); setSelectedOrderId(o.orderId); } }} onClick={() => setSelectedOrderId(o.orderId)}>
                                         <td className="px-4 py-3 text-xs font-mono font-semibold text-gray-700">{o.orderId}</td>
                                         <td className="px-4 py-3">
                                             <p className="text-sm font-semibold text-gray-800">{o.customer?.name}</p>

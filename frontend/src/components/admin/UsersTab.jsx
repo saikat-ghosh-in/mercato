@@ -1,3 +1,5 @@
+import { Dialog, DialogPanel, DialogTitle } from "@headlessui/react";
+import ModalFrame from "../shared/ModalFrame";
 import { useEffect, useState } from "react";
 import {
     MdSearch, MdClose, MdPerson, MdAdminPanelSettings,
@@ -63,14 +65,14 @@ const EditRolesModal = ({ user, onClose, onSave }) => {
     };
 
     return (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <ModalFrame title="Edit Roles" onClose={onClose}>
             <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm">
                 <div className="flex items-center justify-between p-5 border-b border-gray-100">
                     <div>
                         <h2 className="text-sm font-bold text-gray-800">Edit Roles</h2>
                         <p className="text-[11px] text-gray-400 mt-0.5">{user.username}</p>
                     </div>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 cursor-pointer transition-colors">
+                    <button aria-label="Close dialog" onClick={onClose} className="text-gray-400 hover:text-gray-600 cursor-pointer transition-colors">
                         <MdClose size={18} />
                     </button>
                 </div>
@@ -84,7 +86,7 @@ const EditRolesModal = ({ user, onClose, onSave }) => {
                             <button
                                 key={role}
                                 onClick={() => toggleRole(role)}
-                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border transition-all cursor-pointer ${active
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border transition-[transform,opacity,background-color] cursor-pointer ${active
                                         ? "border-gray-950 bg-gray-950 text-white"
                                         : "border-gray-200 text-gray-600 hover:bg-gray-50"
                                     }`}
@@ -98,7 +100,7 @@ const EditRolesModal = ({ user, onClose, onSave }) => {
                 </div>
 
                 <div className="flex gap-3 p-5 border-t border-gray-100">
-                    <button onClick={onClose}
+                    <button  onClick={onClose}
                         className="flex-1 px-3 py-2.5 text-sm border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 cursor-pointer font-medium">
                         Cancel
                     </button>
@@ -108,17 +110,15 @@ const EditRolesModal = ({ user, onClose, onSave }) => {
                     </button>
                 </div>
             </div>
-        </div>
+        </ModalFrame>
     );
 };
 
 const UserDrawer = ({ user, onClose, onRolesEdit }) => (
-    <div className="fixed inset-0 z-40 flex">
-        <div className="flex-1 bg-black/30 backdrop-blur-sm" onClick={onClose} />
-        <div className="w-80 bg-white shadow-2xl flex flex-col overflow-y-auto">
+    <Dialog open onClose={onClose} className="relative z-[80]"><div className="dialog-backdrop" aria-hidden="true" /><DialogPanel transition className="mobile-panel management-drawer"><DialogTitle className="sr-only">User details</DialogTitle>
             <div className="flex items-center justify-between p-5 border-b border-gray-100">
                 <h2 className="text-sm font-bold text-gray-800">User Details</h2>
-                <button onClick={onClose} className="text-gray-400 hover:text-gray-600 cursor-pointer">
+                <button aria-label="Close dialog" onClick={onClose} className="text-gray-400 hover:text-gray-600 cursor-pointer">
                     <MdClose size={18} />
                 </button>
             </div>
@@ -163,7 +163,7 @@ const UserDrawer = ({ user, onClose, onRolesEdit }) => (
                 <div>
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Status</p>
                     <div className="flex gap-1.5 flex-wrap">
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 ${user.enabled ? "bg-green-100 text-green-700" : "bg-red-100 text-red-600"
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 ${user.enabled ? "bg-blue-100 text-blue-700" : "bg-red-100 text-red-600"
                             }`}>
                             {user.enabled ? <MdCheck size={10} /> : <MdClose size={10} />}
                             {user.enabled ? "Active" : "Disabled"}
@@ -196,8 +196,8 @@ const UserDrawer = ({ user, onClose, onRolesEdit }) => (
                     </div>
                 ))}
             </div>
-        </div>
-    </div>
+        </DialogPanel>
+    </Dialog>
 );
 
 
@@ -233,7 +233,7 @@ const UsersTab = () => {
     });
 
     return (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="surface overflow-hidden">
             {/* Toolbar */}
             <div className="flex items-center gap-3 p-4 border-b border-gray-50 flex-wrap">
                 <div className="flex items-center gap-2 flex-1 min-w-48 border border-gray-200 rounded-xl px-3 py-2 focus-within:ring-1 focus-within:ring-blue-300">
@@ -246,12 +246,12 @@ const UsersTab = () => {
                         className="text-xs text-gray-700 focus:outline-none w-full"
                     />
                     {search && (
-                        <button onClick={() => setSearch("")} className="text-gray-300 hover:text-gray-500 cursor-pointer">
+                        <button aria-label="Clear search" onClick={() => setSearch("")} className="text-gray-300 hover:text-gray-500 cursor-pointer">
                             <MdClose size={13} />
                         </button>
                     )}
                 </div>
-                <select
+                <select aria-label="Filter users by role"
                     value={roleFilter}
                     onChange={e => setRoleFilter(e.target.value)}
                     className="text-xs border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-300 text-gray-700"
@@ -267,7 +267,7 @@ const UsersTab = () => {
             </div>
 
             {/* Table */}
-            {loading ? <TableSkeleton /> : (
+            {loading && !users.length ? <TableSkeleton /> : (
                 <div className="overflow-x-auto">
                     <table className="w-full">
                         <thead>
@@ -284,7 +284,7 @@ const UsersTab = () => {
                                 <tr
                                     key={u.userId}
                                     className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors cursor-pointer"
-                                    onClick={() => setSelectedUser(u)}
+                                    tabIndex={0} onKeyDown={e => { if (e.target === e.currentTarget && ["Enter", " "].includes(e.key)) { e.preventDefault(); setSelectedUser(u); } }} onClick={() => setSelectedUser(u)}
                                 >
                                     <td className="px-4 py-3">
                                         <div className="flex items-center gap-2.5">
@@ -314,7 +314,7 @@ const UsersTab = () => {
                                     </td>
                                     <td className="px-4 py-3">
                                         <div className="flex gap-1 flex-wrap">
-                                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${u.enabled ? "bg-green-100 text-green-700" : "bg-red-100 text-red-600"
+                                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${u.enabled ? "bg-blue-100 text-blue-700" : "bg-red-100 text-red-600"
                                                 }`}>
                                                 {u.enabled ? "Active" : "Disabled"}
                                             </span>
@@ -328,7 +328,7 @@ const UsersTab = () => {
                                     <td className="px-4 py-3 text-xs text-gray-400">{formatDate(u.createdAt)}</td>
                                     <td className="px-4 py-3">
                                         <button
-                                            onClick={e => { e.stopPropagation(); setEditRolesUser(u); }}
+                                            aria-label={"Edit roles for " + u.username} onClick={e => { e.stopPropagation(); setEditRolesUser(u); }}
                                             className="p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
                                         >
                                             <MdEdit size={14} />

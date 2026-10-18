@@ -31,6 +31,7 @@ const Checkout = () => {
   const location = useLocation();
 
   const { user, addresses, selectedAddressForCheckout } = useSelector((s) => s.auth);
+  const { cartLoading, cartError } = useSelector(s => s.cart);
   const cartLoaded = useSelector(selectCartLoaded);
   const cartItems = useSelector(selectCartItems);
   const cartQty = useSelector(selectCartQty);
@@ -45,6 +46,7 @@ const Checkout = () => {
   const [openAddressModal, setOpenAddressModal] = useState(false);
   const [editingAddress, setEditingAddress] = useState(null);
   const [openDeleteModal, setOpenDeleteModal] = useState(false);
+  const [deletingAddress, setDeletingAddress] = useState(false);
   const [deleteAddressId, setDeleteAddressId] = useState(null);
   const [placingOrder, setPlacingOrder] = useState(false);
 
@@ -55,8 +57,8 @@ const Checkout = () => {
       toast.error("Your cart is empty");
       navigate("/cart");
     }
-    dispatch(getUserAddresses(setLoadingAddresses));
-  }, [cartLoaded, cartItems.length, dispatch, navigate, isChildRoute]);
+  }, [cartLoaded, cartItems.length, navigate, isChildRoute]);
+  useEffect(() => { dispatch(getUserAddresses(setLoadingAddresses)); }, [dispatch]);
 
   if (isChildRoute) return <Outlet />;
 
@@ -80,13 +82,16 @@ const Checkout = () => {
     setEditingAddress(null);
   };
 
-  const onDeleteHandler = () => {
+  const onDeleteHandler = async () => {
+    if (deletingAddress) return;
+    setDeletingAddress(true);
     const isSelected = deleteAddressId === selectedAddressForCheckout?.addressId;
-    dispatch(deleteUserAddress(deleteAddressId, isSelected, setOpenDeleteModal, setLoadingAddresses));
+    try { await dispatch(deleteUserAddress(deleteAddressId, isSelected, setOpenDeleteModal, setLoadingAddresses)); }
+    finally { setDeletingAddress(false); }
   };
 
   const handlePlaceOrder = async () => {
-    if (loadingProducts || productsUnavailable) { toast.error("Some items could not be checked. Refresh your bag before paying."); return; }
+    if (cartLoading || cartError || loadingProducts || productsUnavailable) { toast.error("Some items could not be checked. Refresh your bag before paying."); return; }
     if (!selectedAddressForCheckout) {
       toast.error("Please select a shipping address");
       setStep(1);
@@ -112,7 +117,7 @@ const Checkout = () => {
       );
 
       dispatch(setPaymentData({
-        totalAmount: total,
+        totalAmount: response?.order?.totalAmount ?? total,
         paymentStatus: "initiated",
         timestamp: Date.now(),
         paymentId: response?.order?.paymentSummary?.paymentId,
@@ -172,6 +177,7 @@ const Checkout = () => {
                 onBack={() => setStep(2)}
                 onSubmit={handlePlaceOrder}
                 loading={placingOrder}
+                disabled={cartLoading || Boolean(cartError) || loadingProducts || productsUnavailable}
               />
             )}
           </div>
@@ -201,7 +207,7 @@ const Checkout = () => {
         setOpen={setOpenDeleteModal}
         title="Delete Address"
         onDeleteHandler={onDeleteHandler}
-        loader={false}
+        loader={deletingAddress}
       />
     </div>
   );

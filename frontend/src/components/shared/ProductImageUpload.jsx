@@ -119,7 +119,7 @@ export default function ProductImageUpload({
           <button
             type="button"
             onClick={() => setInputMode('upload')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${inputMode === 'upload'
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-[transform,opacity,background-color] ${inputMode === 'upload'
               ? 'bg-gray-950 text-white'
               : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
@@ -130,7 +130,7 @@ export default function ProductImageUpload({
           <button
             type="button"
             onClick={() => setInputMode('url')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${inputMode === 'url'
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-[transform,opacity,background-color] ${inputMode === 'url'
               ? 'bg-gray-950 text-white'
               : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}

@@ -1,5 +1,11 @@
 # Staging review — storefront and application hardening
 
+## Current revision: spacious editorial redesign
+
+The approved white / black / soft-blue redesign supersedes the green styling described in the historical baseline below. Read [the current review notes](docs/EDITORIAL_REVIEW.md) for screenshots, rich-product schema deployment, startup instructions, fixes and external-service limitations, and [the validation checklist](docs/VALIDATION_CHECKLIST.md) for route/action coverage. Final checks: frontend lint/build and 13 tests pass; backend 49 tests pass. Browser checks cover desktop and mobile customer, seller and admin flows. This remains a local `stg` review only, with pre-existing README and local configuration edits excluded.
+
+## Historical baseline
+
 This change is prepared for review on local branch stg. It builds on the existing production-hardening branch at 62a53ee, which was already 47 commits ahead of origin/stg. Review the new commit separately from that inherited history. No remote push or main merge is part of this change.
 
 The pre-existing README.md and application-local.properties edits remain outside this commit.

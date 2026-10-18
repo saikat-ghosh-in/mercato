@@ -52,8 +52,9 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public void updateUserRoles(String userId, Set<String> roleNames) {
+        if (roleNames == null || roleNames.isEmpty() || roleNames.stream().anyMatch(java.util.Objects::isNull)) throw new IllegalArgumentException("At least one valid role is required");
         EcommUser user = userRepository.findByUserId(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User", "userId", userId));
 
         Set<Role> newRoles = new HashSet<>();
         for (String roleName : roleNames) {
@@ -61,7 +62,7 @@ public class UserServiceImpl implements UserService {
             try {
                 appRole = AppRole.valueOf(roleName);
             } catch (IllegalArgumentException e) {
-                throw new RuntimeException("Invalid role: " + roleName);
+                throw new IllegalArgumentException("Invalid role: " + roleName);
             }
             Role role = roleRepository.findByRoleName(appRole)
                     .orElseThrow(() -> new RuntimeException("Role not found in DB: " + roleName));
@@ -86,10 +87,10 @@ public class UserServiceImpl implements UserService {
         EcommUser user = authUtil.getLoggedInUser();
         if (request.getFirstName() != null) user.setFirstName(request.getFirstName());
         if (request.getLastName() != null) user.setLastName(request.getLastName());
-        if (request.getPhoneNumber() != null
-                && !request.getPhoneNumber().equals(user.getPhoneNumber())
-                && !userRepository.existsByPhoneNumber(request.getPhoneNumber()))
+        if (request.getPhoneNumber() != null && !request.getPhoneNumber().equals(user.getPhoneNumber())) {
+            if (userRepository.existsByPhoneNumber(request.getPhoneNumber())) throw new CustomConflictException("This phone number is already associated with another account");
             user.setPhoneNumber(request.getPhoneNumber());
+        }
         if (request.getProfileImageUrl() != null) user.setProfileImageUrl(request.getProfileImageUrl());
         if (request.getSellerDisplayName() != null
                 && user.isSeller())

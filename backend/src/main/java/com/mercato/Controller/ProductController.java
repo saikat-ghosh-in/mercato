@@ -14,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api")
@@ -23,7 +24,7 @@ public class ProductController {
     private final ProductService productService;
 
     @PostMapping("/seller/categories/{categoryId}/product")
-    public ResponseEntity<ProductResponseDTO> addProduct(@RequestBody ProductRequestDTO productRequestDTO,
+    public ResponseEntity<ProductResponseDTO> addProduct(@Valid @RequestBody ProductRequestDTO productRequestDTO,
                                                          @PathVariable String categoryId) {
         ProductResponseDTO savedProductResponseDTO = productService.addProduct(categoryId, productRequestDTO);
         return new ResponseEntity<>(savedProductResponseDTO, HttpStatus.CREATED);
@@ -68,7 +69,7 @@ public class ProductController {
     @PutMapping("/seller/products/{productId}")
     public ResponseEntity<ProductResponseDTO> updateProduct(@PathVariable String productId,
                                                             @RequestParam(required = false) String categoryId,
-                                                            @RequestBody ProductRequestDTO productRequestDTO) {
+                                                            @Valid @RequestBody ProductRequestDTO productRequestDTO) {
         ProductResponseDTO updatedProductResponseDTO = productService.updateProduct(productId, categoryId, productRequestDTO);
         return new ResponseEntity<>(updatedProductResponseDTO, HttpStatus.OK);
     }

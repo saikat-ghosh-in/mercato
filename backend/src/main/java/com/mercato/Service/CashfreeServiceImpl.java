@@ -87,7 +87,7 @@ public class CashfreeServiceImpl implements CashfreeService {
 
         } catch (Exception e) {
             log.error("Failed to create Cashfree order for {}: {}", order.getOrderId(), e.getMessage());
-            throw new CustomBadRequestException("Payment initiation failed: " + e.getMessage());
+            throw new CustomBadRequestException("Payment is temporarily unavailable. Please try again.");
         }
     }
 
@@ -269,7 +269,7 @@ public class CashfreeServiceImpl implements CashfreeService {
 
         } catch (Exception e) {
             log.error("Failed to sync payment for orderId={}: {}", orderId, e.getMessage());
-            throw new CustomBadRequestException("Payment sync failed: " + e.getMessage());
+            throw new CustomBadRequestException("Payment status could not be refreshed. Please try again.");
         }
     }
 
@@ -299,7 +299,7 @@ public class CashfreeServiceImpl implements CashfreeService {
             return cfRefundId;
         } catch (Exception e) {
             log.error("Failed to initiate refund for orderId={}: {}", order.getOrderId(), e.getMessage());
-            throw new CustomBadRequestException("Refund initiation failed: " + e.getMessage());
+            throw new CustomBadRequestException("Refund initiation is temporarily unavailable. Please try again.");
         }
     }
 

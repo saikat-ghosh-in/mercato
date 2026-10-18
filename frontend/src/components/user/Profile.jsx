@@ -1,3 +1,4 @@
+import ModalFrame from "../shared/ModalFrame";
 import { useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
@@ -25,7 +26,7 @@ const getRoleBadge = (role) => {
 const Skeleton = () => (
     <div className="bg-gray-50 min-h-screen py-6">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6 animate-pulse">
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex items-center gap-4">
+            <div className="surface p-5 flex items-center gap-4">
                 <div className="w-16 h-16 rounded-full bg-gray-100 shrink-0" />
                 <div className="flex-1 space-y-2">
                     <div className="h-4 bg-gray-100 rounded w-1/3" />
@@ -36,7 +37,7 @@ const Skeleton = () => (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2 space-y-5">
                     {[1, 2, 3].map(i => (
-                        <div key={i} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-3">
+                        <div key={i} className="surface p-5 space-y-3">
                             <div className="h-3 bg-gray-100 rounded w-1/4" />
                             {[1, 2, 3].map(j => <div key={j} className="h-4 bg-gray-100 rounded" />)}
                         </div>
@@ -44,7 +45,7 @@ const Skeleton = () => (
                 </div>
                 <div className="space-y-5">
                     {[1, 2].map(i => (
-                        <div key={i} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-2">
+                        <div key={i} className="surface p-5 space-y-2">
                             <div className="h-3 bg-gray-100 rounded w-1/3" />
                             {[1, 2, 3].map(j => <div key={j} className="h-9 bg-gray-100 rounded-xl" />)}
                         </div>
@@ -56,9 +57,9 @@ const Skeleton = () => (
 );
 
 const InfoRow = ({ label, value, copyable, last, children }) => {
-    const handleCopy = () => {
-        navigator.clipboard.writeText(value);
-        toast.success("Copied to clipboard");
+    const handleCopy = async () => {
+        try { await navigator.clipboard.writeText(value); toast.success("Copied to clipboard"); }
+        catch { toast.error("Copy failed. Select and copy the value instead."); }
     };
     return (
         <div className={`flex items-start py-2.5 ${!last ? "border-b border-gray-100" : ""}`}>
@@ -68,7 +69,7 @@ const InfoRow = ({ label, value, copyable, last, children }) => {
                     <div className="flex items-center gap-2">
                         <p className="text-sm text-gray-900 break-all">{value}</p>
                         {copyable && (
-                            <button onClick={handleCopy} className="text-gray-400 hover:text-blue-500 transition-colors shrink-0 cursor-pointer">
+                            <button aria-label={"Copy " + label} onClick={handleCopy} className="text-gray-400 hover:text-blue-500 transition-colors shrink-0 cursor-pointer">
                                 <MdContentCopy size={14} />
                             </button>
                         )}
@@ -81,7 +82,7 @@ const InfoRow = ({ label, value, copyable, last, children }) => {
 };
 
 const SectionCard = ({ title, children }) => (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+    <div className="surface p-5">
         {title && (
             <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">{title}</h2>
         )}
@@ -107,14 +108,14 @@ const NavButton = ({ icon: Icon, label, onClick, variant = "blue" }) => {
 };
 
 const DeleteModal = ({ onClose, onConfirm, loading }) => (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <ModalFrame title="Deactivate Account" onClose={onClose}>
         <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl">
             <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2 text-amber-600">
                     <MdWarning size={20} />
                     <h2 className="text-sm font-bold">Deactivate Account</h2>
                 </div>
-                <button onClick={onClose} className="text-gray-400 hover:text-gray-600 cursor-pointer transition-colors">
+                <button aria-label="Close dialog" onClick={onClose} className="text-gray-400 hover:text-gray-600 cursor-pointer transition-colors">
                     <MdClose size={18} />
                 </button>
             </div>
@@ -146,7 +147,7 @@ const DeleteModal = ({ onClose, onConfirm, loading }) => (
                 </button>
             </div>
         </div>
-    </div>
+    </ModalFrame>
 );
 
 
@@ -190,7 +191,7 @@ const Profile = () => {
             <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
 
                 {/* Header card */}
-                <div className="mb-6 bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                <div className="mb-6 surface p-5">
                     <div className="flex items-center justify-between flex-wrap gap-4">
                         <div className="flex items-center gap-4">
                             {/* Avatar */}
@@ -210,7 +211,7 @@ const Profile = () => {
                                         }
                                     }}
                                 />
-                                <span className="absolute bottom-0.5 right-0.5 h-3 w-3 rounded-full bg-green-400 ring-2 ring-white" />
+                                <span className="absolute bottom-0.5 right-0.5 h-3 w-3 rounded-full bg-blue-400 ring-2 ring-white" />
                             </div>
 
                             <div>
@@ -255,7 +256,7 @@ const Profile = () => {
                             <InfoRow label="Email" value={user.email} />
                             <InfoRow label="Account Status" last={!user.sellerDisplayName}>
                                 <div className="flex flex-wrap gap-1.5">
-                                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${user.enabled ? "bg-green-100 text-green-800" : "bg-red-100 text-red-700"
+                                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${user.enabled ? "bg-blue-100 text-blue-800" : "bg-red-100 text-red-700"
                                         }`}>
                                         {user.enabled ? <MdCheck size={11} /> : <MdClose size={11} />}
                                         {user.enabled ? "Active" : "Disabled"}
@@ -319,8 +320,8 @@ const Profile = () => {
 
                         <SectionCard>
                             <p className="text-xs font-bold text-red-500 uppercase tracking-widest mb-2">Danger Zone</p>
-                            <p className="text-xs text-gray-400 mb-3">Once deleted, your account cannot be recovered.</p>
-                            <NavButton label="Delete Account" onClick={() => setShowDeleteModal(true)} variant="red" />
+                            <p className="text-xs text-gray-400 mb-3">Deactivation disables sign-in until you reactivate your account.</p>
+                            <NavButton label="Deactivate Account" onClick={() => setShowDeleteModal(true)} variant="red" />
                         </SectionCard>
                     </div>
                 </div>

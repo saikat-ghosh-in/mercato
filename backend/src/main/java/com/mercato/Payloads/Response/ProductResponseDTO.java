@@ -1,6 +1,7 @@
 package com.mercato.Payloads.Response;
 
 import lombok.*;
+import com.mercato.Entity.ProductSpecification;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -16,6 +17,18 @@ public class ProductResponseDTO {
     private String productId;
     private String productName;
     private String description;
+
+    private String brand;
+    private String productCode;
+    private String materials;
+    private String care;
+    private String warranty;
+    private String packageContents;
+    private String deliveryReturns;
+    @Builder.Default
+    private List<String> highlights = new ArrayList<>();
+    @Builder.Default
+    private List<ProductSpecification> specifications = new ArrayList<>();
 
     private BigDecimal retailPrice;
     private BigDecimal discountPercent;

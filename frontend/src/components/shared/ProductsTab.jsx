@@ -1,3 +1,6 @@
+import RichProductFields from "./RichProductFields";
+import { detailsForForm, detailsPayload } from "../../utils/productDetails.js";
+import ModalFrame from "./ModalFrame";
 import { useCallback, useEffect, useState } from "react";
 import {
   MdAdd, MdEdit, MdDelete, MdSearch, MdClose,
@@ -28,7 +31,7 @@ const TableSkeleton = ({ cols = 5 }) => (
 );
 
 const SectionCard = ({ children, className = "" }) => (
-  <div className={`bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden ${className}`}>
+  <div className={`surface overflow-hidden ${className}`}>
     {children}
   </div>
 );
@@ -36,6 +39,7 @@ const SectionCard = ({ children, className = "" }) => (
 const ProductFormModal = ({ product, categories, onClose, onSave }) => {
   const isEdit = !!product;
   const [form, setForm] = useState({
+    ...detailsForForm(product),
     productName: product?.productName ?? "",
     description: product?.description ?? "",
     retailPrice: product?.retailPrice ?? "",
@@ -62,6 +66,7 @@ const ProductFormModal = ({ product, categories, onClose, onSave }) => {
     setSaving(true);
     try {
       const payload = {
+        ...detailsPayload(form),
         productName: form.productName,
         description: form.description,
         retailPrice: parseFloat(form.retailPrice),
@@ -69,7 +74,7 @@ const ProductFormModal = ({ product, categories, onClose, onSave }) => {
         primaryImageUrl: form.primaryImageUrl,
         secondaryImageUrls: form.secondaryImageUrls,
         active: form.active,
-        physicalQty: form.physicalQty,
+        physicalQty: Number(form.physicalQty),
       };
       if (isEdit) {
         await api.put(`/seller/products/${product.productId}`, payload,
@@ -82,18 +87,18 @@ const ProductFormModal = ({ product, categories, onClose, onSave }) => {
       }
       onSave();
     } catch (err) {
-      toast.error(err?.response?.data?.message || "Failed to save product");
+      toast.error(err?.response?.data?.message || err.message || "Failed to save product");
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <ModalFrame title={isEdit ? "Edit product" : "Create product"} onClose={() => { if (!saving) onClose(); }}>
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-5 border-b border-gray-100">
           <h2 className="text-sm font-bold text-gray-800">{isEdit ? "Edit Product" : "Add New Product"}</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 cursor-pointer transition-colors">
+          <button aria-label="Close product editor" onClick={onClose} className="text-gray-400 hover:text-gray-600 cursor-pointer transition-colors">
             <MdClose size={18} />
           </button>
         </div>
@@ -101,12 +106,12 @@ const ProductFormModal = ({ product, categories, onClose, onSave }) => {
         <div className="p-5 space-y-4">
           {/* Category */}
           <div>
-            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">
+            <label htmlFor="product-field-1" className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">
               Category <span className="text-red-400">*</span>
             </label>
             <div className="relative group">
               <select
-                value={form.categoryId}
+id="product-field-1"                 value={form.categoryId}
                 onChange={e => set("categoryId", e.target.value)}
                 className="w-full text-xs border border-gray-200 rounded-xl px-3 py-2.5 pr-10 focus:outline-none focus:ring-1 focus:ring-blue-300 text-gray-700 appearance-none bg-white cursor-pointer"
               >
@@ -126,11 +131,11 @@ const ProductFormModal = ({ product, categories, onClose, onSave }) => {
           {/* Product name */}
           <div className="flex items-end gap-3">
             <div className="flex-1">
-              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">
+              <label htmlFor="product-field-2" className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">
                 Product Name <span className="text-red-400">*</span>
               </label>
               <input
-                type="text"
+id="product-field-2"                 type="text"
                 value={form.productName}
                 onChange={e => set("productName", e.target.value)}
                 placeholder="Enter product name"
@@ -138,11 +143,11 @@ const ProductFormModal = ({ product, categories, onClose, onSave }) => {
               />
             </div>
             <div className="w-25 shrink-0">
-              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">
+              <label htmlFor="product-field-3" className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">
                 Stock
               </label>
               <input
-                type="number"
+id="product-field-3"                 type="number"
                 value={form.physicalQty}
                 onChange={e => set("physicalQty", e.target.value)}
                 placeholder="0"
@@ -154,9 +159,9 @@ const ProductFormModal = ({ product, categories, onClose, onSave }) => {
 
           {/* Description */}
           <div>
-            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Description</label>
+            <label htmlFor="product-field-4" className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Description</label>
             <textarea
-              value={form.description}
+id="product-field-4"               value={form.description}
               onChange={e => set("description", e.target.value)}
               placeholder="Product description..."
               rows={3}
@@ -164,14 +169,16 @@ const ProductFormModal = ({ product, categories, onClose, onSave }) => {
             />
           </div>
 
+          <RichProductFields form={form} set={set} />
+
           {/* Price + Discount */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">
+              <label htmlFor="product-field-5" className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">
                 Retail Price (₹) <span className="text-red-400">*</span>
               </label>
               <input
-                type="number"
+id="product-field-5"                 type="number"
                 value={form.retailPrice}
                 onChange={e => set("retailPrice", e.target.value)}
                 placeholder="0.00"
@@ -179,11 +186,11 @@ const ProductFormModal = ({ product, categories, onClose, onSave }) => {
               />
             </div>
             <div>
-              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">
+              <label htmlFor="product-field-6" className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">
                 Discount (%)
               </label>
               <input
-                type="number"
+id="product-field-6"                 type="number"
                 value={form.discountPercent}
                 onChange={e => set("discountPercent", e.target.value)}
                 placeholder="0"
@@ -214,14 +221,7 @@ const ProductFormModal = ({ product, categories, onClose, onSave }) => {
 
           {/* Active toggle */}
           <label className="flex items-center gap-2.5 cursor-pointer">
-            <span className={`w-4 h-4 rounded flex items-center justify-center border shrink-0 transition-colors ${form.active ? "bg-blue-500 border-blue-500" : "border-gray-300"
-              }`} onClick={() => set("active", !form.active)}>
-              {form.active && (
-                <svg viewBox="0 0 10 8" className="w-2.5 h-2.5">
-                  <path d="M1 4l3 3 5-6" stroke="white" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              )}
-            </span>
+            <input type="checkbox" checked={form.active} onChange={e => set("active", e.target.checked)} />
             <span className="text-xs text-gray-600 font-medium">Active (visible to customers)</span>
           </label>
         </div>
@@ -243,12 +243,12 @@ const ProductFormModal = ({ product, categories, onClose, onSave }) => {
           </button>
         </div>
       </div>
-    </div>
+    </ModalFrame>
   );
 };
 
 const DeleteModal = ({ product, onClose, onConfirm, loading }) => (
-  <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+  <ModalFrame title="Delete Product" onClose={onClose}>
     <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl">
       <div className="flex items-center gap-2 text-red-600 mb-3">
         <MdWarning size={20} />
@@ -259,7 +259,7 @@ const DeleteModal = ({ product, onClose, onConfirm, loading }) => (
       </p>
       <p className="text-xs text-gray-400 mb-6">This action cannot be undone.</p>
       <div className="flex gap-3">
-        <button onClick={onClose}
+        <button  onClick={onClose}
           className="flex-1 px-3 py-2.5 text-sm border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 cursor-pointer font-medium">
           Cancel
         </button>
@@ -269,7 +269,7 @@ const DeleteModal = ({ product, onClose, onConfirm, loading }) => (
         </button>
       </div>
     </div>
-  </div>
+  </ModalFrame>
 );
 
 const PIMTab = ({ products, categories, loading, onRefresh, showSeller = false }) => {
@@ -315,12 +315,13 @@ const PIMTab = ({ products, categories, loading, onRefresh, showSeller = false }
               className="text-xs text-gray-700 focus:outline-none w-full"
             />
             {search && (
-              <button onClick={() => setSearch("")} className="text-gray-300 hover:text-gray-500 cursor-pointer">
+              <button aria-label="Clear product search" onClick={() => setSearch("")} className="text-gray-300 hover:text-gray-500 cursor-pointer">
                 <MdClose size={13} />
               </button>
             )}
           </div>
           <select
+            aria-label="Filter products by category"
             value={categoryFilter}
             onChange={e => setCategoryFilter(e.target.value)}
             className="text-xs border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-300 text-gray-700"
@@ -332,14 +333,14 @@ const PIMTab = ({ products, categories, loading, onRefresh, showSeller = false }
           </select>
           <button
             onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-1.5 bg-gray-950 hover:bg-gray-800 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all cursor-pointer active:scale-[0.98]"
+            className="flex items-center gap-1.5 bg-gray-950 hover:bg-gray-800 text-white text-xs font-bold px-4 py-2 rounded-xl transition-[transform,opacity,background-color] cursor-pointer active:scale-[0.98]"
           >
             <MdAdd size={14} /> Add Product
           </button>
         </div>
 
         {/* Table */}
-        {loading ? <TableSkeleton cols={6} /> : (
+        {loading && !products.length ? <TableSkeleton cols={6} /> : (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
@@ -388,7 +389,7 @@ const PIMTab = ({ products, categories, loading, onRefresh, showSeller = false }
                       <p className="text-[10px] text-gray-400">{p.reservedQty} reserved</p>
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${p.active ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${p.active ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-500"
                         }`}>
                         {p.active ? "Active" : "Inactive"}
                       </span>
@@ -396,13 +397,13 @@ const PIMTab = ({ products, categories, loading, onRefresh, showSeller = false }
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1 justify-end">
                         <button
-                          onClick={() => setEditProduct(p)}
+                          aria-label={"Edit " + p.productName} onClick={() => setEditProduct(p)}
                           className="p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
                         >
                           <MdEdit size={14} />
                         </button>
                         <button
-                          onClick={() => setDeleteProduct(p)}
+                          aria-label={"Delete " + p.productName} onClick={() => setDeleteProduct(p)}
                           className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
                         >
                           <MdDelete size={14} />
@@ -459,20 +460,20 @@ const InventoryTab = ({ products, loading, onRefresh, showSeller = false }) => {
               className="text-xs text-gray-700 focus:outline-none w-full"
             />
             {search && (
-              <button onClick={() => setSearch("")} className="text-gray-300 hover:text-gray-500 cursor-pointer">
+              <button aria-label="Clear inventory search" onClick={() => setSearch("")} className="text-gray-300 hover:text-gray-500 cursor-pointer">
                 <MdClose size={13} />
               </button>
             )}
           </div>
           <button
             onClick={() => setShowSupplyModal(true)}
-            className="flex items-center gap-1.5 bg-gray-950 hover:bg-gray-800 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all cursor-pointer active:scale-[0.98]"
+            className="flex items-center gap-1.5 bg-gray-950 hover:bg-gray-800 text-white text-xs font-bold px-4 py-2 rounded-xl transition-[transform,opacity,background-color] cursor-pointer active:scale-[0.98]"
           >
             <MdInventory size={14} /> Supply Update
           </button>
         </div>
 
-        {loading ? <TableSkeleton cols={5} /> : (
+        {loading && !products.length ? <TableSkeleton cols={5} /> : (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
@@ -518,7 +519,7 @@ const InventoryTab = ({ products, loading, onRefresh, showSeller = false }) => {
                       <td className="px-4 py-3">
                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${isOut ? "bg-red-100 text-red-600" :
                           isLow ? "bg-amber-100 text-amber-700" :
-                            "bg-green-100 text-green-700"
+                            "bg-blue-100 text-blue-700"
                           }`}>
                           {isOut ? "Out of Stock" : isLow ? "Low Stock" : "In Stock"}
                         </span>
@@ -577,7 +578,7 @@ const ProductsTab = ({ mode = 'seller' }) => {
           <button
             key={id}
             onClick={() => setSubtab(id)}
-            className={`px-4 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer ${subtab === id
+            className={`px-4 py-2 rounded-lg text-xs font-semibold transition-[transform,opacity,background-color] cursor-pointer ${subtab === id
               ? "bg-gray-950 text-white"
               : "text-gray-500 hover:text-gray-800 hover:bg-gray-50"
               }`}

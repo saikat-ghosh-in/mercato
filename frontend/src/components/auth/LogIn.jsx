@@ -41,7 +41,7 @@ const Login = () => {
                     <p className="text-sm text-gray-400 mt-1">Sign in to your Mercato account</p>
                 </div>
 
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-7">
+                <div className="surface p-7">
                     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
 
                         {/* Username */}
@@ -88,7 +88,7 @@ const Login = () => {
                         <button
                             type="submit"
                             disabled={!isValid || isSubmitting}
-                            className="w-full flex items-center justify-center gap-2 bg-gray-950 hover:bg-gray-800 active:scale-[0.98] disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed text-white text-sm font-bold py-3 rounded-xl transition-all cursor-pointer"
+                            className="w-full flex items-center justify-center gap-2 bg-gray-950 hover:bg-gray-800 active:scale-[0.98] disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed text-white text-sm font-bold py-3 rounded-xl transition-[transform,opacity,background-color] cursor-pointer"
                         >
                             <FiLogIn size={15} />
                             {isSubmitting ? "Signing in..." : "Sign In"}

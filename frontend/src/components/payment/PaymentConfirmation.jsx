@@ -108,7 +108,7 @@ const PaymentConfirmation = () => {
     return (
       <div className="bg-gray-50 min-h-screen py-6 flex items-center justify-center">
         <div className="max-w-md w-full mx-auto px-4">
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center">
+          <div className="surface p-8 text-center">
             <div className="flex justify-center mb-4">
               <div className="p-3 bg-amber-50 rounded-2xl">
                 <FaTimesCircle size={40} className="text-amber-500" />
@@ -121,7 +121,7 @@ const PaymentConfirmation = () => {
             <div className="flex flex-col gap-3">
               <button
                 onClick={() => navigate(orderId ? `/orders?orderId=${orderId}` : "/orders")}
-                className="w-full py-3 bg-blue-500 hover:bg-blue-600 text-white text-sm font-bold rounded-xl transition-all"
+                className="w-full py-3 bg-blue-500 hover:bg-blue-600 text-white text-sm font-bold rounded-xl transition-[transform,opacity,background-color]"
               >
                 View Order
               </button>
@@ -142,7 +142,7 @@ const PaymentConfirmation = () => {
     return (
       <div className="bg-gray-50 min-h-screen py-6 flex items-center justify-center">
         <div className="max-w-md w-full mx-auto px-4">
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center">
+          <div className="surface p-8 text-center">
             <div className="flex justify-center mb-4">
               <div className="p-3 bg-red-50 rounded-2xl">
                 <FaTimesCircle size={40} className="text-red-400" />
@@ -157,7 +157,7 @@ const PaymentConfirmation = () => {
             <div className="flex flex-col gap-3">
               <button
                 onClick={() => navigate(orderId ? `/orders?orderId=${orderId}` : "/orders")}
-                className="w-full py-3 bg-blue-500 hover:bg-blue-600 text-white text-sm font-bold rounded-xl transition-all"
+                className="w-full py-3 bg-blue-500 hover:bg-blue-600 text-white text-sm font-bold rounded-xl transition-[transform,opacity,background-color]"
               >
                 View Order & Retry Payment
               </button>
@@ -178,7 +178,7 @@ const PaymentConfirmation = () => {
     return (
       <div className="bg-gray-50 min-h-screen py-6 flex items-center justify-center">
         <div className="max-w-md w-full mx-auto px-4">
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center">
+          <div className="surface p-8 text-center">
             <div className="flex justify-center mb-4">
               <div className="p-3 bg-yellow-50 rounded-2xl">
                 <FaClock size={40} className="text-yellow-500" />
@@ -190,7 +190,7 @@ const PaymentConfirmation = () => {
             </p>
             <button
               onClick={() => navigate(orderId ? `/orders?orderId=${orderId}` : "/orders")}
-              className="w-full py-3 bg-blue-500 hover:bg-blue-600 text-white text-sm font-bold rounded-xl transition-all"
+              className="w-full py-3 bg-blue-500 hover:bg-blue-600 text-white text-sm font-bold rounded-xl transition-[transform,opacity,background-color]"
             >
               View Order
             </button>
@@ -203,10 +203,10 @@ const PaymentConfirmation = () => {
   return (
     <div className="bg-gray-50 min-h-screen py-6 flex items-center justify-center">
       <div className="max-w-md w-full mx-auto px-4">
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center">
+        <div className="surface p-8 text-center">
           <div className="flex justify-center mb-4">
-            <div className="p-3 bg-green-50 rounded-2xl">
-              <FaCheckCircle size={40} className="text-green-500" />
+            <div className="p-3 bg-blue-50 rounded-2xl">
+              <FaCheckCircle size={40} className="text-blue-500" />
             </div>
           </div>
           <h2 className="text-xl font-bold text-gray-900 mb-2">Payment confirmed!</h2>
@@ -226,7 +226,7 @@ const PaymentConfirmation = () => {
           <div className="flex flex-col gap-3">
             <button
               onClick={() => navigate(orderId ? `/orders?orderId=${orderId}` : "/orders")}
-              className="w-full flex items-center justify-center gap-2 py-3 bg-blue-500 hover:bg-blue-600 active:scale-[0.98] text-white text-sm font-bold rounded-xl transition-all"
+              className="w-full flex items-center justify-center gap-2 py-3 bg-blue-500 hover:bg-blue-600 active:scale-[0.98] text-white text-sm font-bold rounded-xl transition-[transform,opacity,background-color]"
             >
               <MdShoppingBag size={16} /> View Order
             </button>

@@ -14,13 +14,13 @@ test("a slow previous catalog response cannot overwrite a newer search", () => {
   assert.equal(state.loading, false);
 });
 
-test("a catalog failure clears stale results and exposes a retryable error", () => {
+test("a refresh failure keeps the last loaded collection and exposes a retryable error", () => {
   let state = productReducer(undefined, { type: "PRODUCTS_LOADING", requestId: 1 });
   state = productReducer(state, { type: "FETCH_PRODUCTS", requestId: 1, payload: [{ productId: "old" }], totalElements: 1 });
   state = productReducer(state, { type: "PRODUCTS_LOADING", requestId: 2 });
   state = productReducer(state, { type: "PRODUCTS_ERROR", requestId: 2, payload: "Try again" });
-  assert.deepEqual(state.products, []);
-  assert.deepEqual(state.pagination, {});
+  assert.equal(state.products[0].productId, "old");
+  assert.equal(state.pagination.totalElements, 1);
   assert.equal(state.error, "Try again");
   assert.equal(state.loading, false);
 });

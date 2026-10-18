@@ -15,7 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 
 @Component
-@Profile("demo")
+@Profile("demo & !prod")
 @Order(1)
 @RequiredArgsConstructor
 public class DemoCatalogInitializer implements CommandLineRunner {
@@ -52,6 +52,15 @@ public class DemoCatalogInitializer implements CommandLineRunner {
             });
             products.save(Product.builder().productName(entry[1])
                 .description("A considered everyday essential from the Mercato Studio review collection. Demo catalog item for local testing.")
+                .brand("Mercato Studio Demo").productCode("DEMO-" + entry[4].substring(6, 14))
+                .highlights(java.util.List.of("Local demonstration product with 25 units of starting stock", "Editable product information for staging review", "Synthetic listing — not a live offer"))
+                .specifications(java.util.List.of(new com.mercato.Entity.ProductSpecification("Collection", "Local review catalog"), new com.mercato.Entity.ProductSpecification("Category", entry[0])))
+                .materials("Demonstration information. Replace with verified manufacturer materials before publishing.")
+                .care("Follow the manufacturer's care instructions. This is synthetic review data.")
+                .warranty("Demo only: no commercial warranty is offered for this synthetic listing.")
+                .packageContents("One demonstration item. Packaging and accessories are illustrative.")
+                .deliveryReturns("Local testing only. No physical delivery or return is provided.")
+                .secondaryImageUrls(new java.util.ArrayList<>(java.util.List.of("https://images.unsplash.com/" + entry[4] + "?auto=format&fit=crop&w=900&q=85")))
                 .category(category).seller(seller).physicalQty(25)
                 .retailPrice(new BigDecimal(entry[2])).discountPercent(new BigDecimal(entry[3]))
                 .primaryImageUrl("https://images.unsplash.com/" + entry[4] + "?auto=format&fit=crop&w=700&q=85")

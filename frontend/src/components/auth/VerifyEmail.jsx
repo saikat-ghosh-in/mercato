@@ -64,8 +64,8 @@ const VerifyEmail = () => {
         },
         success: {
             icon: MdCheckCircle,
-            iconBg: "bg-green-50",
-            iconColor: "text-green-500",
+            iconBg: "bg-blue-50",
+            iconColor: "text-blue-500",
             title: "Email Verified!",
             sub: message,
         },
@@ -82,7 +82,7 @@ const VerifyEmail = () => {
 
     return (
         <div className="bg-gray-50 min-h-screen flex items-center justify-center px-4">
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 max-w-sm w-full text-center">
+            <div className="surface p-8 max-w-sm w-full text-center">
                 <div className={`w-16 h-16 rounded-2xl ${config.iconBg} flex items-center justify-center mx-auto mb-5`}>
                     <Icon size={30} className={config.iconColor} />
                 </div>
@@ -92,7 +92,7 @@ const VerifyEmail = () => {
                 {status === "success" && (
                     <button
                         onClick={() => navigate("/login")}
-                        className="w-full flex items-center justify-center gap-2 py-3 text-sm font-bold bg-gray-950 hover:bg-gray-800 text-white rounded-xl transition-all cursor-pointer active:scale-[0.98]"
+                        className="w-full flex items-center justify-center gap-2 py-3 text-sm font-bold bg-gray-950 hover:bg-gray-800 text-white rounded-xl transition-[transform,opacity,background-color] cursor-pointer active:scale-[0.98]"
                     >
                         Go to Login <MdArrowForward size={15} />
                     </button>
@@ -116,7 +116,7 @@ const VerifyEmail = () => {
                         <button
                             onClick={handleResend}
                             disabled={!email || cooldown > 0 || resending}
-                            className="w-full flex items-center justify-center gap-2 py-3 text-sm font-bold bg-gray-950 hover:bg-gray-800 text-white rounded-xl transition-all cursor-pointer active:scale-[0.98] disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
+                            className="w-full flex items-center justify-center gap-2 py-3 text-sm font-bold bg-gray-950 hover:bg-gray-800 text-white rounded-xl transition-[transform,opacity,background-color] cursor-pointer active:scale-[0.98] disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
                         >
                             <MdRefresh size={15} className={resending ? "animate-spin" : ""} />
                             {resending ? "Sending..." : cooldown > 0 ? `Resend in ${cooldown}s` : "Resend Verification Email"}
@@ -125,7 +125,7 @@ const VerifyEmail = () => {
                             <div className="flex items-center gap-1.5">
                                 <div className="h-1 bg-gray-100 rounded-full flex-1 overflow-hidden">
                                     <div
-                                        className="h-full bg-blue-400 rounded-full transition-all duration-1000"
+                                        className="h-full bg-blue-400 rounded-full transition-[transform,opacity,background-color] duration-1000"
                                         style={{ width: `${((30 - cooldown) / 30) * 100}%` }}
                                     />
                                 </div>

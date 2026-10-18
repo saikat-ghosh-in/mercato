@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { MdFavorite, MdShoppingBag } from "react-icons/md";
 import api from "../../backend/api";
@@ -6,6 +7,7 @@ import ProductCard, { CardSkeleton } from "../product/ProductCard";
 
 const Wishlist = () => {
     const navigate = useNavigate();
+    const wishlist = useSelector(s => s.wishlist);
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -27,6 +29,7 @@ const Wishlist = () => {
         loadWishlist();
     }, []);
 
+    const visibleProducts = wishlist.loaded ? products.filter(p => wishlist.productIds.includes(p.productId)) : products;
     return (
         <div className="bg-gray-50 min-h-screen py-6">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -40,8 +43,8 @@ const Wishlist = () => {
                     </div>
                 </div>
 
-                {loading ? (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
+                {loading && !products.length ? (
+                    <div className="product-grid">
                         {Array.from({ length: 4 }).map((_, i) => <CardSkeleton key={i} />)}
                     </div>
                 ) : error ? (
@@ -54,9 +57,9 @@ const Wishlist = () => {
                             Try Again
                         </button>
                     </div>
-                ) : products.length === 0 ? (
+                ) : visibleProducts.length === 0 ? (
                     <div className="text-center py-20">
-                        <p className="text-lg font-bold text-gray-800 mb-1">Your wishlist is empty</p>
+                        <h2 className="text-lg font-bold text-gray-800 mb-1">Your wishlist is empty</h2>
                         <p className="text-sm text-gray-400 mb-6">Tap the heart on any product to save it here.</p>
                         <button
                             onClick={() => navigate("/products")}
@@ -66,8 +69,8 @@ const Wishlist = () => {
                         </button>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
-                        {products.map((product) => (
+                    <div className="product-grid">
+                        {visibleProducts.map((product) => (
                             <ProductCard
                                 key={product.productId}
                                 product={product}

@@ -1,3 +1,5 @@
+import ModalFrame from "../shared/ModalFrame";
+import Field from "../shared/AuthField";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -18,25 +20,11 @@ const INDIAN_STATES = [
   "Delhi", "Jammu and Kashmir", "Ladakh", "Lakshadweep", "Puducherry",
 ];
 
-const Field = ({ label, error, required = false, children }) => (
-  <div>
-    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1.5">
-      {label}{required && <span className="text-red-400 ml-0.5">*</span>}
-    </label>
-    <div className={`flex items-center gap-2.5 border rounded-xl px-3 py-2.5 transition-colors focus-within:ring-1 ${error
-        ? "border-red-300 focus-within:ring-red-300 bg-red-50/30"
-        : "border-gray-200 focus-within:ring-blue-300"
-      }`}>
-      {children}
-    </div>
-    {error && <p className="text-[11px] text-red-500 mt-1 font-medium">{error}</p>}
-  </div>
-);
 
 const inputCls = "w-full text-sm text-gray-800 focus:outline-none bg-transparent placeholder-gray-300";
 
 const EmptyState = ({ onAdd }) => (
-  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-12 text-center">
+  <div className="surface p-12 text-center">
     <div className="w-16 h-16 rounded-2xl bg-blue-50 flex items-center justify-center mx-auto mb-4">
       <MdLocationOn size={28} className="text-blue-300" />
     </div>
@@ -44,7 +32,7 @@ const EmptyState = ({ onAdd }) => (
     <p className="text-sm text-gray-400 mb-6">Add a delivery address to get started</p>
     <button
       onClick={onAdd}
-      className="inline-flex items-center gap-2 bg-gray-950 hover:bg-gray-800 text-white text-sm font-bold px-5 py-2.5 rounded-xl transition-all cursor-pointer active:scale-[0.98]"
+      className="inline-flex items-center gap-2 bg-gray-950 hover:bg-gray-800 text-white text-sm font-bold px-5 py-2.5 rounded-xl transition-[transform,opacity,background-color] cursor-pointer active:scale-[0.98]"
     >
       <MdAdd size={15} /> Add Address
     </button>
@@ -52,7 +40,7 @@ const EmptyState = ({ onAdd }) => (
 );
 
 const AddressSkeleton = () => (
-  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 animate-pulse space-y-3">
+  <div className="surface p-5 animate-pulse space-y-3">
     <div className="h-4 bg-gray-100 rounded w-1/3" />
     <div className="h-3 bg-gray-100 rounded w-full" />
     <div className="h-3 bg-gray-100 rounded w-2/3" />
@@ -61,14 +49,14 @@ const AddressSkeleton = () => (
 );
 
 const DeleteModal = ({ address, onClose, onConfirm, loading }) => (
-  <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+  <ModalFrame title="Delete Address" onClose={onClose}>
     <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2 text-red-600">
           <MdWarning size={20} />
           <h2 className="text-sm font-bold">Delete Address</h2>
         </div>
-        <button onClick={onClose} className="text-gray-400 hover:text-gray-600 cursor-pointer transition-colors">
+        <button aria-label="Close dialog" onClick={onClose} className="text-gray-400 hover:text-gray-600 cursor-pointer transition-colors">
           <MdClose size={18} />
         </button>
       </div>
@@ -77,17 +65,17 @@ const DeleteModal = ({ address, onClose, onConfirm, loading }) => (
       </p>
       <p className="text-xs text-gray-400 mb-6">{address.addressLine1}, {address.city}</p>
       <div className="flex gap-3">
-        <button onClick={onClose}
+        <button  onClick={onClose}
           className="flex-1 px-3 py-2.5 text-sm border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 cursor-pointer font-medium transition-colors">
           Cancel
         </button>
         <button onClick={onConfirm} disabled={loading}
-          className="flex-1 px-3 py-2.5 text-sm bg-red-500 hover:bg-red-600 text-white rounded-xl cursor-pointer font-bold disabled:opacity-50 active:scale-[0.98] transition-all">
+          className="flex-1 px-3 py-2.5 text-sm bg-red-500 hover:bg-red-600 text-white rounded-xl cursor-pointer font-bold disabled:opacity-50 active:scale-[0.98] transition-[transform,opacity,background-color]">
           {loading ? "Deleting..." : "Delete"}
         </button>
       </div>
     </div>
-  </div>
+  </ModalFrame>
 );
 
 const AddressFormModal = ({ address, onClose, onSave }) => {
@@ -144,7 +132,7 @@ const AddressFormModal = ({ address, onClose, onSave }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <ModalFrame title="Manage details" onClose={onClose}>
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col">
 
         {/* Header */}
@@ -152,7 +140,7 @@ const AddressFormModal = ({ address, onClose, onSave }) => {
           <h2 className="text-sm font-bold text-gray-800">
             {isEdit ? "Edit Address" : "Add New Address"}
           </h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 cursor-pointer transition-colors">
+          <button aria-label="Close dialog" onClick={onClose} className="text-gray-400 hover:text-gray-600 cursor-pointer transition-colors">
             <MdClose size={18} />
           </button>
         </div>
@@ -257,23 +245,23 @@ const AddressFormModal = ({ address, onClose, onSave }) => {
 
         {/* Footer */}
         <div className="flex gap-3 px-5 py-4 border-t border-gray-100 shrink-0">
-          <button onClick={onClose}
+          <button  onClick={onClose}
             className="flex-1 px-3 py-2.5 text-sm border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 cursor-pointer font-medium transition-colors">
             Cancel
           </button>
           <button onClick={handleSave} disabled={saving}
-            className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 text-sm bg-gray-950 hover:bg-gray-800 text-white rounded-xl cursor-pointer font-bold disabled:opacity-50 active:scale-[0.98] transition-all">
+            className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 text-sm bg-gray-950 hover:bg-gray-800 text-white rounded-xl cursor-pointer font-bold disabled:opacity-50 active:scale-[0.98] transition-[transform,opacity,background-color]">
             <MdSave size={14} />
             {saving ? "Saving..." : isEdit ? "Save Changes" : "Add Address"}
           </button>
         </div>
       </div>
-    </div>
+    </ModalFrame>
   );
 };
 
 const AddressCard = ({ address, onEdit, onDelete }) => (
-  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 hover:shadow-md transition-shadow">
+  <div className="surface p-5 hover:shadow-md transition-shadow">
     <div className="flex items-start justify-between gap-3">
       <div className="flex items-start gap-3 min-w-0">
         <div className="p-2 bg-blue-50 rounded-xl shrink-0 mt-0.5">
@@ -383,7 +371,7 @@ const Addresses = () => {
             {addresses.length > 0 && (
               <button
                 onClick={() => { setEditAddress(null); setShowForm(true); }}
-                className="flex items-center gap-1.5 text-xs font-bold bg-gray-950 hover:bg-gray-800 text-white px-3 py-1.5 rounded-xl transition-all cursor-pointer active:scale-[0.98]"
+                className="flex items-center gap-1.5 text-xs font-bold bg-gray-950 hover:bg-gray-800 text-white px-3 py-1.5 rounded-xl transition-[transform,opacity,background-color] cursor-pointer active:scale-[0.98]"
               >
                 <MdAdd size={14} /> Add New
               </button>
@@ -392,7 +380,7 @@ const Addresses = () => {
         </div>
 
         {/* Content */}
-        {loading ? (
+        {loading && !addresses.length ? (
           <div className="space-y-4">
             {[1, 2].map(i => <AddressSkeleton key={i} />)}
           </div>

@@ -41,7 +41,7 @@ const EmailVerificationPending = () => {
 
     return (
         <div className="bg-gray-50 min-h-screen flex items-center justify-center px-4">
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 max-w-md w-full text-center">
+            <div className="surface p-8 max-w-md w-full text-center">
 
                 {/* Icon */}
                 <div className="w-16 h-16 rounded-2xl bg-blue-50 flex items-center justify-center mx-auto mb-5">
@@ -64,7 +64,7 @@ const EmailVerificationPending = () => {
                 <button
                     onClick={handleResend}
                     disabled={!canResend}
-                    className="w-full flex items-center justify-center gap-2 py-3 text-sm font-bold rounded-xl transition-all active:scale-[0.98] disabled:cursor-not-allowed
+                    className="w-full flex items-center justify-center gap-2 py-3 text-sm font-bold rounded-xl transition-[transform,opacity,background-color] active:scale-[0.98] disabled:cursor-not-allowed
                         bg-gray-950 hover:bg-gray-800 text-white disabled:bg-gray-100 disabled:text-gray-400"
                 >
                     <MdRefresh size={16} className={resending ? "animate-spin" : ""} />
@@ -76,7 +76,7 @@ const EmailVerificationPending = () => {
                     <div className="mt-3 flex items-center justify-center gap-1.5">
                         <div className="h-1 bg-gray-100 rounded-full flex-1 overflow-hidden">
                             <div
-                                className="h-full bg-blue-400 rounded-full transition-all duration-1000"
+                                className="h-full bg-blue-400 rounded-full transition-[transform,opacity,background-color] duration-1000"
                                 style={{ width: `${((RESEND_COOLDOWN - cooldown) / RESEND_COOLDOWN) * 100}%` }}
                             />
                         </div>
@@ -85,7 +85,7 @@ const EmailVerificationPending = () => {
                 )}
 
                 {resendCount > 0 && (
-                    <p className="text-[11px] text-green-600 font-medium mt-3 flex items-center justify-center gap-1">
+                    <p className="text-[11px] text-blue-700 font-medium mt-3 flex items-center justify-center gap-1">
                         <MdCheckCircle size={13} /> Email sent {resendCount} time{resendCount > 1 ? "s" : ""}
                     </p>
                 )}

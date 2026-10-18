@@ -11,7 +11,7 @@ const Label = ({ children, required }) => (
 );
 
 const InputField = ({ field, placeholder, error, type = "text", prefix, maxLength, inputMode }) => (
-  <div className={`flex items-center border rounded-xl overflow-hidden transition-all
+  <div className={`flex items-center border rounded-xl overflow-hidden transition-[transform,opacity,background-color]
         ${error ? "border-red-300 bg-red-50 focus-within:ring-1 focus-within:ring-red-400" : "border-gray-200 bg-white focus-within:border-blue-400 focus-within:ring-1 focus-within:ring-blue-400"}`}
   >
     {prefix && (
@@ -207,7 +207,7 @@ const AddAddressForm = ({ address, setOpenAddressModal, setLoadingAddresses }) =
           <button
             type="submit"
             disabled={isLoading}
-            className="flex items-center gap-2 px-6 py-2.5 text-sm font-bold text-white bg-blue-500 hover:bg-blue-600 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed rounded-xl transition-all shadow-sm"
+            className="flex items-center gap-2 px-6 py-2.5 text-sm font-bold text-white bg-blue-500 hover:bg-blue-600 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed rounded-xl transition-[transform,opacity,background-color] shadow-sm"
           >
             {isLoading ? (
               <>

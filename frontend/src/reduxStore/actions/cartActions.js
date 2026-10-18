@@ -1,64 +1,54 @@
 import api from "../../backend/api";
 import toast from "react-hot-toast";
 import { showWarningToast } from "../../utils/toastUtils";
+import { createSerialQueue } from "../../utils/cartState.js";
 
-export const syncCartFromBackend = () => async dispatch => {
-  try {
-    const { data } = await api.get("/cart");
-    dispatch({ type: "SYNC_CART_SUCCESS", payload: data });
-  } catch (error) {
-    dispatch({ type: "CART_ERROR", payload: error?.response?.data?.message || "Your bag couldn’t be refreshed. Please try again." });
-    if (error?.response?.status === 404) dispatch({ type: "CLEAR_CART" });
-  }
-};
+const requests = createSerialQueue();
+let epoch = 0;
+export const waitForCartRequests = () => requests.drain();
+export const invalidateCartRequests = () => { epoch += 1; };
 
-export const addToCart = (productId, quantity = 1) => async dispatch => {
-  dispatch({ type: "CART_PENDING" });
-  try {
-    const { data } = await api.post("/cart/add", { cartItems: [{ productId, quantity }] });
-    dispatch({ type: "SYNC_CART_SUCCESS", payload: data });
-    toast.success("Added to your bag");
-  } catch (error) {
-    dispatch({ type: "CART_IDLE" });
-    toast.error(error?.response?.data?.message || "Couldn’t add this item. Please try again.");
-  }
+const acceptCart = (dispatch, data) => {
+  if (!data || !Array.isArray(data.cartItems)) throw new Error("The server returned an invalid bag. Please refresh.");
+  dispatch({ type: "SYNC_CART_SUCCESS", payload: data });
 };
-
-export const updateCartItemQuantity = (productId, newQuantity) => async (dispatch, getState) => {
-  if (!Number.isInteger(newQuantity) || newQuantity < 1) return;
-  const currentQty = getState().cart.cartItems.find(i => i.productId === productId)?.quantity;
-  if (newQuantity === currentQty) return;
-  dispatch({ type: "CART_PENDING" });
-  try {
-    const { data } = await api.put("/cart", { productId, quantity: newQuantity });
-    dispatch({ type: "SYNC_CART_SUCCESS", payload: data });
-    if (data.warning) showWarningToast(data.warning);
-  } catch (error) {
-    dispatch({ type: "CART_ITEM_UPDATE_FAILED", payload: productId });
-    toast.error(error?.response?.data?.message || "Couldn’t update quantity. Please try again.");
-  }
+export const syncCartFromBackend = () => dispatch => {
+  const current = epoch;
+  return requests.run(async () => {
+    if (current !== epoch) return;
+    try { const { data } = await api.get("/cart"); if (current === epoch) acceptCart(dispatch, data); }
+    catch (error) { if (current === epoch) dispatch({ type: "CART_ERROR", payload: error?.response?.data?.message || "Your bag couldn’t be refreshed. Please try again." }); }
+  });
 };
-
-export const removeFromCart = productId => async dispatch => {
-  dispatch({ type: "CART_PENDING" });
-  try {
-    // DELETE returns a text acknowledgement, not the updated cart.
-    await api.delete("/cart/remove/" + productId);
-    await dispatch(syncCartFromBackend());
-    toast.success("Removed from your bag");
-  } catch (error) {
-    dispatch({ type: "CART_IDLE" });
-    toast.error(error?.response?.data?.message || "Couldn’t remove this item. Please try again.");
-  }
+const mutate = (productId, execute, success) => dispatch => {
+  const current = epoch;
+  dispatch({ type: "CART_PENDING", productId });
+  return requests.run(async () => {
+    if (current !== epoch) return;
+    try {
+      const data = await execute();
+      if (current !== epoch) return;
+      acceptCart(dispatch, data);
+      if (data.warning) showWarningToast(data.warning);
+      if (success) toast.success(success);
+      return true;
+    } catch (error) {
+      if (current === epoch) { dispatch({ type: "CART_ERROR", payload: error?.response?.data?.message || error.message || "Couldn’t update your bag. Please try again." }); toast.error(error?.response?.data?.message || "Couldn’t update your bag. Please try again."); }
+      return false;
+    } finally { if (current === epoch) dispatch({ type: "CART_IDLE", productId }); }
+  });
 };
-
-export const clearCart = () => async dispatch => {
-  dispatch({ type: "CART_PENDING" });
-  try {
-    await api.delete("/cart");
-    dispatch({ type: "CLEAR_CART" });
-  } catch (error) {
-    dispatch({ type: "CART_IDLE" });
-    toast.error(error?.response?.data?.message || "Couldn’t clear your bag. Please try again.");
-  }
+export const addToCart = (productId, quantity = 1) => mutate(productId, async () => {
+  const { data } = await api.post("/cart/add", { cartItems: [{ productId, quantity }] }); return data;
+}, "Added to your bag");
+export const updateCartItemQuantity = (productId, newQuantity) => (dispatch, getState) => {
+  if (!Number.isSafeInteger(newQuantity) || newQuantity < 1) return Promise.resolve(false);
+  if (newQuantity === getState().cart.cartItems.find(i => i.productId === productId)?.quantity) return Promise.resolve(true);
+  return dispatch(mutate(productId, async () => { const { data } = await api.put("/cart", { productId, quantity: newQuantity }); return data; }));
 };
+export const removeFromCart = productId => mutate(productId, async () => {
+  await api.delete("/cart/remove/" + productId); return (await api.get("/cart")).data;
+}, "Removed from your bag");
+export const clearCart = () => mutate("*", async () => {
+  await api.delete("/cart"); return (await api.get("/cart")).data;
+});

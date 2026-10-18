@@ -14,7 +14,7 @@ import { getOrderStatus } from "../../utils/orderUtils";
 import { retryPayment } from "../../utils/paymentUtils";
 
 const OrderSkeleton = () => (
-  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 animate-pulse">
+  <div className="surface p-5 animate-pulse">
     <div className="flex items-center justify-between">
       <div className="space-y-2 flex-1">
         <div className="h-3.5 bg-gray-100 rounded w-1/4" />
@@ -35,7 +35,7 @@ const EmptyOrders = ({ onShop }) => (
     <p className="text-sm text-gray-400 mb-6">You haven't placed any orders. Start shopping!</p>
     <button
       onClick={onShop}
-      className="flex items-center gap-2 bg-gray-950 hover:bg-gray-800 active:scale-[0.98] text-white text-sm font-bold px-6 py-2.5 rounded-xl transition-all"
+      className="flex items-center gap-2 bg-gray-950 hover:bg-gray-800 active:scale-[0.98] text-white text-sm font-bold px-6 py-2.5 rounded-xl transition-[transform,opacity,background-color]"
     >
       <MdShoppingBag size={15} /> Start Shopping
     </button>
@@ -51,7 +51,7 @@ const ErrorState = ({ message, onRetry }) => (
     <p className="text-sm text-gray-400 mb-6">{message}</p>
     <button
       onClick={onRetry}
-      className="bg-blue-500 hover:bg-blue-600 active:scale-[0.98] text-white text-sm font-bold px-6 py-2.5 rounded-xl transition-all"
+      className="bg-blue-500 hover:bg-blue-600 active:scale-[0.98] text-white text-sm font-bold px-6 py-2.5 rounded-xl transition-[transform,opacity,background-color]"
     >
       Try Again
     </button>
@@ -66,11 +66,11 @@ const OrderCard = ({ ord, onClick, onResumePayment, resumingOrderId }) => {
 
   return (
     <div
-      className="group bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 overflow-hidden"
+      className="group surface  transition-[transform,opacity,background-color] duration-200 overflow-hidden"
     >
-      <div
+      <button type="button" aria-label={"View order " + ord.orderId}
         onClick={onClick}
-        className="flex items-center gap-4 px-5 py-4 cursor-pointer"
+        className="order-card-button flex items-center gap-4 px-5 py-4 cursor-pointer w-full text-left"
       >
         <div className="w-10 h-10 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center shrink-0">
           <MdShoppingBag size={18} className="text-gray-400" />
@@ -96,7 +96,7 @@ const OrderCard = ({ ord, onClick, onResumePayment, resumingOrderId }) => {
           <span className="text-base font-black text-gray-950">{formatCurrency(ord.totalAmount)}</span>
           <MdArrowForward size={16} className="text-gray-300 group-hover:text-blue-500 transition-colors" />
         </div>
-      </div>
+      </button>
       {needsPayment && (
         <div className="px-5 pb-4">
           <button
@@ -181,16 +181,16 @@ const Orders = () => {
         </div>
 
         {/* Content */}
-        {loading ? (
+        {loading && !orders.length ? (
           <div className="space-y-3">
             {[1, 2, 3].map(i => <OrderSkeleton key={i} />)}
           </div>
         ) : error ? (
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm">
+          <div className="surface">
             <ErrorState message={error} onRetry={fetchOrders} />
           </div>
         ) : orders.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm">
+          <div className="surface">
             <EmptyOrders onShop={() => navigate("/products")} />
           </div>
         ) : (

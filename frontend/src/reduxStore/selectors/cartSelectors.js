@@ -1,3 +1,4 @@
+import { countCartUnits } from "../../utils/cartState.js";
 import { createSelector } from '@reduxjs/toolkit';
 
 const selectCartItems = (state) => state.cart.cartItems;
@@ -23,7 +24,7 @@ export const selectCharges = createSelector(
 
 export const selectCartQty = createSelector(
     selectCartItems,
-    (items) => items.reduce((sum, item) => sum + item.quantity, 0)
+    countCartUnits
 );
 
 export const selectIsCartEmpty = createSelector(

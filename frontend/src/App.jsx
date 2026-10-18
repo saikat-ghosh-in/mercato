@@ -1,43 +1,57 @@
 import React, { useEffect, lazy, Suspense } from 'react';
 import { Route, BrowserRouter, Routes, Link, useLocation } from 'react-router-dom';
 import './App.css'
-const ProductListingPage = lazy(() => import("./components/product/ProductListingPage"));
+const routeLoaders = [];
+function lazyPage(loader) {
+  let promise;
+  const load = () => promise ??= loader();
+  routeLoaders.push(load);
+  return lazy(load);
+}
+const warmRoutes = () => { routeLoaders.forEach(load => { load().catch(() => {}); }); };
+const ProductListingPage = lazyPage(() => import("./components/product/ProductListingPage"));
 import HomePage from './components/home/Home';
 import Header from './components/Header';
-const Cart = lazy(() => import("./components/cart/Cart"));
+const Cart = lazyPage(() => import("./components/cart/Cart"));
 
 import toast, { Toaster } from 'react-hot-toast';
-const LogIn = lazy(() => import("./components/auth/LogIn"));
+const LogIn = lazyPage(() => import("./components/auth/LogIn"));
 import PrivateRoute from "./components/PrivateRoute";
-const Register = lazy(() => import("./components/auth/Register"));
-const Checkout = lazy(() => import("./components/checkout/Checkout"));
-const PaymentConfirmation = lazy(() => import("./components/payment/PaymentConfirmation"));
-const Orders = lazy(() => import("./components/orders/Orders"));
+const Register = lazyPage(() => import("./components/auth/Register"));
+const Checkout = lazyPage(() => import("./components/checkout/Checkout"));
+const PaymentConfirmation = lazyPage(() => import("./components/payment/PaymentConfirmation"));
+const Orders = lazyPage(() => import("./components/orders/Orders"));
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchCategories } from './reduxStore/actions/categoryActions';
 import { initializeAuth, logOutUser } from './reduxStore/actions/authActions';
 import { syncCartFromBackend } from './reduxStore/actions/cartActions';
 import { fetchWishlistIds } from './reduxStore/actions/wishlistActions';
-const Profile = lazy(() => import("./components/user/Profile"));
+const Profile = lazyPage(() => import("./components/user/Profile"));
 import { SubHeaderProvider } from './components/shared/SubHeaderContext';
 import SubHeaderSlot from './components/shared/SubHeaderSlot';
-const ProductDetailsPage = lazy(() => import("./components/product/ProductDetailsPage"));
-const CashfreePayment = lazy(() => import("./components/payment/CashfreePayment"));
-const SellerDashboard = lazy(() => import("./components/seller/SellerDashboard"));
-const AdminDashboard = lazy(() => import("./components/admin/AdminDashboard"));
+const ProductDetailsPage = lazyPage(() => import("./components/product/ProductDetailsPage"));
+const CashfreePayment = lazyPage(() => import("./components/payment/CashfreePayment"));
+const SellerDashboard = lazyPage(() => import("./components/seller/SellerDashboard"));
+const AdminDashboard = lazyPage(() => import("./components/admin/AdminDashboard"));
 import { isTokenExpired } from './utils/tokenManager';
-const ProfileEdit = lazy(() => import("./components/user/ProfileEdit"));
-const Addresses = lazy(() => import("./components/user/Addresses"));
-const EmailVerificationPending = lazy(() => import("./components/auth/EmailVerificationPending"));
-const VerifyEmail = lazy(() => import("./components/auth/VerifyEmail"));
-const ForgotPassword = lazy(() => import("./components/auth/ForgotPassword"));
-const ResetPassword = lazy(() => import("./components/auth/ResetPassword"));
-const Wishlist = lazy(() => import("./components/wishlist/Wishlist"));
-const AccountDeactivated = lazy(() => import("./components/auth/AccountDeactivated"));
+const ProfileEdit = lazyPage(() => import("./components/user/ProfileEdit"));
+const Addresses = lazyPage(() => import("./components/user/Addresses"));
+const EmailVerificationPending = lazyPage(() => import("./components/auth/EmailVerificationPending"));
+const VerifyEmail = lazyPage(() => import("./components/auth/VerifyEmail"));
+const ForgotPassword = lazyPage(() => import("./components/auth/ForgotPassword"));
+const ResetPassword = lazyPage(() => import("./components/auth/ResetPassword"));
+const Wishlist = lazyPage(() => import("./components/wishlist/Wishlist"));
+const AccountDeactivated = lazyPage(() => import("./components/auth/AccountDeactivated"));
 import Footer from './components/Footer';
-const Help = lazy(() => import("./components/Help"));
+const Help = lazyPage(() => import("./components/Help"));
 import ErrorBoundary from './components/ErrorBoundary';
 
+function PageFrame({ children }) {
+  const { pathname } = useLocation();
+  const kind = /^\/(login|register|forgot-password|reset-password|verify-email|account-deactivated)/.test(pathname) ? "auth" : /^\/(admin|seller)/.test(pathname) ? "management" : pathname.startsWith("/checkout") ? "checkout" : pathname.startsWith("/orders") ? "orders" : /^\/(profile|edit-profile|addresses|wishlist)/.test(pathname) ? "account" : "store";
+  useEffect(() => { const timer = window.setTimeout(warmRoutes, 1800); return () => window.clearTimeout(timer); }, []);
+  return <main id="main-content" tabIndex={-1} className={"app-page " + kind + "-page"}>{children}</main>;
+}
 function NavigationReset() {
   const { pathname, search } = useLocation();
   useEffect(() => { window.scrollTo(0, 0); }, [pathname, search]);
@@ -84,9 +98,9 @@ function App() {
         <SubHeaderProvider>
           <Header />
           <SubHeaderSlot />
-          <main id="main-content" tabIndex={-1}>
+          <PageFrame>
           <ErrorBoundary>
-          <Suspense fallback={<div className="site-container home-section" role="status">Loading your next good find…</div>}><Routes>
+          <Suspense fallback={<div className="site-container route-loading" role="status" aria-label="Loading page"><div /><div /></div>}><Routes>
             <Route path='/help' element={<Help />} />
             <Route path='/' element={<HomePage />} />
             <Route path='/products' element={<ProductListingPage />} />
@@ -96,13 +110,13 @@ function App() {
             <Route path='/' element={<PrivateRoute publicPage />}>
               <Route path='/login' element={<LogIn />} />
               <Route path='/register' element={<Register />} />
+            </Route>
+
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/verify-email-pending" element={<EmailVerificationPending />} />
               <Route path="/verify-email" element={<VerifyEmail />} />
               <Route path="/account-deactivated" element={<AccountDeactivated />} />
-            </Route>
-
             <Route path='/' element={<PrivateRoute />}>
               <Route path='/profile' element={<Profile />} />
               <Route path="/wishlist" element={<Wishlist />} />
@@ -126,7 +140,7 @@ function App() {
             <Route path='*' element={<div className="site-container home-section"><div className="state-panel"><p className="eyebrow">404 · PAGE NOT FOUND</p><h1>Let’s find something good.</h1><p>This page may have moved or the link may be incomplete.</p><Link to="/products" className="button button-dark">Explore the collection</Link></div></div>} />
           </Routes></Suspense>
           </ErrorBoundary>
-          </main>
+          </PageFrame>
           <Footer />
 
         </SubHeaderProvider>

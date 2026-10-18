@@ -80,6 +80,34 @@ public class Product {
     @Column(columnDefinition = "TEXT", nullable = false)
     private String description;
 
+    @Column(length = 100)
+    private String brand;
+    @Column(name = "product_code", length = 100)
+    private String productCode;
+    @Column(columnDefinition = "TEXT")
+    private String materials;
+    @Column(columnDefinition = "TEXT")
+    private String care;
+    @Column(columnDefinition = "TEXT")
+    private String warranty;
+    @Column(name = "package_contents", columnDefinition = "TEXT")
+    private String packageContents;
+    @Column(name = "delivery_returns", columnDefinition = "TEXT")
+    private String deliveryReturns;
+
+    @ElementCollection
+    @CollectionTable(name = "product_highlights", joinColumns = @JoinColumn(name = "product_id"))
+    @OrderColumn(name = "highlight_order")
+    @Column(name = "highlight", length = 300)
+    @Builder.Default
+    private List<String> highlights = new ArrayList<>();
+
+    @ElementCollection
+    @CollectionTable(name = "product_specifications", joinColumns = @JoinColumn(name = "product_id"))
+    @OrderColumn(name = "spec_order")
+    @Builder.Default
+    private List<ProductSpecification> specifications = new ArrayList<>();
+
     @NotNull(message = "Quantity is required")
     @Min(value = 0, message = "Quantity cannot be negative")
     @Column(nullable = false)

@@ -1,5 +1,5 @@
 import { useSelector } from 'react-redux'
-import { Navigate, Outlet, useLocation } from 'react-router-dom';
+import { Navigate, Outlet, useLocation, Link } from 'react-router-dom';
 import { isTokenExpired } from '../utils/tokenManager';
 
 const PrivateRoute = ({ publicPage = false, roles = [] }) => {
@@ -17,10 +17,11 @@ const PrivateRoute = ({ publicPage = false, roles = [] }) => {
         return <Navigate to={`/login?redirect=${redirect}`} replace />;
     }
 
+    if (roles.length > 0 && !userDetails) return <div className="site-container route-loading" role="status" aria-label="Checking account permissions"><div /><div /></div>;
     if (roles.length > 0) {
         const userRoles = userDetails?.roles ?? [];
         const hasRole = roles.some(r => userRoles.includes(r));
-        if (!hasRole) return <Navigate to="/" />;
+        if (!hasRole) return <div className="site-container state-panel"><h1>Access restricted</h1><p>This page requires a different account role.</p><Link to="/profile" className="button button-dark">Your account</Link></div>;
     }
 
     return <Outlet />;

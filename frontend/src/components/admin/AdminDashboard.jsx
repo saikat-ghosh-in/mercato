@@ -53,19 +53,20 @@ const AdminDashboard = () => {
           </div>
           <button
             className="ml-auto lg:hidden p-2 rounded-xl bg-white border border-gray-100 text-gray-500"
-            onClick={() => setMobileNavOpen(v => !v)}
+            aria-label="Toggle dashboard navigation" aria-expanded={mobileNavOpen} onClick={() => setMobileNavOpen(v => !v)}
           >
             {mobileNavOpen ? <MdClose size={18} /> : <MdMenu size={18} />}
           </button>
         </div>
 
         {/* Tab nav */}
-        <div className={`${mobileNavOpen ? "flex" : "hidden"} lg:flex flex-col lg:flex-row gap-1 bg-white rounded-2xl border border-gray-100 shadow-sm p-1.5 mb-6`}>
+        <div className={`${mobileNavOpen ? "flex" : "hidden"} lg:flex flex-col lg:flex-row gap-1 surface p-1.5 mb-6`}>
           {NAV.map(({ id, label, icon: Icon }) => (
             <button
               key={id}
+              aria-pressed={activeTab === id}
               onClick={() => { setActiveTab(id); setMobileNavOpen(false); }}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer flex-1 justify-center lg:justify-start ${activeTab === id
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-[transform,opacity,background-color] cursor-pointer flex-1 justify-center lg:justify-start ${activeTab === id
                 ? "bg-gray-950 text-white shadow-sm"
                 : "text-gray-500 hover:bg-gray-50 hover:text-gray-800"
                 }`}

@@ -67,7 +67,7 @@ const UserBreakdown = ({ users }) => (
                 { label: "Total Users", value: users.total, icon: MdPerson, color: "bg-blue-50 text-blue-600" },
                 { label: "Sellers", value: users.sellers, icon: MdStorefront, color: "bg-amber-50 text-amber-600" },
                 { label: "Admins", value: users.admins, icon: MdAdminPanelSettings, color: "bg-purple-50 text-purple-600" },
-                { label: "New This Month", value: users.newThisMonth, icon: MdPeople, color: "bg-green-50 text-green-600" },
+                { label: "New This Month", value: users.newThisMonth, icon: MdPeople, color: "bg-blue-50 text-blue-700" },
             ].map(({ label, value, icon: Icon, color }) => (
                 <div key={label} className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0">
                     <div className={`p-2 rounded-lg shrink-0 ${color}`}>
@@ -101,7 +101,7 @@ const AdminOverviewTab = () => {
 
     useEffect(() => { fetchStats(); }, []);
 
-    if (loading) return <DashboardSkeleton />;
+    if (loading && !stats) return <DashboardSkeleton />;
     if (error) return <DashboardError message={error} onRetry={fetchStats} />;
 
     const { users, order, revenue, topSellingProducts, orderStatusBreakdown, recentOrders } = stats;

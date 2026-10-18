@@ -31,9 +31,9 @@ export const ORDER_STATUS_MAP = {
   FULFILLMENT_COMPLETE: {
     label: "Shipped",
     sublabel: "Your order has been shipped",
-    color: "bg-green-100 text-green-700",
-    bannerBg: "bg-green-50 border-green-100",
-    iconColor: "text-green-500",
+    color: "bg-blue-100 text-blue-700",
+    bannerBg: "bg-blue-50 border-blue-100",
+    iconColor: "text-blue-500",
     icon: MdCheckCircle,
   },
   CANCELLED: {
@@ -57,7 +57,7 @@ export const getOrderStatus = (raw) => ORDER_STATUS_MAP[raw?.toUpperCase()] ?? {
 
 export const QUANTITY_CONFIG = [
   { key: "orderedQty", label: "ordered", className: "bg-gray-100 text-gray-700" },
-  { key: "shippedQty", label: "shipped", className: "bg-green-50 text-green-800" },
+  { key: "shippedQty", label: "shipped", className: "bg-blue-50 text-blue-800" },
   { key: "cancelledQty", label: "cancelled", className: "bg-red-50 text-red-800" },
   { key: "pendingQty", label: "pending", className: "bg-amber-50 text-amber-800" },
 ];
@@ -67,8 +67,8 @@ export const LINE_STATUS_MAP = {
   CONFIRMED: { label: "Confirmed", color: "bg-blue-100 text-blue-700" },
   PROCESSING: { label: "Processing", color: "bg-indigo-100 text-indigo-700" },
   PARTIALLY_PROCESSED: { label: "Part. Processed", color: "bg-indigo-50 text-indigo-500" },
-  FULFILLED: { label: "Fulfilled", color: "bg-green-100 text-green-700" },
-  PARTIALLY_FULFILLED: { label: "Part. Fulfilled", color: "bg-green-50 text-green-600" },
+  FULFILLED: { label: "Fulfilled", color: "bg-blue-100 text-blue-700" },
+  PARTIALLY_FULFILLED: { label: "Part. Fulfilled", color: "bg-blue-50 text-blue-600" },
   CANCELLED: { label: "Cancelled", color: "bg-gray-100 text-gray-500" },
 };
 
@@ -76,7 +76,7 @@ export const getLineStatus = (raw) =>
   LINE_STATUS_MAP[raw?.toUpperCase()] ?? { label: raw ?? "—", color: "bg-gray-100 text-gray-500" };
 
 const PAYMENT_STATUS_STYLE = {
-  SUCCESS: { text: "text-green-700", border: "border-green-100/60", badge: "bg-green-100 text-green-700" },
+  SUCCESS: { text: "text-blue-700", border: "border-blue-100/60", badge: "bg-blue-100 text-blue-700" },
   PENDING: { text: "text-yellow-700", border: "border-yellow-100/60", badge: "bg-yellow-100 text-yellow-700" },
   FAILED: { text: "text-red-600", border: "border-red-100/60", badge: "bg-red-100 text-red-600" },
   USER_DROPPED: { text: "text-orange-600", border: "border-orange-100/60", badge: "bg-orange-100 text-orange-600" },
@@ -84,7 +84,7 @@ const PAYMENT_STATUS_STYLE = {
 };
 
 const REFUND_STATUS_STYLE = {
-  SUCCESS: { text: "text-green-700", border: "border-green-100/60" },
+  SUCCESS: { text: "text-blue-700", border: "border-blue-100/60" },
   PENDING: { text: "text-yellow-700", border: "border-yellow-100/60" },
   PROCESSING: { text: "text-blue-700", border: "border-blue-100/60" },
   FAILED: { text: "text-red-600", border: "border-red-100/60" },
@@ -122,7 +122,7 @@ export const getRefundMessage = (status, amount) => {
 };
 
 export const paymentFooterBg = {
-  SUCCESS: "bg-green-50",
+  SUCCESS: "bg-blue-50",
   PENDING: "bg-yellow-50",
   FAILED: "bg-red-50",
   USER_DROPPED: "bg-orange-50",
@@ -130,7 +130,7 @@ export const paymentFooterBg = {
 };
 
 export const refundFooterBg = {
-  SUCCESS: "bg-green-50",
+  SUCCESS: "bg-blue-50",
   PENDING: "bg-yellow-50",
   PROCESSING: "bg-blue-50",
   FAILED: "bg-red-50",

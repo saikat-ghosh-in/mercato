@@ -1,0 +1,59 @@
+# Route and action validation — 18 October 2026
+
+This records what was actually checked. Browser checks used disposable demo H2 data, desktop 1440×1000 and mobile 390×844, including the production Vite preview. Shared controls were checked in their owning flow; this is not a claim that every possible data permutation or live service was exercised.
+
+## Storefront and navigation — Browser
+
+- [x] Home campaign, categories, featured collection, header and footer destinations render in the new visual system.
+- [x] Search submission, catalog category filter, price controls, sorting, selected-filter removal and mobile filter/navigation dialogs.
+- [x] Three desktop product columns and two mobile columns; no document overflow in measured screens.
+- [x] Product details, gallery arrows/thumbnails, price, availability, rich details and conditional disclosures.
+- [x] Add to bag, increase/decrease/remove, accurate accessible badge and server-calculated charges. Removing a line retains unrelated lines (baseline Browser check and regression coverage).
+- [x] Saved items add/remove and empty state; anonymous access requests sign-in.
+- [x] Help disclosures, missing-page recovery, failed requests and retry controls (baseline Browser and current regression coverage).
+
+## Authentication and account — Browser
+
+- [x] Login, invalid credentials, retained entered values and guest-bag merge on successful login.
+- [x] Registration validation/submission and verification-pending page using synthetic account data.
+- [x] Forgot-password layout, missing reset token, missing verification token and account-deactivated screen.
+- [x] Signed-in Change Password action opens recovery instead of redirecting back to the home page.
+- [x] Profile read/edit/save; address required validation and create/save/select in checkout.
+- [x] Address edit/delete dialogs and focus/Escape behavior inspected; current save and selected-address behavior verified.
+- [x] User drawer keyboard activation, focus trap and Escape dismissal.
+- [x] Sign-out and clearing session-associated bag/wishlist state inspected in implementation; invalid/expired authentication has automated API boundary coverage.
+- [ ] Real verification/reset emails and completed reset link require SMTP sandbox. No existing user's credentials were changed.
+- [ ] Account deactivation and role grants were not performed interactively. The dialogs were inspected without changing access; permission/validation boundaries have backend tests.
+
+## Checkout and orders — Browser plus regression tests
+
+- [x] Guest checkout redirects to sign-in and returns after server bag merging.
+- [x] Delivery selection, review, payment step and real backend fee totals.
+- [x] Provider failure keeps address and bag; incomplete return offers orders/bag recovery.
+- [x] Orders page and empty state, navigation back to shopping.
+- [x] Mocked backend coverage for reservations, expiry, stock conflicts, order transitions, payment signatures/callbacks, retries, partial cart consumption and repeated/concurrent finalization.
+- [ ] Live paid-order details, hosted payment, fulfillment/shipment and refunds require configured Cashfree/SMTP sandbox. No real funds were transacted.
+
+## Seller and admin — Browser
+
+- [x] Seller overview, product catalogue, perpetual inventory and supply-update dialog.
+- [x] Product create/edit with brand, highlights, ordered specifications and care; values persisted when reopened.
+- [x] Supply selection by keyboard and stock delta save (12 → 14); existing table stays mounted while refreshing.
+- [x] Active fulfillment/history tabs, search and empty states; failure details now expose retry/back controls.
+- [x] Admin overview, users, orders, categories, products and carts tabs.
+- [x] Admin category create/edit persisted; user role dialog and drawer inspected and dismissed.
+- [x] Shared product editor available in both dashboards; category/search controls have accessible names.
+- [x] Mobile admin directory scroll containment; desktop seller inventory reflects shopper reservations.
+- [ ] Paid fulfillment action buttons and cancellation/refund completion were tested through backend mocks, not a live paid browser order.
+
+## Automated checks and implementation audit
+
+- [x] `npm run lint` and `npm run build` pass.
+- [x] `npm test`: 13 tests pass, including cart normalization/serial queue/pending state/identity reset, stale catalog results, failed refresh retention and rich editor conversion.
+- [x] `mvnw.cmd test`: 49 tests pass, no failures/errors/skips. Covers authorization/ownership, nested validation, rich persistence/legacy updates/clearing, role inputs, duplicate phone, uploads, cart/reservations, payment callbacks and order transitions.
+- [x] Additive SQL applied twice in H2 PostgreSQL mode, retaining the old product row and checking collection cleanup.
+- [x] Static motion audit: transform/opacity feedback, reduced-motion override, retained content during refresh, image dimensions reserved, no page-wide update fade.
+- [x] Long rich fields are bounded by backend validation and editor limits; invalid specifications preserve form values.
+- [ ] Real PostgreSQL staging deployment, physical touch devices, OS reduced-motion behavior and controlled network-throttling scenarios remain release checks. Stale/failed request behavior is covered by regression tests; no claim of exhaustive slow-network Browser coverage is made.
+
+Local demo credentials: **reviewer / ReviewOnly!2026**. Demo-only fixture creation is disabled with `prod`; the known demo password is rejected outside demo initialization. Restarting demo resets all synthetic data. Review [deployment and startup instructions](EDITORIAL_REVIEW.md) before staging rollout.

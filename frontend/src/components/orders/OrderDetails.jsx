@@ -1,3 +1,4 @@
+import ModalFrame from "../shared/ModalFrame";
 import { useCallback, useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
@@ -29,14 +30,14 @@ const CancelReasonModal = ({ title, subtitle, onClose, onConfirm, loading, child
   const canSubmit = selected !== "" && (selected !== "Other" || custom.trim() !== "");
 
   return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <ModalFrame title={title} onClose={onClose}>
       <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl">
         <div className="flex items-center justify-between mb-1">
           <div className="flex items-center gap-2 text-red-600">
             <MdWarning size={20} />
             <h2 className="text-sm font-bold">{title}</h2>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 cursor-pointer transition-colors">
+          <button aria-label="Close dialog" onClick={onClose} className="text-gray-400 hover:text-gray-600 cursor-pointer transition-colors">
             <MdClose size={18} />
           </button>
         </div>
@@ -81,7 +82,7 @@ const CancelReasonModal = ({ title, subtitle, onClose, onConfirm, loading, child
           </button>
         </div>
       </div>
-    </div>
+    </ModalFrame>
   );
 };
 
@@ -153,7 +154,7 @@ const StatusBanner = ({ order }) => {
 
 const Skeleton = () => (
   <div className="animate-pulse space-y-4">
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-3">
+    <div className="surface p-5 space-y-3">
       <div className="h-4 bg-gray-100 rounded w-1/4" />
       <div className="h-8 bg-gray-100 rounded w-1/2" />
       <div className="h-3 bg-gray-100 rounded w-1/3" />
@@ -161,14 +162,14 @@ const Skeleton = () => (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
       <div className="lg:col-span-2 space-y-4">
         {[1, 2, 3].map(i => (
-          <div key={i} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-3">
+          <div key={i} className="surface p-5 space-y-3">
             <div className="h-3 bg-gray-100 rounded w-1/3" />
             <div className="h-4 bg-gray-100 rounded w-full" />
             <div className="h-4 bg-gray-100 rounded w-3/4" />
           </div>
         ))}
       </div>
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-3">
+      <div className="surface p-5 space-y-3">
         <div className="h-3 bg-gray-100 rounded w-1/2" />
         <div className="h-6 bg-gray-100 rounded w-full" />
         <div className="h-6 bg-gray-100 rounded w-full" />
@@ -179,7 +180,7 @@ const Skeleton = () => (
 );
 
 const SectionCard = ({ title, icon: Icon, children }) => (
-  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+  <div className="surface p-5">
     {title && (
       <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-1.5">
         {Icon && <Icon size={13} />} {title}
@@ -390,7 +391,7 @@ const OrderDetails = ({ orderId }) => {
   const canCancelOrder = order?.orderStatus === "CREATED" ||
     (order?.orderStatus === "CONFIRMED" && cancelWindowRemaining > 0);
 
-  if (loading) return (
+  if (loading && !order) return (
     <div className="bg-gray-50 min-h-screen py-6">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8"><Skeleton /></div>
     </div>
@@ -399,7 +400,7 @@ const OrderDetails = ({ orderId }) => {
   if (error || !order) return (
     <div className="bg-gray-50 min-h-screen py-6">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-10 text-center">
+        <div className="surface p-10 text-center">
           <div className="w-16 h-16 rounded-2xl bg-red-50 flex items-center justify-center mx-auto mb-4">
             <MdWarning size={28} className="text-red-300" />
           </div>
@@ -407,7 +408,7 @@ const OrderDetails = ({ orderId }) => {
           <p className="text-sm text-gray-400 mb-6">{error || "Unable to load order details"}</p>
           <button
             onClick={() => navigate("/orders")}
-            className="inline-flex items-center gap-2 bg-gray-950 hover:bg-gray-800 text-white text-sm font-bold px-5 py-2.5 rounded-xl transition-all active:scale-[0.98]"
+            className="inline-flex items-center gap-2 bg-gray-950 hover:bg-gray-800 text-white text-sm font-bold px-5 py-2.5 rounded-xl transition-[transform,opacity,background-color] active:scale-[0.98]"
           >
             <MdArrowBack size={14} /> Back to Orders
           </button>
@@ -594,7 +595,7 @@ const OrderDetails = ({ orderId }) => {
             {order.refundSummary && (
               <SectionCard title="Refund Information" icon={MdAutorenew}>
                 <InfoRow label="Status" value={order.refundSummary.status} color={refundStyle.text} />
-                <InfoRow label="Amount" value={formatCurrency(order.refundSummary.amount)} color="text-green-600" />
+                <InfoRow label="Amount" value={formatCurrency(order.refundSummary.amount)} color="text-blue-700" />
                 <InfoRow label="Reason" value={order.refundSummary.reason} />
                 {order.refundSummary.gatewayReference && (
                   <InfoRow label="Refund ID" value={order.refundSummary.gatewayReference} mono copyable />

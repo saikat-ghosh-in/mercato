@@ -11,7 +11,7 @@ import java.util.ArrayList;
 public class ProductMapper {
 
     public Product toEntity(ProductRequestDTO dto) {
-        return Product.builder()
+        Product product = Product.builder()
                 .productName(dto.getProductName())
                 .description(dto.getDescription())
                 .retailPrice(dto.getRetailPrice())
@@ -24,6 +24,8 @@ public class ProductMapper {
                 .reservedQty(0)
                 .active(dto.isActive())
                 .build();
+        updateDetails(product, dto);
+        return product;
     }
 
     public ProductResponseDTO toDTO(Product product) {
@@ -31,6 +33,11 @@ public class ProductMapper {
                 .productId(product.getProductId())
                 .productName(product.getProductName())
                 .description(product.getDescription())
+                .brand(product.getBrand()).productCode(product.getProductCode())
+                .materials(product.getMaterials()).care(product.getCare()).warranty(product.getWarranty())
+                .packageContents(product.getPackageContents()).deliveryReturns(product.getDeliveryReturns())
+                .highlights(new ArrayList<>(product.getHighlights()))
+                .specifications(product.getSpecifications().stream().map(spec -> new com.mercato.Entity.ProductSpecification(spec.getLabel(), spec.getValue())).toList())
                 .retailPrice(product.getRetailPrice())
                 .discountPercent(product.getDiscountPercent())
                 .sellingPrice(product.getSellingPrice())
@@ -76,5 +83,23 @@ public class ProductMapper {
 
         product.setPhysicalQty(dto.getPhysicalQty());
         product.setActive(dto.isActive());
+        updateDetails(product, dto);
+    }
+    private void updateDetails(Product product, ProductRequestDTO dto) {
+        if (dto.getBrand() != null) product.setBrand(dto.getBrand().trim());
+        if (dto.getProductCode() != null) product.setProductCode(dto.getProductCode().trim());
+        if (dto.getMaterials() != null) product.setMaterials(dto.getMaterials().trim());
+        if (dto.getCare() != null) product.setCare(dto.getCare().trim());
+        if (dto.getWarranty() != null) product.setWarranty(dto.getWarranty().trim());
+        if (dto.getPackageContents() != null) product.setPackageContents(dto.getPackageContents().trim());
+        if (dto.getDeliveryReturns() != null) product.setDeliveryReturns(dto.getDeliveryReturns().trim());
+        if (dto.getHighlights() != null) {
+            product.getHighlights().clear();
+            dto.getHighlights().stream().map(String::trim).forEach(product.getHighlights()::add);
+        }
+        if (dto.getSpecifications() != null) {
+            product.getSpecifications().clear();
+            dto.getSpecifications().forEach(spec -> product.getSpecifications().add(new com.mercato.Entity.ProductSpecification(spec.getLabel().trim(), spec.getValue().trim())));
+        }
     }
 }

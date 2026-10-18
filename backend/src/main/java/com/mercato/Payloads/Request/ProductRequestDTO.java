@@ -1,6 +1,8 @@
 package com.mercato.Payloads.Request;
 
 import jakarta.validation.constraints.*;
+import jakarta.validation.Valid;
+import com.mercato.Entity.ProductSpecification;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -19,6 +21,25 @@ public class ProductRequestDTO {
     @NotBlank(message = "Description is required")
     @Size(min = 7, max = 2000, message = "Description must be between 7 and 2000 characters")
     private String description;
+
+    @Size(max = 100)
+    private String brand;
+    @Size(max = 100)
+    private String productCode;
+    @Size(max = 2000)
+    private String materials;
+    @Size(max = 2000)
+    private String care;
+    @Size(max = 2000)
+    private String warranty;
+    @Size(max = 2000)
+    private String packageContents;
+    @Size(max = 2000)
+    private String deliveryReturns;
+    @Size(max = 10)
+    private List<@NotBlank @Size(max = 300) String> highlights;
+    @Size(max = 30)
+    private List<@NotNull @Valid ProductSpecification> specifications;
 
     @NotNull(message = "Retail price is required")
     @DecimalMin(value = "0.01", message = "Retail price must be greater than 0")

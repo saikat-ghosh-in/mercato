@@ -20,7 +20,7 @@ const TableSkeleton = () => (
 const DetailSkeleton = () => (
     <div className="animate-pulse space-y-4">
         {[1, 2].map(i => (
-            <div key={i} className="bg-white rounded-2xl border border-gray-100 p-5 space-y-3">
+            <div key={i} className="surface p-5 space-y-3">
                 <div className="h-3 bg-gray-100 rounded w-1/3" />
                 <div className="h-4 bg-gray-100 rounded w-full" />
                 <div className="h-4 bg-gray-100 rounded w-2/3" />
@@ -48,7 +48,7 @@ const CartDetail = ({ cartId, onBack }) => {
         fetch();
     }, [cartId]);
 
-    if (loading) return <DetailSkeleton />;
+    if (loading && !cart) return <DetailSkeleton />;
     if (!cart) return null;
 
     return (
@@ -68,7 +68,7 @@ const CartDetail = ({ cartId, onBack }) => {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
                 {/* Items */}
-                <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                <div className="lg:col-span-2 surface overflow-hidden">
                     <div className="px-5 py-4 border-b border-gray-50">
                         <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest">
                             Cart Items ({cart.cartItems?.length ?? 0})
@@ -110,7 +110,7 @@ const CartDetail = ({ cartId, onBack }) => {
                 <div className="space-y-4 lg:sticky lg:top-4">
                     {/* Customer */}
                     {cart.customer && (
-                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                        <div className="surface p-5">
                             <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
                                 <MdPerson size={13} /> Customer
                             </h3>
@@ -120,7 +120,7 @@ const CartDetail = ({ cartId, onBack }) => {
                     )}
 
                     {/* Totals */}
-                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                    <div className="surface p-5">
                         <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Summary</h3>
                         <div className="space-y-1 pb-3 border-b border-gray-100">
                             <div className="flex justify-between text-xs">
@@ -178,7 +178,7 @@ const CartsTab = () => {
     );
 
     return (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="surface overflow-hidden">
             {/* Toolbar */}
             <div className="flex items-center gap-3 p-4 border-b border-gray-50 flex-wrap">
                 <div className="flex items-center gap-2 flex-1 min-w-48 border border-gray-200 rounded-xl px-3 py-2 focus-within:ring-1 focus-within:ring-blue-300">
@@ -190,12 +190,12 @@ const CartsTab = () => {
                         placeholder="Search by cart ID or customer..."
                         className="text-xs text-gray-700 focus:outline-none w-full"
                     />
-                    {search && <button onClick={() => setSearch("")} className="text-gray-300 hover:text-gray-500 cursor-pointer"><MdClose size={13} /></button>}
+                    {search && <button aria-label="Clear search" onClick={() => setSearch("")} className="text-gray-300 hover:text-gray-500 cursor-pointer"><MdClose size={13} /></button>}
                 </div>
                 <span className="text-xs text-gray-400 font-semibold shrink-0">{filtered.length} cart{filtered.length !== 1 ? "s" : ""}</span>
             </div>
 
-            {loading ? <TableSkeleton /> : filtered.length === 0 ? (
+            {loading && !carts.length ? <TableSkeleton /> : filtered.length === 0 ? (
                 <div className="py-16 text-center">
                     <MdShoppingCart size={32} className="text-gray-200 mx-auto mb-3" />
                     <p className="text-sm text-gray-400">No carts found</p>
@@ -212,7 +212,7 @@ const CartsTab = () => {
                         </thead>
                         <tbody>
                             {filtered.map(c => (
-                                <tr key={c.cartId} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors cursor-pointer" onClick={() => setSelectedCartId(c.cartId)}>
+                                <tr key={c.cartId} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors cursor-pointer" tabIndex={0} onKeyDown={e => { if (e.target === e.currentTarget && ["Enter", " "].includes(e.key)) { e.preventDefault(); setSelectedCartId(c.cartId); } }} onClick={() => setSelectedCartId(c.cartId)}>
                                     <td className="px-4 py-3 text-xs font-mono font-semibold text-gray-700">{c.cartId}</td>
                                     <td className="px-4 py-3">
                                         {c.customer ? (

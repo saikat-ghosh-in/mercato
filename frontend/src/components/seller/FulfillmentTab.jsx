@@ -19,15 +19,15 @@ const LINE_STATUS = {
   CONFIRMED: { label: "Confirmed", color: "bg-blue-100 text-blue-700", icon: MdCheckCircle },
   PROCESSING: { label: "Processing", color: "bg-indigo-100 text-indigo-700", icon: MdAccessTime },
   PARTIALLY_PROCESSED: { label: "Part. Processed", color: "bg-indigo-50 text-indigo-500", icon: MdAccessTime },
-  FULFILLED: { label: "Fulfilled", color: "bg-green-100 text-green-700", icon: MdCheckCircle },
-  PARTIALLY_FULFILLED: { label: "Part. Fulfilled", color: "bg-green-50 text-green-600", icon: MdLocalShipping },
+  FULFILLED: { label: "Fulfilled", color: "bg-blue-100 text-blue-700", icon: MdCheckCircle },
+  PARTIALLY_FULFILLED: { label: "Part. Fulfilled", color: "bg-blue-50 text-blue-700", icon: MdLocalShipping },
   CANCELLED: { label: "Cancelled", color: "bg-red-100 text-red-500", icon: MdCancel },
 };
 const getLineStatus = (raw) =>
   LINE_STATUS[raw?.toUpperCase()] ?? { label: raw ?? "—", color: "bg-gray-100 text-gray-500", icon: MdAccessTime };
 
 const CardSkeleton = () => (
-  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 animate-pulse space-y-3">
+  <div className="surface p-5 animate-pulse space-y-3">
     <div className="flex justify-between">
       <div className="h-3.5 bg-gray-100 rounded w-1/3" />
       <div className="h-5 bg-gray-100 rounded w-20" />
@@ -41,7 +41,7 @@ const CardSkeleton = () => (
 );
 
 const SectionCard = ({ children, className = "" }) => (
-  <div className={`bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden ${className}`}>
+  <div className={`surface overflow-hidden ${className}`}>
     {children}
   </div>
 );
@@ -83,14 +83,14 @@ const FulfillmentDetail = ({ fulfillmentId, onBack }) => {
     }
   };
 
-  if (loading) return (
+  if (loading && !fo) return (
     <div className="space-y-4">
       <CardSkeleton />
       <CardSkeleton />
     </div>
   );
 
-  if (!fo) return null;
+  if (!fo) return <div className="state-panel" role="alert"><h2>Fulfillment details couldn’t load.</h2><p>Check your connection and try again.</p><button className="button button-dark" onClick={fetchFo}>Try again</button><button className="text-link" onClick={onBack}>Back to fulfillments</button></div>;
 
   return (
     <div className="space-y-4">
@@ -166,7 +166,7 @@ const FulfillmentDetail = ({ fulfillmentId, onBack }) => {
                               <button
                                 onClick={() => handleLineAction(line, "SHIP", line.pendingQty)}
                                 disabled={isUpdating}
-                                className="text-[11px] font-bold px-3 py-1.5 bg-green-50 text-green-600 hover:bg-green-100 rounded-lg transition-colors cursor-pointer disabled:opacity-40"
+                                className="text-[11px] font-bold px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg transition-colors cursor-pointer disabled:opacity-40"
                               >
                                 {isUpdating ? "..." : "Ship All"}
                               </button>
@@ -227,7 +227,7 @@ const FulfillmentCard = ({ fo, onClick }) => {
   return (
     <div
       onClick={onClick}
-      className="group bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer p-5"
+      className="group surface  transition-[transform,opacity,background-color] duration-200 cursor-pointer p-5"
     >
       <div className="flex items-start justify-between gap-3 mb-3">
         <div>
@@ -276,27 +276,15 @@ const FulfillmentTab = () => {
   const [search, setSearch] = useState("");
 
   useEffect(() => {
-    const fetch = async () => {
-      try {
-        setLoading(true);
-        const { data } = await api.get("/seller/open-fulfillment-orders");
-        setActiveFulfillments(data ?? []);
-      } catch {
-        toast.error("Failed to load active fulfillment orders");
-      } finally {
-        setLoading(false);
-      }
-      try {
-        setLoading(true);
-        const { data } = await api.get("/seller/closed-fulfillment-orders");
-        setClosedFulfillments(data ?? []);
-      } catch {
-        toast.error("Failed to load closedfulfillment orders");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetch();
+    const controller = new AbortController();
+    Promise.all([
+      api.get("/seller/open-fulfillment-orders", { signal: controller.signal }),
+      api.get("/seller/closed-fulfillment-orders", { signal: controller.signal })
+    ]).then(([active, closed]) => {
+      if (!controller.signal.aborted) { setActiveFulfillments(active.data ?? []); setClosedFulfillments(closed.data ?? []); }
+    }).catch(() => { if (!controller.signal.aborted) toast.error("Failed to load fulfillment orders"); })
+      .finally(() => { if (!controller.signal.aborted) setLoading(false); });
+    return () => controller.abort();
   }, []);
 
   if (selectedId) return (
@@ -324,7 +312,7 @@ const FulfillmentTab = () => {
             <button
               key={id}
               onClick={() => { setSubtab(id); setSearch(""); }}
-              className={`px-4 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${subtab === id
+              className={`px-4 py-2 rounded-lg text-xs font-semibold transition-[transform,opacity,background-color] cursor-pointer flex items-center gap-1.5 ${subtab === id
                 ? "bg-gray-950 text-white"
                 : "text-gray-500 hover:text-gray-800 hover:bg-gray-50"
                 }`}
@@ -351,7 +339,7 @@ const FulfillmentTab = () => {
             className="text-xs text-gray-700 focus:outline-none w-full"
           />
           {search && (
-            <button onClick={() => setSearch("")} className="text-gray-300 hover:text-gray-500 cursor-pointer">
+            <button aria-label="Clear fulfillment search" onClick={() => setSearch("")} className="text-gray-300 hover:text-gray-500 cursor-pointer">
               <MdClose size={13} />
             </button>
           )}
@@ -364,7 +352,7 @@ const FulfillmentTab = () => {
           {[1, 2, 3, 4].map(i => <CardSkeleton key={i} />)}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-10 text-center">
+        <div className="surface p-10 text-center">
           <div className="w-16 h-16 rounded-2xl bg-gray-50 flex items-center justify-center mx-auto mb-4">
             <MdLocalShipping size={28} className="text-gray-300" />
           </div>

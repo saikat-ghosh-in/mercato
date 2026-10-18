@@ -50,7 +50,7 @@ const Register = () => {
                     <p className="text-sm text-gray-400 mt-1">Join Mercato and start shopping</p>
                 </div>
 
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-7">
+                <div className="surface p-7">
                     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
 
                         {/* Name row */}
@@ -146,7 +146,7 @@ const Register = () => {
                             type="submit"
                             disabled={!isValid || isSubmitting}
                             className="w-full mt-2 flex items-center justify-center gap-2 bg-gray-950 hover:bg-gray-800 active:scale-[0.98]
-                            disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed text-white text-sm font-bold py-3 rounded-xl transition-all cursor-pointer"
+                            disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed text-white text-sm font-bold py-3 rounded-xl transition-[transform,opacity,background-color] cursor-pointer"
                         >
                             <FiUserPlus size={15} />
                             {isSubmitting ? "Creating account..." : "Create Account"}
@@ -164,14 +164,7 @@ const Register = () => {
 
                     <div className="mt-6 pt-5 border-t border-gray-100">
                         <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest text-center mb-3">Want to sell?</p>
-                        <button
-                            type="button"
-                            disabled
-                            className="w-full px-4 py-2.5 border-2 border-dashed border-amber-300 bg-amber-50 rounded-xl text-sm font-bold text-amber-700 hover:bg-amber-100 transition-colors disabled:opacity-75 cursor-not-allowed"
-                        >
-                            🏪 Become a Seller - Coming Soon!
-                        </button>
-                        <p className="text-xs text-gray-400 text-center mt-2">Join us as a seller to reach millions of customers. Seller registration coming soon!</p>
+                        <p className="text-sm text-gray-500">Seller access is managed by the Mercato administrator. Create your account first; seller permissions can then be enabled by the team.</p>
                     </div>
                 </div>
             </div>
