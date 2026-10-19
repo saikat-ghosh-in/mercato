@@ -1,8 +1,8 @@
 import ModalFrame from "./ModalFrame";
 import { useState } from "react";
 import { Combobox, ComboboxInput, ComboboxOptions, ComboboxOption, ComboboxButton } from "@headlessui/react";
-import { MdAdd, MdClose, MdSave, MdInventory, MdSearch } from "react-icons/md";
-import { FiMinus, FiPlus } from "react-icons/fi";
+import { MdAdd, MdClose, MdSave, MdInventory } from "react-icons/md";
+import { FiMinus, FiPlus, FiChevronDown } from "react-icons/fi";
 import toast from "react-hot-toast";
 import api from "../../backend/api";
 
@@ -11,8 +11,8 @@ const ProductCombobox = ({ products = [], value, onChange, placeholder = "Produc
   const selected = products.find(p => p.productId === value);
   const filtered = products.filter(p => !query.trim() || (p.productName + " " + p.productId).toLowerCase().includes(query.toLowerCase()));
   return <Combobox value={value} onChange={id => { onChange(id); setQuery(""); }} onClose={() => setQuery("")}>
-    <div className="flex border rounded-lg items-center px-3"><ComboboxInput aria-label="Choose product" displayValue={() => selected?.productName ?? ""} onChange={e => setQuery(e.target.value)} placeholder={placeholder} className="w-full min-w-0 py-3 text-sm outline-none" /><ComboboxButton aria-label="Show products" className="p-2"><MdSearch /></ComboboxButton></div>
-    <ComboboxOptions anchor="bottom start" className="supply-options">{filtered.length ? filtered.map(p => <ComboboxOption key={p.productId} value={p.productId} className="supply-option"><p>{p.productName}</p><small>{p.productId}{showAvailability ? " · " + p.availableQty + " available" : ""}</small></ComboboxOption>) : <p className="p-4">No products found</p>}</ComboboxOptions>
+    <div className="supply-product-picker"><ComboboxInput aria-label="Choose product" title={selected?.productName} displayValue={() => selected?.productName ?? ""} onChange={e => setQuery(e.target.value)} placeholder={placeholder} /><ComboboxButton aria-label="Show products"><FiChevronDown aria-hidden="true" /></ComboboxButton></div>
+    <ComboboxOptions transition anchor="bottom start" className="supply-options">{filtered.length ? filtered.map(p => <ComboboxOption key={p.productId} value={p.productId} className="supply-option"><p>{p.productName}</p><small>{p.productId}{showAvailability ? " · " + p.availableQty + " available" : ""}</small></ComboboxOption>) : <p className="p-4">No products found</p>}</ComboboxOptions>
   </Combobox>;
 };
 
@@ -126,7 +126,7 @@ const SupplyUpdateModal = ({ products, onClose, onSave }) => {
 
     return (
         <ModalFrame title="Supply Update" onClose={onClose}>
-            <div className="bg-white rounded-2xl shadow-xl w-full max-w-xl max-h-[90vh] flex flex-col">
+            <div className="supply-update bg-white rounded-2xl shadow-xl w-full max-w-xl max-h-[90vh] flex flex-col">
 
                 {/* Header */}
                 <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 shrink-0">
@@ -179,7 +179,7 @@ const SupplyUpdateModal = ({ products, onClose, onSave }) => {
                 </div>
 
                 {/* Column headers */}
-                <div className="grid grid-cols-[1fr_120px_28px] gap-3 px-5 pt-4 pb-1 shrink-0">
+                <div className="supply-column-headings px-5 pt-4 pb-1 shrink-0">
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Product</p>
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
                         {isDelta ? "Qty (±)" : "Set Qty"}
@@ -192,7 +192,7 @@ const SupplyUpdateModal = ({ products, onClose, onSave }) => {
                     {rows.map((row, i) => {
                         const min = getMin(row);
                         return (
-                            <div key={i} className="grid grid-cols-[1fr_120px_28px] gap-3 items-center">
+                            <div key={i} className="supply-entry">
                                 <ProductCombobox
                                     products={products}
                                     value={row.productId}
@@ -206,7 +206,7 @@ const SupplyUpdateModal = ({ products, onClose, onSave }) => {
                                     supplyType={supplyType}
                                 />
                                 <button
-                                    onClick={() => removeRow(i)}
+                                    aria-label="Remove supply row" onClick={() => removeRow(i)}
                                     disabled={rows.length === 1}
                                     className="flex items-center justify-center text-gray-300 hover:text-red-500 transition-colors cursor-pointer disabled:opacity-20 disabled:cursor-not-allowed"
                                 >

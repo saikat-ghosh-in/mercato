@@ -10,6 +10,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class CommissionInitializer implements ApplicationRunner {
     private final CommissionSettingsRepository repository;
     @Override @Transactional public void run(ApplicationArguments args) {
-        if (!repository.existsById(1L)) repository.save(new CommissionSettings());
+        CommissionSettings current = repository.findById(1L).orElseGet(CommissionSettings::new);
+        if (current.getPricingRevision() == null || current.getPricingRevision() < 2) {
+            current.setRate(current.getRate().min(new java.math.BigDecimal("0.50")));
+            current.setPricingRevision(2);
+        }
+        repository.save(current);
     }
 }

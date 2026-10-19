@@ -96,6 +96,17 @@ class MarketplaceJourneyTest {
                 .andExpect(status().isOk()).andExpect(jsonPath("$.total").value(961));
     }
 
+    @Test void bulkyDeliveryCannotBeWaivedByClientAndRefreshesWithQuantity() throws Exception {
+        var catalog=json.readTree(mvc.perform(get("/api/public/products").param("pageSize","50")).andReturn().getResponse().getContentAsString());
+        String chair=java.util.stream.StreamSupport.stream(catalog.get("content").spliterator(),false).filter(p->p.get("productName").asText().equals("Linen lounge chair")).findFirst().orElseThrow().get("productId").asText();
+        var response=mvc.perform(post("/api/cart/add").contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(Map.of("cartItems",List.of(Map.of("productId",chair,"quantity",2))))))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.deliveryOptions[0].price").value(1100)).andExpect(jsonPath("$.deliveryOptions[0].bulkyItemSurcharge").value(1100)).andReturn();
+        String guest=response.getResponse().getHeader("X-Guest-Token");
+        mvc.perform(put("/api/cart/delivery-method").header("Authorization","Bearer "+guest).contentType(MediaType.APPLICATION_JSON).content("{\"deliveryMethod\":\"EXPEDITED\",\"price\":0,\"bulkyItemSurcharge\":0}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.deliveryOptions[1].price").value(1199));
+        mvc.perform(get("/api/cart").header("Authorization","Bearer "+guest)).andExpect(status().isOk()).andExpect(jsonPath("$.deliveryOptions[1].price").value(1199));
+    }
+
     @Test void administratorsAreImmutableAndSellerRolesCannotBypassApproval() throws Exception {
         String token = admin(); String adminId = users.findByUsername("reviewer").orElseThrow().getUserId();
         mvc.perform(put("/api/admin/" + adminId + "/roles").header("Authorization", "Bearer " + token).contentType(MediaType.APPLICATION_JSON).content("[\"ROLE_USER\"]")).andExpect(status().isForbidden());

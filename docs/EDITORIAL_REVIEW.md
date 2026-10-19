@@ -1,3 +1,5 @@
+Latest follow-up: [Delivery, package measurements and capped commission](PACKAGE_PRICING_REVIEW.md) — simplified delivery choices, validated packed weight/dimensions, configurable bulky delivery, 0.5% / ₹500-per-item commission, dropdown/mobile-dialog fixes and pointer cursors. Frontend: 36 tests, lint/build pass. Backend: 81 tests pass.
+
 Latest follow-up — 19 October 2026: [Compact timeframe editor, seller notice badge, field help and persistent catalog navigation](CONTROL_REFINEMENT_REVIEW.md). Frontend lint/build and 34 tests pass; Browser evidence and screenshots are linked there.
 
 Latest delivery — 19 October 2026: [Marketplace journey, financial dashboards, free listing approval and paid promotions](MARKETPLACE_REVIEW.md). This supersedes earlier notes about button-free PLP cards, the three-step checkout and immediate seller publishing. Review the linked startup, additive schema instructions, screenshots, test evidence and external-service limitations.

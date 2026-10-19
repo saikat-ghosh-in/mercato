@@ -26,6 +26,25 @@ public class ProductRequestDTO {
     private String brand;
     @Size(max = 100)
     private String productCode;
+    @DecimalMin("0.001") @DecimalMax("1000") @Digits(integer = 4, fraction = 3)
+    private BigDecimal weightKg;
+    @DecimalMin("0.01") @DecimalMax("600") @Digits(integer = 3, fraction = 2)
+    private BigDecimal lengthCm;
+    @DecimalMin("0.01") @DecimalMax("600") @Digits(integer = 3, fraction = 2)
+    private BigDecimal widthCm;
+    @DecimalMin("0.01") @DecimalMax("600") @Digits(integer = 3, fraction = 2)
+    private BigDecimal heightCm;
+
+    @AssertTrue(message = "Provide packed weight and all three dimensions together")
+    public boolean isPackageComplete() {
+        long count = java.util.stream.Stream.of(weightKg, lengthCm, widthCm, heightCm).filter(java.util.Objects::nonNull).count();
+        return count == 0 || count == 4;
+    }
+
+    public void requirePackageMeasurements() {
+        if (weightKg == null || lengthCm == null || widthCm == null || heightCm == null)
+            throw new IllegalArgumentException("Packed weight, length, width and height are required for a new listing");
+    }
     @Size(max = 2000)
     private String materials;
     @Size(max = 2000)

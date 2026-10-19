@@ -73,7 +73,7 @@ public class MarketplaceFinanceService {
                 var bucket=sellers.computeIfAbsent(line.getSellerEmail(),key->{Bucket value=new Bucket();value.seller=line.getSellerName();return value;});
                 BigDecimal gross=units(line,line.getShippedQty());
                 BigDecimal returned=fullRefund?gross:BigDecimal.ZERO;
-                BigDecimal charge=line.getCommissionRatePercent()==null?BigDecimal.ZERO:commission(gross.subtract(returned),line.getCommissionRatePercent());
+                BigDecimal charge=com.mercato.Utils.CommissionMath.forUnits(line.getUnitPrice(),fullRefund?0:line.getShippedQty(),line.getCommissionRatePercent(),line.getCommissionCapPerItem());
                 BigDecimal unknown=line.getCommissionRatePercent()==null?gross.subtract(returned):BigDecimal.ZERO;
                 BigDecimal cancelled=units(line,line.getCancelledQty());
                 BigDecimal allocated=cancelValue.signum()==0?BigDecimal.ZERO:money(refundAmount.min(cancelValue).multiply(cancelled).divide(cancelValue,10,RoundingMode.HALF_UP));
@@ -83,7 +83,7 @@ public class MarketplaceFinanceService {
                     dest.returned=dest.returned.add(returned);
                 }
                 if(ledger.size()<100) {
-                    Map<String,Object> row=new LinkedHashMap<>();row.put("orderId",order.getOrderId());row.put("product",line.getProductName());row.put("seller",line.getSellerName());row.put("fulfilled",gross);row.put("refunded",returned);row.put("commissionRate",line.getCommissionRatePercent());row.put("commission",charge);row.put("netBeforePromotions",line.getCommissionRatePercent()==null?null:money(gross.subtract(returned).subtract(charge).subtract(hold)));row.put("createdAt",order.getCreatedAt());ledger.add(row);
+                    Map<String,Object> row=new LinkedHashMap<>();row.put("orderId",order.getOrderId());row.put("product",line.getProductName());row.put("seller",line.getSellerName());row.put("fulfilled",gross);row.put("refunded",returned);row.put("commissionRate",line.getCommissionRatePercent());row.put("commissionCapPerItem",line.getCommissionCapPerItem());row.put("commission",charge);row.put("netBeforePromotions",line.getCommissionRatePercent()==null?null:money(gross.subtract(returned).subtract(charge).subtract(hold)));row.put("createdAt",order.getCreatedAt());ledger.add(row);
                 }
             }
         }

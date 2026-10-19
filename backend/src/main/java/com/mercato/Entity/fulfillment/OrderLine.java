@@ -95,6 +95,8 @@ public class OrderLine {
 
     @Column(name = "commission_rate_percent", precision = 5, scale = 2, updatable = false)
     private BigDecimal commissionRatePercent;
+    @Column(name = "commission_cap_per_item", precision = 10, scale = 2, updatable = false)
+    private BigDecimal commissionCapPerItem;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)

@@ -56,6 +56,7 @@ public class ProductServiceImpl implements ProductService {
     @Transactional
     public ProductResponseDTO addProduct(String categoryId, ProductRequestDTO productRequestDTO) {
         productRequestDTO.validate();
+        productRequestDTO.requirePackageMeasurements();
 
         Category category = getCategoryByCategoryId(categoryId);
         EcommUser seller = authUtil.getLoggedInUser();

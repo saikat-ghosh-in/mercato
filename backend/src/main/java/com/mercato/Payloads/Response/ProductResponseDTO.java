@@ -20,6 +20,10 @@ public class ProductResponseDTO {
 
     private String brand;
     private String productCode;
+    private BigDecimal weightKg;
+    private BigDecimal lengthCm;
+    private BigDecimal widthCm;
+    private BigDecimal heightCm;
     private String materials;
     private String care;
     private String warranty;

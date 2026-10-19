@@ -109,7 +109,7 @@ public class CommissionService {
             data.put("emailsPending", notices.findByChange_IdAndEventType(change.getId(), "ANNOUNCED").stream().filter(n -> n.getEmailSentAt() == null).count());
             return data;
         }).toList();
-        return Map.of("rate", rate, "noticeDays", NOTICE_DAYS, "changes", history);
+        return Map.of("rate", rate, "capPerItem", com.mercato.Utils.CommissionMath.CAP_PER_ITEM, "noticeDays", NOTICE_DAYS, "changes", history);
     }
 
     @Transactional

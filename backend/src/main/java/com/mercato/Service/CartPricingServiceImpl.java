@@ -6,11 +6,14 @@ import com.mercato.Entity.cart.DeliveryMethod;
 import com.mercato.Payloads.Response.DeliveryOptionDTO;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import lombok.RequiredArgsConstructor;
 
 import java.math.BigDecimal;
 
 @Service
+@RequiredArgsConstructor
 public class CartPricingServiceImpl implements CartPricingService {
+    private final PackageDeliveryPricing packages;
 
     @Value("${cart.shipping.threshold}")
     private BigDecimal CART_SHIPPING_THRESHOLD;
@@ -27,11 +30,13 @@ public class CartPricingServiceImpl implements CartPricingService {
         BigDecimal subtotal = cart.getSubtotal();
         int cartQty = cart.getCartQuantity();
 
-        BigDecimal standard = subtotal.compareTo(CART_SHIPPING_THRESHOLD) < 0 ? CART_SHIPPING_CHARGE : BigDecimal.ZERO;
+        BigDecimal bulky = cart.getCartItems().stream().map(item -> packages.surcharge(item.getProduct()).multiply(BigDecimal.valueOf(item.getQuantity())))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal standard = (subtotal.compareTo(CART_SHIPPING_THRESHOLD) < 0 ? CART_SHIPPING_CHARGE : BigDecimal.ZERO).add(bulky);
         cart.setDeliveryOptions(java.util.List.of(
-                new DeliveryOptionDTO(DeliveryMethod.STANDARD, "Standard", "3–5 business days", "₹" + CART_SHIPPING_CHARGE.toPlainString() + " below ₹" + CART_SHIPPING_THRESHOLD.toPlainString() + "; free from that amount. Mercato-arranged delivery.", standard),
-                new DeliveryOptionDTO(DeliveryMethod.EXPEDITED, "Expedited", "1–2 business days", "Priority handling and delivery. Estimated from dispatch.", standard.add(expeditedSurcharge)),
-                new DeliveryOptionDTO(DeliveryMethod.CONSOLIDATED, "Consolidated", "4–7 business days", "Allow 1–2 extra days for grouped dispatch. Emissions savings are not verified.", standard)
+                new DeliveryOptionDTO(DeliveryMethod.STANDARD, "Standard", "3–5 business days", "", standard, bulky),
+                new DeliveryOptionDTO(DeliveryMethod.EXPEDITED, "Expedited", "1–2 business days", "", standard.add(expeditedSurcharge), bulky),
+                new DeliveryOptionDTO(DeliveryMethod.CONSOLIDATED, "Grouped delivery", "4–7 business days", "", standard, bulky)
         ));
         if (cart.getDeliveryMethod() == null) cart.setDeliveryMethod(DeliveryMethod.STANDARD);
 

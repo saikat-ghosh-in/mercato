@@ -32,7 +32,7 @@ function ProductContent({ productId }) {
   const retry = () => { setError(""); setAttempt(a => a + 1); };
   if (!product) return <div className="site-container">{error ? <div className="state-panel" role="alert"><h1>{error}</h1><button className="button button-dark" onClick={retry}>Try again</button><Link className="text-link" to="/products">Back to shopping</Link></div> : <div className="pdp-layout" role="status" aria-label="Loading product"><div className="card-skeleton"><div /></div><div className="route-loading"><div /><div /></div></div>}</div>;
   const inStock = product.availableQty > 0 || (cartItem?.quantity > 0 && !cartItem?.outOfStock);
-  const specs = [["Brand", product.brand], ["Product code", product.productCode || product.productId], ["Category", product.categoryName], ["Sold by", product.sellerName], ...(product.specifications ?? []).map(s => [s.label, s.value])].filter(([,value]) => value);
+  const specs = [["Brand", product.brand], ["Product code", product.productCode || product.productId], ["Category", product.categoryName], ["Sold by", product.sellerName], ["Packed weight", product.weightKg ? `${product.weightKg} kg` : null], ["Package dimensions (L × W × H)", product.lengthCm && product.widthCm && product.heightCm ? `${product.lengthCm} × ${product.widthCm} × ${product.heightCm} cm` : null], ...(product.specifications ?? []).map(s => [s.label, s.value])].filter(([,value]) => value);
   return <div className="site-container">
     {error && <div className="inline-error" role="alert">{error}<button onClick={retry}>Try again</button></div>}
     <div className="pdp-layout">

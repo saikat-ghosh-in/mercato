@@ -13,7 +13,8 @@ public class MarketplaceTermsController {
 
     @GetMapping("/api/public/marketplace-terms")
     public Map<String, Object> terms() {
-        return Map.of("version", "2026-10-draft", "draft", true, "commissionPercent", commissions.currentRate(),
+        return Map.of("version", "2026-10-package-pricing-draft", "draft", true, "commissionPercent", commissions.currentRate(),
+                "commissionCapPerItem", com.mercato.Utils.CommissionMath.CAP_PER_ITEM,
                 "commissionBasis", "Item value after seller discounts, excluding delivery and separately stated taxes",
                 "shippingOperator", "Mercato", "settlement", "Proposed weekly settlement after delivery and the applicable return window; activation requires payout verification");
     }

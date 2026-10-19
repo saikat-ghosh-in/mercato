@@ -274,6 +274,7 @@ public class OrderServiceImpl implements OrderService {
             orderLine.setSellerName(seller.getSellerDisplayName());
             orderLine.setSellerEmail(seller.getEmail());
             orderLine.setCommissionRatePercent(commissionRate);
+            orderLine.setCommissionCapPerItem(com.mercato.Utils.CommissionMath.CAP_PER_ITEM);
             orderLine.setOrderLineStatus(OrderLineStatus.CREATED);
 
             order.addOrderLine(orderLine);

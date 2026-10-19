@@ -99,6 +99,15 @@ public class Product {
     private String brand;
     @Column(name = "product_code", length = 100)
     private String productCode;
+    // Packed measurements of one sellable unit, used for delivery pricing.
+    @Column(precision = 8, scale = 3)
+    private BigDecimal weightKg;
+    @Column(precision = 8, scale = 2)
+    private BigDecimal lengthCm;
+    @Column(precision = 8, scale = 2)
+    private BigDecimal widthCm;
+    @Column(precision = 8, scale = 2)
+    private BigDecimal heightCm;
     @Column(columnDefinition = "TEXT")
     private String materials;
     @Column(columnDefinition = "TEXT")

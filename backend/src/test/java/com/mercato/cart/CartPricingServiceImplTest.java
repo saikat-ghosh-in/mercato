@@ -17,7 +17,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class CartPricingServiceImplTest {
 
-    private final CartPricingServiceImpl pricingService = new CartPricingServiceImpl();
+    private final CartPricingServiceImpl pricingService = new CartPricingServiceImpl(new com.mercato.Service.PackageDeliveryPricing());
 
     @BeforeEach
     void setUp() {
@@ -99,5 +99,20 @@ class CartPricingServiceImplTest {
         small.setDeliveryMethod(com.mercato.Entity.cart.DeliveryMethod.EXPEDITED);
         pricingService.applyCharges(small);
         assertEquals(BigDecimal.valueOf(149), small.getChargeAmount(ChargeType.SHIPPING));
+    }
+
+    @Test void bulkyFeesMultiplyByUnitsSurviveFreeBaseDeliveryAndDoNotAccumulate() {
+        Cart cart = cartWithSubtotal(new BigDecimal("1000"));
+        var item = cart.getCartItems().get(0); item.setQuantity(2);
+        var product = item.getProduct(); product.setWeightKg(new BigDecimal("6"));
+        product.setLengthCm(new BigDecimal("20")); product.setWidthCm(new BigDecimal("20")); product.setHeightCm(new BigDecimal("20"));
+        pricingService.applyCharges(cart);
+        assertEquals(new BigDecimal("100.00"), cart.getChargeAmount(ChargeType.SHIPPING));
+        assertEquals(new BigDecimal("100.00"), cart.getDeliveryOptions().get(0).bulkyItemSurcharge());
+        cart.setDeliveryMethod(com.mercato.Entity.cart.DeliveryMethod.EXPEDITED);
+        pricingService.applyCharges(cart); pricingService.applyCharges(cart);
+        assertEquals(new BigDecimal("199.00"), cart.getChargeAmount(ChargeType.SHIPPING));
+        item.setQuantity(1); pricingService.applyCharges(cart);
+        assertEquals(new BigDecimal("149.00"), cart.getChargeAmount(ChargeType.SHIPPING));
     }
 }

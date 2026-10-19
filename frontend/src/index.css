@@ -23,6 +23,11 @@
   button { transition:transform 140ms cubic-bezier(.23,1,.32,1),background-color 140ms ease; }
 }
 :root { --ease-out:cubic-bezier(.23,1,.32,1); --ease-drawer:cubic-bezier(.32,.72,0,1); --radius-control:8px; --radius-panel:10px; --radius-small:4px; --site-header-height:72px; --catalog-toolbar-height:72px; }
+/* Unlayered so framework resets cannot turn enabled actions into text cursors. */
+button:enabled,.button[href],a[href],[role="button"]:not([aria-disabled="true"]),input[type="button"]:enabled,input[type="submit"]:enabled { cursor:pointer; }
+button:disabled,[aria-disabled="true"],input[type="button"]:disabled,input[type="submit"]:disabled { cursor:not-allowed; }
+input:is([type="radio"],[type="checkbox"]):enabled { cursor:pointer; }
+input:is([type="radio"],[type="checkbox"]):disabled,.delivery-option:has(input:disabled) { cursor:not-allowed; }
 /* All action controls share one shape, including dialogs rendered outside the page. */
 button,.button,a[class*="rounded-"] { border-radius:var(--radius-control); transition:transform 140ms var(--ease-out),opacity 140ms var(--ease-out),background-color 140ms ease,color 140ms ease; }
 .site-container { width:min(1480px,calc(100% - 112px)); margin-inline:auto; }
@@ -210,6 +215,26 @@ button:focus-visible,.button:focus-visible { transition-duration:0ms; }
 .select-control>.select-input:disabled { cursor:not-allowed; opacity:.5; }
 .select-chevron { position:absolute; right:14px; top:50%; transform:translateY(-50%); width:16px; height:16px; pointer-events:none; color:#555; }
 .select-control:has(.select-input.w-full) { width:100%; }
+.select-control { max-width:100%; }
+.select-control>.select-input { padding-right:38px; text-overflow:ellipsis; white-space:nowrap; }
+.select-control>.select-chevron { width:14px; height:14px; right:12px; flex-shrink:0; }
+.select-control[data-disabled]>.select-chevron { opacity:.45; }
+.submission-fields .select-control,.promotion-editor .select-control { width:100%; }
+.submission-fields .select-control>.select-input,.promotion-editor .select-control>.select-input { padding-right:38px; }
+.package-fields { border-top:1px solid #e6e8ec; padding-top:20px; margin-top:8px; min-width:0; }
+.package-fields legend { font-size:15px; font-weight:550; padding-top:20px; }
+.package-fields p,.package-fields small { display:block; font-size:12px; color:#68707b; line-height:1.65; margin:8px 0 16px; }
+.package-fields>div { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; }
+.product-submission>.submission-error { margin:12px 24px 0; flex-shrink:0; font-size:13px; }
+/* A listing form owns its scroll area; focus must not scroll the dialog off screen. */
+.modal-viewport:has(.product-submission) { overflow:clip; }
+.modal-frame:has(>.product-submission) { max-width:760px; min-width:0; overflow:clip; }
+.modal-frame>.product-submission { width:100%; min-width:0; overflow:hidden; max-height:min(90svh,calc(100dvh - 32px)); }
+.product-submission>header,.product-submission>.submission-steps,.product-submission>footer { flex-shrink:0; }
+@media(max-width:639px) {
+ .product-submission .rich-editor input,.product-submission .rich-editor textarea { font-size:16px; }
+ .product-submission>.submission-error { margin-inline:18px; padding:12px; }
+}
 .auth-field-control { padding-inline:12px; min-height:48px; }
 .auth-field-control>input { min-height:46px; min-width:0; width:100%; padding-block:10px; }
 .auth-field-control>textarea { padding-block:12px; min-height:100px; }
@@ -331,6 +356,28 @@ button:focus-visible,.button:focus-visible { transition-duration:0ms; }
 .supply-option { padding:16px; font-size:14px; cursor:pointer; }
 .supply-option small { display:block; color:#666; margin-top:4px; }
 .supply-option[data-focus] { background:#edf4ff; }
+.supply-product-picker { display:flex; align-items:center; min-width:0; border:1px solid #dedfe2; border-radius:8px; padding-left:12px; }
+.supply-product-picker:focus-within { outline:2px solid #729fda; outline-offset:2px; }
+.supply-product-picker input { width:100%; min-width:0; height:40px; font-size:14px; outline:0; text-overflow:ellipsis; }
+.supply-product-picker button { width:36px; min-height:36px; flex-shrink:0; display:grid; place-items:center; }
+.supply-product-picker svg { width:14px; height:14px; }
+.supply-entry,.supply-column-headings { display:grid; grid-template-columns:minmax(0,1fr) 120px 28px; gap:12px; align-items:center; }
+.modal-viewport:has(.supply-update) { overflow:clip; }
+.modal-frame:has(>.supply-update) { overflow:clip; max-width:640px; }
+.modal-frame>.supply-update { max-height:min(90svh,calc(100dvh - 32px)); min-width:0; }
+.supply-options { width:min(max(260px,var(--input-width)),calc(100vw - 32px)); min-width:0; max-height:min(300px,50dvh)!important; transform-origin:top left; transition:opacity 180ms var(--ease-out),transform 180ms var(--ease-out); overflow-wrap:anywhere; }
+.supply-options[data-closed] { opacity:0; transform:translateY(-4px); }
+@media(max-width:639px) {
+ .supply-column-headings { display:none; }
+ .supply-entry { grid-template-columns:minmax(0,1fr) 36px; padding-block:12px; border-bottom:1px solid #eee; }
+ .supply-entry>.supply-product-picker { grid-column:1/-1; }
+ .supply-entry>div:nth-child(2) { max-width:160px; }
+ .supply-product-picker input { height:44px; font-size:16px; }
+ .supply-product-picker button { width:44px; min-height:44px; }
+ .supply-entry>button { width:36px; height:44px; }
+}
+@media(prefers-reduced-motion:reduce) { .supply-options { transition:none; transform:none; } }
+html[data-input=keyboard] .supply-options { transition:none; }
 .order-card-button { min-height:140px; }
 .account-page .space-y-3,.orders-page .space-y-3 { gap:20px; }
 .auth-page .bg-white.rounded-2xl { border:0; box-shadow:none; padding:0; }

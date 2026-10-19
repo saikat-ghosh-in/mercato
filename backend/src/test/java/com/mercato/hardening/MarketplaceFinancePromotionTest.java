@@ -28,6 +28,7 @@ class MarketplaceFinancePromotionTest {
     @Autowired OrderRepository orders;@Autowired PlatformTransactionManager transactions;
     @Autowired UserRepository users; @Autowired RoleRepository roles;
     @Autowired org.springframework.jdbc.core.JdbcTemplate jdbc;
+    @Autowired jakarta.persistence.EntityManager entities;
     String login(String name,String password)throws Exception{return json.readTree(mvc.perform(post("/api/auth/signin").contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(Map.of("username",name,"password",password)))).andExpect(status().isOk()).andReturn().getResponse().getContentAsString()).get("token").asText();}
     JsonNode getReport(String token)throws Exception{return json.readTree(mvc.perform(get("/api/admin/finance").header("Authorization","Bearer "+token)).andExpect(status().isOk()).andReturn().getResponse().getContentAsString());}
     Map<String,Object> request(String product,String start){Map<String,Object> r=new HashMap<>();r.put("productId",product);r.put("tier","DISCOVERY");r.put("durationDays",3);r.put("startDate",start);r.put("expectedFee",147);r.put("requestId",UUID.randomUUID().toString());r.put("authorizeDeduction",true);return r;}
@@ -62,6 +63,8 @@ class MarketplaceFinancePromotionTest {
     @Test void sellerSubmissionCannotPublishOrBypassReviewViaStockOrClientStatus()throws Exception {
         String admin=login("reviewer","ReviewOnly!2026"), seller=approvedSeller();String category=new TransactionTemplate(transactions).execute(t->products.findAll().get(0).getCategory().getCategoryId());
         Map<String,Object> body=new HashMap<>(Map.of("productName","Submission test product","description","Useful product details for testing","retailPrice",100,"discountPercent",0,"active",true,"primaryImageUrl","https://images.unsplash.com/photo-1441986300917-64674bd600d8","listingStatus","APPROVED"));
+        mvc.perform(post("/api/seller/categories/"+category+"/product").header("Authorization","Bearer "+seller).contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(body))).andExpect(status().isBadRequest());
+        body.putAll(Map.of("weightKg",1,"lengthCm",20,"widthCm",15,"heightCm",10));
         var created=json.readTree(mvc.perform(post("/api/seller/categories/"+category+"/product").header("Authorization","Bearer "+seller).contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(body))).andExpect(status().isCreated()).andExpect(jsonPath("$.listingStatus").value("PENDING")).andReturn().getResponse().getContentAsString());
         String id=created.get("productId").asText();
         mvc.perform(post("/api/admin/products/"+id+"/review").header("Authorization","Bearer "+seller).contentType(MediaType.APPLICATION_JSON).content("{\"approve\":true,\"note\":\"Cannot approve own submission\"}")).andExpect(status().isForbidden());
@@ -111,5 +114,21 @@ class MarketplaceFinancePromotionTest {
         assertEquals(0,report.get("totals").get("knownNetEarnings").decimalValue().signum());
         assertEquals(report.get("totals").get("fulfilledSales"),report.get("totals").get("refundedFulfilledSales"));
         assertEquals(0,report.get("totals").get("refundHold").decimalValue().signum());
+    }
+
+    @Test @org.springframework.transaction.annotation.Transactional
+    void cappedSnapshotIsSharedByFinanceAndPromotionFundingAndRefundReversal() throws Exception {
+        String admin=login("reviewer","ReviewOnly!2026");
+        jdbc.update("update order_lines_snapshot set unit_price=200000, shipped_qty=2, line_total=400000, commission_rate_percent=0.5, commission_cap_per_item=500 where fulfillment_id='DEMO-FULFILLMENT-001'");
+        entities.clear();
+        var report=getReport(admin);
+        assertEquals(0,new BigDecimal("1000").compareTo(report.get("totals").get("commission").decimalValue()));
+        assertEquals(0,new BigDecimal("399000").compareTo(report.get("totals").get("knownNetEarnings").decimalValue()));
+        mvc.perform(get("/api/seller/promotions").header("Authorization","Bearer "+admin)).andExpect(status().isOk()).andExpect(jsonPath("$.availableBudget").value(399000));
+        var order=orders.findByOrderId("DEMO-EARNINGS-001").orElseThrow();
+        order.getPayment().setRefund(Refund.builder().refundId("CAPPED-FULL-REFUND").payment(order.getPayment()).amount(order.getTotalAmount()).currency("INR").status(RefundStatus.SUCCESS).build());
+        orders.flush();
+        assertEquals(0,getReport(admin).get("totals").get("commission").decimalValue().signum());
+        mvc.perform(get("/api/seller/promotions").header("Authorization","Bearer "+admin)).andExpect(jsonPath("$.availableBudget").value(0));
     }
 }

@@ -121,13 +121,14 @@ class OrderServicePlaceOrderTest {
         }).when(cashfreeService).initiatePayment(any(Order.class), any(), any());
         when(orderRepository.save(any(Order.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        when(commissions.currentRate()).thenReturn(new BigDecimal("5.00"));
+        when(commissions.currentRate()).thenReturn(new BigDecimal("0.50"));
         OrderPlacementResponseDTO response = orderService.placeOrder(request);
 
         assertNotNull(response.getPaymentSessionId());
         var captured = org.mockito.ArgumentCaptor.forClass(Order.class);
         verify(orderRepository).save(captured.capture());
-        org.junit.jupiter.api.Assertions.assertEquals(new BigDecimal("5.00"), captured.getValue().getOrderLines().get(0).getCommissionRatePercent());
+        org.junit.jupiter.api.Assertions.assertEquals(new BigDecimal("0.50"), captured.getValue().getOrderLines().get(0).getCommissionRatePercent());
+        org.junit.jupiter.api.Assertions.assertEquals(new BigDecimal("500.00"), captured.getValue().getOrderLines().get(0).getCommissionCapPerItem());
         verify(cartReservationService, never()).release(any(CartItem.class));
         verify(cartService, never()).clearCart(any(CartContext.class));
         verify(cashfreeService).initiatePayment(any(Order.class), any(), any());
