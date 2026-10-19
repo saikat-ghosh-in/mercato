@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import { MdFavorite, MdShoppingBag } from "react-icons/md";
+import { MdBookmarkBorder, MdShoppingBag } from "react-icons/md";
 import api from "../../backend/api";
 import ProductCard, { CardSkeleton } from "../product/ProductCard";
 
@@ -34,8 +34,8 @@ const Wishlist = () => {
         <div className="bg-gray-50 min-h-screen py-6">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex items-center gap-3 mb-6">
-                    <div className="p-2 bg-red-50 rounded-xl">
-                        <MdFavorite size={20} className="text-red-500" />
+                    <div className="p-2 bg-gray-50 rounded-xl">
+                        <MdBookmarkBorder size={20} className="text-gray-600" />
                     </div>
                     <div>
                         <h1 className="text-xl font-bold text-gray-900">Wishlist</h1>
@@ -60,7 +60,7 @@ const Wishlist = () => {
                 ) : visibleProducts.length === 0 ? (
                     <div className="text-center py-20">
                         <h2 className="text-lg font-bold text-gray-800 mb-1">Your wishlist is empty</h2>
-                        <p className="text-sm text-gray-400 mb-6">Tap the heart on any product to save it here.</p>
+                        <p className="text-sm text-gray-400 mb-6">Open a product and choose Save to wishlist to keep it here.</p>
                         <button
                             onClick={() => navigate("/products")}
                             className="control inline-flex items-center gap-2 bg-gray-950 hover:bg-gray-800 text-white text-sm font-bold px-6 py-2.5 rounded-xl"
@@ -74,7 +74,6 @@ const Wishlist = () => {
                             <ProductCard
                                 key={product.productId}
                                 product={product}
-                                onClick={() => navigate(`/products/${product.productId}`)}
                             />
                         ))}
                     </div>

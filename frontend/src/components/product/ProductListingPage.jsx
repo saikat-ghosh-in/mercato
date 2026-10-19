@@ -67,7 +67,7 @@ export default function ProductListingPage() {
       <p className="catalog-breadcrumb"><Link to="/">Home</Link> / The collection</p>
       <div className="catalog-toolbar" ref={toolbarRef} aria-label="Collection controls">
       <div className="catalog-toolbar-row">
-        <div className="catalog-heading"><h1>{keyword ? 'Results for “' + keyword + '”' : category || "Explore the collection"}</h1><p className="catalog-result-count" role="status">{loading ? "Updating results…" : error ? "Collection unavailable" : (pagination.totalElements ?? 0) + (pagination.totalElements === 1 ? " product" : " products")}</p></div>
+        <div className="catalog-heading"><h1>{keyword ? 'Results for “' + keyword + '”' : category || "All products"}</h1><p className="catalog-result-count" role="status">{loading ? "Updating results…" : error ? "Collection unavailable" : (pagination.totalElements ?? 0) + (pagination.totalElements === 1 ? " product" : " products")}</p></div>
         <div className="catalog-toolbar-actions">
           <button className="icon-button catalog-filter-trigger" aria-label={"Filter and sort products" + (filterCount ? `, ${filterCount} active filter${filterCount === 1 ? "" : "s"}` : "")} title="Filter and sort" aria-expanded={drawer.open} aria-haspopup="dialog" onClick={() => updateDrawer({ type: "OPEN", filters })}><FiSliders aria-hidden="true" />{(filterCount > 0 || sortBy !== "createdAt" || sortingOrder !== "desc") && <span className="filter-active-dot" aria-hidden="true" />}</button>
         </div>

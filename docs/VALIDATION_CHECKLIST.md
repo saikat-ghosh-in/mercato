@@ -1,4 +1,4 @@
-# Route and action validation — 18 October 2026
+# Route and action validation — 19 October 2026
 
 This records what was actually checked. Browser checks used disposable demo H2 data, desktop 1440×1000 and mobile 390×844, including the production Vite preview. Shared controls were checked in their owning flow; this is not a claim that every possible data permutation or live service was exercised.
 
@@ -25,7 +25,19 @@ This records what was actually checked. Browser checks used disposable demo H2 d
 - [ ] Real verification/reset emails and completed reset link require SMTP sandbox. No existing user's credentials were changed.
 - [ ] Account deactivation and role grants were not performed interactively. The dialogs were inspected without changing access; permission/validation boundaries have backend tests.
 
-## Current follow-up — Explore, icon-only filters and compact controls
+## Current follow-up — compact corners and product-page wishlist
+
+- [x] Shared 8px control/hover corners, 10px panels, smaller badges; native selectors retain appearance-none chevrons and keyboard behavior. Functional spinner/native radio shapes retained.
+- [x] Header grid button and header heart removed; magnifier opens Search & discover with focused search, categories, curated links and Browse everything. Browser search/category navigation and Escape/focus return verified.
+- [x] Product cards in catalog/recommendations/saved items expose zero buttons. Guest wishlist requests sign-in and returns to PDP; save persists in Saved items, then removal through PDP restores the empty list.
+- [x] Left filter is visibly 30px, with 44px phone/coarse-pointer targets. Sort Apply closes the drawer, restores focus and updates URL/results. Landscape Apply remains reachable.
+- [x] Catalog/header measured at 320/360/390/414/768/1024/1440/1920 without document overflow. First row 173px phones / 187px tablet / 195px desktop. Search remains available at 320px; sticky destinations remain accessible after scrolling.
+- [x] Bag quantity change retains checkout appearance; two-unit accessible badge and ₹47,510.10 backend total verified. Synthetic address save/select and checkout Review work. Checkout widths 320/390/768/1024/1440 have no document overflow.
+- [x] Admin product search/selects measure 36px desktop / 44px phone. Shared seller/admin product dialog inspected at 320px, 8px actions / 10px panel, dismissed without saving.
+- [x] Final frontend lint, 27 tests and production build pass. Keyboard discovery transition is 0ms; pointer transform/opacity is 240/180ms. Modal keyboard-motion selector corrected.
+- [ ] Physical phones, OS reduced-motion settings, controlled network throttling and payment/email sandbox still require external validation. Backend unchanged; preceding 49 passing backend tests were not rerun for this UI-only follow-up.
+
+## Previous follow-up — Explore, icon-only filters and compact controls
 
 - [x] Header replaces its three shopping links with one Explore control; category, curated selections, search and Browse everything work in Browser.
 - [x] Icon-only catalog action; sorting appears only inside the filter drawer. Draft edits/cancellation, atomic Apply, search preservation and retained sort after Clear have regression coverage and Browser checks.

@@ -1,8 +1,30 @@
-# Editorial redesign review — 18 October 2026
+# Editorial redesign review — 19 October 2026
 
 The approved white / black / soft-blue direction is implemented across storefront, authentication, account, checkout, seller and admin surfaces. Original Mercato SVG branding and a locally bundled WebP campaign photograph replace the green visual system. Existing marketplace categories and server pricing remain authoritative.
 
-## Latest refinement: quiet controls and a single Explore entry
+## Latest refinement: compact corners, quieter cards and search discovery
+
+Shared controls now use 8px corners instead of capsules, with 10px panels and 4px badges. The same shape applies to button hover surfaces, native selectors, authentication/account controls, checkout, dashboard actions and dialogs. Smaller existing 4–6px details remain; functional spinner rings and native radio controls retain their expected shape. Press/menu/drawer timing remains 140/180/240ms, with fine-pointer hover guards, immediate keyboard interactions and reduced-motion support. The final pass corrected the modal keyboard-motion selector after removing the obsolete inline search panel.
+
+Product cards no longer contain heart/save controls anywhere: home, catalog, recommendations or saved items. Saving and removing items uses the labeled action on the product detail page. Saved items remain reachable through Account and the footer; the empty state explains the product-page action. The header grid button beside the wordmark is removed. The existing magnifier opens one Search & discover drawer containing search, real marketplace categories, curated selections and Browse everything. Search receives focus on opening, and Escape restores focus to the magnifier without scrolling.
+
+The catalog uses the shorter All products heading and places its filter icon to the left. The visible filter is 30px with a 14px glyph; on phones/coarse pointers it has a 44px touch target around the same 30px surface. Sorting remains inside the Apply-based drawer. Existing results stay visible while requests update.
+
+Validation for this UI-only follow-up on 19 October 2026:
+
+- Frontend lint, all 27 regression tests and production build pass after the final CSS correction. Initial production JavaScript is 460.11 KB before gzip. Backend APIs/schema are unchanged; the preceding 49-test backend run was not repeated for this styling/navigation revision.
+- Browser verified guest wishlist sign-in/return, save persistence in Saved items, reopening the product and removing the temporary saved item. Catalog, related and saved-item cards expose zero button actions. Only the product page exposes the wishlist toggle.
+- Catalog measured at 320/360/390/414/768/1024/1440/1920px with no horizontal document overflow. First products begin at 173px on 320–414px phones, 187px on the 768px tablet and 195px on desktop. Filter is left of the heading at every width; search remains visible at 320px. Header stays 64px mobile / 72px desktop.
+- Search submission returns the matching camera; category selection returns the three Fashion products. Sort Apply closes the drawer, returns focus to the filter and updates the URL/results. Native sort appearance is none with an 8px corner. Keyboard discovery opens with 0ms transitions; pointer discovery retains 240ms transform / 180ms opacity. Escape restores Open search focus. At 844×390, Apply remains visible at bottom 374px with a 44px target.
+- After scrolling 728px on desktop, header/toolbar remain at 0px/72px. Account still exposes orders, saved items, both dashboards and sign-out. Checkout retains Help and Account access.
+- Bag increase from one to two camera units retains the checkout label, black background, opacity 1 and 8px corners; the accessible badge reports two units. Backend totals show ₹47,498.10 subtotal plus ₹12 fee = ₹47,510.10. Synthetic address create/select and checkout Review succeed. Checkout has no measured overflow at 320/390/768/1024/1440px; controls measure 8px corners and summary panels 10px.
+- Admin product search/selects align at 36px desktop / 44px phone with 8px corners. The product editor has 8px actions / a 10px panel and no document overflow at 320px; it was dismissed without saving. The same product editor and control classes serve seller management.
+- At 320px, login/register fields and actions measure 8px corners with no document overflow; sign-out exposes the guest Account menu. The homepage also has no document overflow or product-card buttons at that width. Registration was inspected without creating another account.
+- Local servers had stopped between sessions. The production preview and isolated demo API were restarted; the initial catalog connection failure recovered through Try again. Restarting demo resets its disposable H2 data. A synthetic two-unit camera bag and delivery address are left ready for review. Physical phones, OS reduced-motion settings, controlled network throttling and live payment/email services remain external checks documented below.
+
+Current screenshots: [catalog, desktop](screenshots/refined-corners-catalog-desktop.jpg) · [phone](screenshots/refined-corners-catalog-mobile.jpg) · [search discovery, desktop](screenshots/search-discovery-desktop.jpg) · [phone](screenshots/search-discovery-mobile.jpg) · [PDP-only wishlist](screenshots/pdp-wishlist-only-desktop.jpg) · [checkout review](screenshots/refined-corners-checkout-desktop.jpg).
+
+## Previous refinement: quiet controls and a single Explore entry
 
 The catalog toolbar now has one icon-only Filter and sort action, with an accessible name and a small dot when filters or a non-default sort are active. Sorting lives inside the drawer. Category, seller, price, availability and sort changes remain drafts until Apply commits one URL update, resets pagination and closes the drawer. Cancel/Escape discard pending sort changes. Clearing filters preserves sorting, and applying preserves the current search. Loaded products remain visible during the refresh.
 

@@ -43,7 +43,7 @@ function ProductContent({ productId }) {
         <p className="product-price"><strong>{formatCurrency(product.sellingPrice)}</strong>{product.discountPercent > 0 && <><del>{formatCurrency(product.retailPrice)}</del><span>{product.discountPercent}% off</span></>}</p><p className="tax-note">Inclusive of applicable taxes</p>
         <p className="pdp-availability">{inStock ? "In stock" : "Currently sold out"}</p>
         <AddToCartControl product={product} className="w-full" />
-        <WishlistToggle productId={productId} showLabel />
+        <WishlistToggle productId={productId} />
         {product.highlights?.length > 0 && <ul className="pdp-highlights">{product.highlights.map((text, i) => <li key={i}>{text}</li>)}</ul>}
         <p className="pdp-description">{product.description}</p>
         <details className="product-disclosure" open><summary>Product details</summary><dl className="product-specs">{specs.map(([label, value], i) => <div key={label + i}><dt>{label}</dt><dd>{value}</dd></div>)}</dl></details>

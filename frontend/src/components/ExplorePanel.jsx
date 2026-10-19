@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { useRef } from "react";
 import { Dialog, DialogBackdrop, DialogPanel, DialogTitle } from "@headlessui/react";
 import { FiArrowRight, FiGrid, FiHeadphones, FiHome, FiSearch, FiShoppingBag, FiSun, FiX } from "react-icons/fi";
 
@@ -10,18 +11,19 @@ const categoryDetails = {
 };
 
 export default function ExplorePanel({ open, onClose, categories, keyword, onKeywordChange, onSearch }) {
+  const searchRef = useRef(null);
   return (
-    <Dialog open={open} onClose={onClose} className="explore-dialog">
+    <Dialog open={open} onClose={onClose} initialFocus={searchRef} className="explore-dialog">
       <DialogBackdrop transition className="dialog-backdrop" />
       <DialogPanel transition className="explore-panel">
         <div className="explore-panel-heading">
-          <div><p className="eyebrow">EXPLORE MERCATO</p><DialogTitle>Find your next good thing.</DialogTitle></div>
-          <button className="icon-button" onClick={onClose} aria-label="Close explore"><FiX /></button>
+          <div><p className="eyebrow">MERCATO</p><DialogTitle>Search &amp; discover</DialogTitle></div>
+          <button className="icon-button" onClick={onClose} aria-label="Close search"><FiX /></button>
         </div>
         <div className="explore-panel-body">
           <form className="explore-search" role="search" onSubmit={onSearch}>
             <FiSearch aria-hidden="true" />
-            <input aria-label="Search the marketplace" placeholder="What are you looking for?" value={keyword} onChange={event => onKeywordChange(event.target.value)} maxLength={150} type="search" enterKeyHint="search" />
+            <input ref={searchRef} aria-label="Search the marketplace" placeholder="What are you looking for?" value={keyword} onChange={event => onKeywordChange(event.target.value)} maxLength={150} type="search" enterKeyHint="search" />
             <button className="icon-action" aria-label="Submit marketplace search"><FiArrowRight /></button>
           </form>
           <nav aria-label="Explore marketplace" onClick={onClose}>
