@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import api from "../../backend/api";
 import { formatCurrency as money } from "../../utils/formatCurrency";
+import ReportTimeframe from "./ReportTimeframe";
 
 const Metric = ({ label, value, detail, dark }) => <div className={`finance-metric ${dark ? "finance-metric-dark" : ""}`}><span>{label}</span><strong>{money(value)}</strong><p>{detail}</p></div>;
 export default function MarketplaceFinance({ admin = false }) {
   const [data, setData] = useState(null);
-  const [dates, setDates] = useState({ from: "", through: "" });
   const [query, setQuery] = useState({});
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -18,12 +18,12 @@ export default function MarketplaceFinance({ admin = false }) {
       .finally(() => { if (!controller.signal.aborted) setLoading(false); });
     return () => controller.abort();
   }, [admin, query, attempt]);
-  const apply = event => { event.preventDefault(); setLoading(true); setQuery(Object.fromEntries(Object.entries(dates).filter(([, value]) => value))); };
+  const apply = range => { setLoading(true); setQuery(range); };
   return <section className="finance-section" aria-busy={loading}>
-    <div className="finance-heading"><div><p className="eyebrow">{admin ? "MARKETPLACE FINANCES" : "YOUR BUSINESS, IN NUMBERS"}</p><h2>{admin ? "Sales are only part of the picture." : "See what your sales earned."}</h2><p>Paid orders created in the selected period · UTC · INR</p></div><form onSubmit={apply} className="finance-dates"><label>From<input type="date" value={dates.from} onChange={e => setDates(d => ({ ...d, from: e.target.value }))} /></label><label>Through<input type="date" value={dates.through} max={new Date().toISOString().slice(0, 10)} onChange={e => setDates(d => ({ ...d, through: e.target.value }))} /></label><button className="button button-outline" disabled={loading}>Apply dates</button></form></div>
+    <div className="finance-heading"><div><p className="eyebrow">{admin ? "MARKETPLACE FINANCES" : "YOUR BUSINESS, IN NUMBERS"}</p><h2>{admin ? "Sales are only part of the picture." : "See what your sales earned."}</h2><p>Paid orders created in the selected period</p></div></div>
+    <div className="finance-period"><ReportTimeframe range={data ? { from: data.from, through: data.through } : undefined} loading={loading} onApply={apply} /><span role="status">{loading && data ? "Updating report…" : ""}</span></div>
     {error && <div className="inline-error" role="alert">{error}<button onClick={() => { setLoading(true); setAttempt(a => a + 1); }}>Retry report</button></div>}
     {!data ? <p role="status">{loading ? "Loading financial breakdown…" : "No report available."}</p> : <>
-      <p className="finance-period">{data.from} — {data.through}{loading ? " · Updating report…" : ""}</p>
       <div className="finance-metrics">
         <Metric label="Fulfilled merchandise" value={data.totals.fulfilledSales} detail="Shipped units from paid orders" />
         <Metric label="Sales commission" value={data.totals.commission} detail="At each order’s captured rate" />

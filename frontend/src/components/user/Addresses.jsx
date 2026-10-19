@@ -182,7 +182,7 @@ const AddressFormModal = ({ address, onClose, onSave }) => {
               type="text"
               value={form.addressLine1}
               onChange={e => set("addressLine1", e.target.value)}
-              placeholder="House no., Building, Street"
+              placeholder="House, street"
               className={inputCls}
             />
           </Field>
@@ -191,7 +191,7 @@ const AddressFormModal = ({ address, onClose, onSave }) => {
               type="text"
               value={form.addressLine2}
               onChange={e => set("addressLine2", e.target.value)}
-              placeholder="Area, Landmark (optional)"
+              placeholder="Area or landmark"
               className={inputCls}
             />
           </Field>
@@ -233,15 +233,6 @@ const AddressFormModal = ({ address, onClose, onSave }) => {
             </div>
           </div>
 
-          {/* Country — locked to India */}
-          <Field label="Country">
-            <input
-              type="text"
-              value="India"
-              disabled
-              className="w-full text-sm text-gray-400 bg-transparent focus:outline-none cursor-not-allowed"
-            />
-          </Field>
         </div>
 
         {/* Footer */}
@@ -282,7 +273,7 @@ const AddressCard = ({ address, onEdit, onDelete, onDefault, defaulting }) => (
           <p className="text-xs text-gray-600">
             {address.city}, {address.state} — {address.pincode}
           </p>
-          <p className="text-xs text-gray-400 mt-0.5">{address.country}</p>
+
           {address.defaultAddress ? <span className="status-tag mt-3">Default address</span> : <button className="button button-outline mt-3" disabled={defaulting} onClick={() => onDefault(address)}>Make default</button>}
         </div>
       </div>

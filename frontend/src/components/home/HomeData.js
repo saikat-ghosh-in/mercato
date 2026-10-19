@@ -4,7 +4,7 @@ export const HERO_SLIDES = [
     tag: "New Season",
     headline: ["Everything", "you need,", "one place."],
     italicLine: 1,
-    sub: "Curated collections from India's best verified sellers",
+    sub: "Curated collections from independent sellers",
     cta: "Shop Now",
     ctaSecondary: "New Arrivals",
     ctaSecondaryLink: "/products?sortBy=createdAt&sortingOrder=desc",

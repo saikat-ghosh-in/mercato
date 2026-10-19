@@ -335,7 +335,7 @@ const FulfillmentTab = () => {
             type="text"
             aria-label="Search by ID or customer..." value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Search by ID or customer..."
+            placeholder="ID or customer"
             className="text-xs text-gray-700 focus:outline-none w-full"
           />
           {search && (

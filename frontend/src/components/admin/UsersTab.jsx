@@ -243,7 +243,7 @@ const UsersTab = () => {
                         type="text"
                         aria-label="Search by name, username or email..." value={search}
                         onChange={e => setSearch(e.target.value)}
-                        placeholder="Search by name, username or email..."
+                        placeholder="Name or email"
                         className="text-xs text-gray-700 focus:outline-none w-full"
                     />
                     {search && (

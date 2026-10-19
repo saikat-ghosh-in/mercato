@@ -172,7 +172,7 @@ const AddAddressForm = ({ address, setOpenAddressModal, setLoadingAddresses }) =
             <Controller
               name="pincode"
               control={control}
-              rules={{ required: "Pincode is required", pattern: { value: /^[1-9][0-9]{5}$/, message: "Enter a valid 6-digit Indian pincode" } }}
+              rules={{ required: "Pincode is required", pattern: { value: /^[1-9][0-9]{5}$/, message: "Enter a valid 6-digit pincode" } }}
               render={({ field }) => (
                 <InputField field={field} placeholder="Postal code" error={errors.pincode} inputMode="numeric" />
               )}
@@ -180,19 +180,7 @@ const AddAddressForm = ({ address, setOpenAddressModal, setLoadingAddresses }) =
             <FieldError message={errors.pincode?.message} />
           </div>
 
-          {/* Country */}
-          <div>
-            <Label required>Country</Label>
-            <Controller
-              name="country"
-              control={control}
-              rules={{ required: "Country is required" }}
-              render={({ field }) => (
-                <InputField field={field} placeholder="Country" error={errors.country} />
-              )}
-            />
-            <FieldError message={errors.country?.message} />
-          </div>
+          <Controller name="country" control={control} render={({ field }) => <input {...field} type="hidden" />} />
         </div>
 
         {/* Actions */}

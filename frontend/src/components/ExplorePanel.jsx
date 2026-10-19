@@ -23,7 +23,7 @@ export default function ExplorePanel({ open, onClose, categories, keyword, onKey
         <div className="explore-panel-body">
           <form className="explore-search" role="search" onSubmit={onSearch}>
             <FiSearch aria-hidden="true" />
-            <input ref={searchRef} aria-label="Search the marketplace" placeholder="What are you looking for?" value={keyword} onChange={event => onKeywordChange(event.target.value)} maxLength={150} type="search" enterKeyHint="search" />
+            <input ref={searchRef} aria-label="Search the marketplace" placeholder="Search products" value={keyword} onChange={event => onKeywordChange(event.target.value)} maxLength={150} type="search" enterKeyHint="search" />
             <button className="icon-action" aria-label="Submit marketplace search"><FiArrowRight /></button>
           </form>
           <nav aria-label="Explore marketplace" onClick={onClose}>

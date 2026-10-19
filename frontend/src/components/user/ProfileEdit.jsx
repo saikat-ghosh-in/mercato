@@ -133,7 +133,7 @@ const ProfileEdit = () => {
                     type="text"
                     value={form.profileImageUrl}
                     onChange={e => { set("profileImageUrl", e.target.value); setPreviewError(false); }}
-                    placeholder="https://example.com/photo.jpg"
+                    placeholder="Photo URL"
                     className={inputCls}
                   />
                 </Field>

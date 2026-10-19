@@ -185,7 +185,7 @@ export default function ProductImageUpload({
                 id="primary-url-input"
                 aria-label="Primary product image URL"
                 type="url"
-                placeholder="https://example.com/image.jpg"
+                placeholder="Image URL"
                 value={primaryUrl}
                 onChange={e => setPrimaryUrl(e.target.value)}
                 className="flex-1 min-w-0 text-xs border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-300 text-gray-700"
@@ -261,7 +261,7 @@ export default function ProductImageUpload({
               id="secondary-url-input"
               aria-label="Secondary product image URL"
               type="url"
-              placeholder="https://example.com/image.jpg"
+              placeholder="Image URL"
               value={secondaryUrl}
               onChange={e => setSecondaryUrl(e.target.value)}
               className="flex-1 min-w-0 text-xs border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-300 text-gray-700"

@@ -10,7 +10,7 @@ import ProductsTab from "../shared/ProductsTab";
 import FulfillmentTab from "./FulfillmentTab";
 import SellerNotices from "./SellerNotices";
 import SellerApplicationStatus from "./SellerApplicationStatus";
-import SellerNoticeIndicator from "./SellerNoticeIndicator";
+import useSellerNotices from "../../hooks/useSellerNotices";
 import { useSearchParams } from "react-router-dom";
 
 const NAV = [
@@ -18,7 +18,7 @@ const NAV = [
   { id: "products", label: "Products", icon: MdInventory },
   { id: "fulfillment", label: "Fulfillment", icon: MdLocalShipping },
   { id: "promotions", label: "Promotions", icon: MdStorefront },
-  { id: "notices", label: "Notices", icon: MdStorefront },
+  { id: "notices", label: "Seller notices", icon: MdStorefront },
 ];
 
 const SellerDashboard = () => {
@@ -26,6 +26,7 @@ const SellerDashboard = () => {
   const activeTab = NAV.some(item => item.id === params.get("tab")) ? params.get("tab") : "overview";
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const user = useSelector(s => s.auth?.userDetails);
+  const inbox = useSellerNotices(Boolean(user?.roles?.some(role => ["ROLE_SELLER", "ROLE_ADMIN"].includes(role))));
   if (["PENDING", "REJECTED"].includes(user?.sellerStatus) && !user?.roles?.includes("ROLE_ADMIN")) return <SellerApplicationStatus user={user} />;
 
   const renderTab = () => {
@@ -34,7 +35,7 @@ const SellerDashboard = () => {
       case "products": return <ProductsTab />;
       case "fulfillment": return <FulfillmentTab />;
       case "promotions": return <PromotionsTab />;
-      case "notices": return <SellerNotices />;
+      case "notices": return <SellerNotices {...inbox} />;
       default: return <SellerOverviewTab />;
     }
   };
@@ -63,13 +64,13 @@ const SellerDashboard = () => {
           </button>
         </div>
 
-        {activeTab !== "notices" && <SellerNoticeIndicator />}
         {/* Tab nav */}
         <div className={`${mobileNavOpen ? "flex" : "hidden"} lg:flex flex-col lg:flex-row gap-1 surface p-1.5 mb-6`}>
           {NAV.map(({ id, label, icon: Icon }) => (
             <button
               key={id}
               aria-pressed={activeTab === id}
+              aria-label={id === "notices" && inbox.unread ? `Seller notices, ${inbox.unread} unread` : label}
               onClick={() => { setParams(id === "overview" ? {} : { tab: id }); setMobileNavOpen(false); }}
               className={`control flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-[transform,opacity,background-color] cursor-pointer flex-1 justify-center lg:justify-start ${activeTab === id
                   ? "bg-gray-950 text-white shadow-sm"
@@ -78,6 +79,7 @@ const SellerDashboard = () => {
             >
               <Icon size={16} />
               {label}
+              {id === "notices" && inbox.unread > 0 && <span className="notice-count" aria-hidden="true">{inbox.unread > 99 ? "99+" : inbox.unread}</span>}
             </button>
           ))}
         </div>

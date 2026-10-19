@@ -187,7 +187,7 @@ const CartsTab = () => {
                         type="text"
                         aria-label="Search by cart ID or customer..." value={search}
                         onChange={e => setSearch(e.target.value)}
-                        placeholder="Search by cart ID or customer..."
+                        placeholder="Cart ID or customer"
                         className="text-xs text-gray-700 focus:outline-none w-full"
                     />
                     {search && <button aria-label="Clear search" onClick={() => setSearch("")} className="icon-action text-gray-300 hover:text-gray-500 cursor-pointer"><MdClose size={13} /></button>}

@@ -91,7 +91,7 @@ const ResetPassword = () => {
                                     onChange: () => trigger("password"),
                                 })}
                                 type={showPassword ? "text" : "password"}
-                                placeholder="Enter a new password"
+                                placeholder="New password"
                                 autoComplete="new-password"
                                 className={inputCls}
                             />
@@ -119,7 +119,7 @@ const ResetPassword = () => {
                                         value === passwordValue || "Passwords do not match",
                                 })}
                                 type={showConfirm ? "text" : "password"}
-                                placeholder="Confirm new password"
+                                placeholder="Repeat password"
                                 autoComplete="new-password"
                                 className={inputCls}
                             />

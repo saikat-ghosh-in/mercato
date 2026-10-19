@@ -1,6 +1,6 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/react";
-import { FiSearch, FiShoppingBag, FiUser, FiLock, FiHelpCircle, FiChevronDown } from "react-icons/fi";
+import { FiSearch, FiShoppingBag, FiUser, FiLock, FiHelpCircle, FiChevronDown, FiGrid } from "react-icons/fi";
 import { useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { logOutUser } from "../reduxStore/actions/authActions";
@@ -11,7 +11,6 @@ import ExplorePanel from "./ExplorePanel";
 import { useMeasuredHeight } from "../hooks/useMeasuredHeight";
 import { useInputModality } from "../hooks/useInputModality";
 import { isSellerAccount } from "../utils/accountRouting";
-import SellerNoticeIndicator from "./seller/SellerNoticeIndicator";
 
 export default function Header() {
   useInputModality();
@@ -42,6 +41,7 @@ export default function Header() {
         <Brand />
         {checkout && <p className="checkout-lock" aria-label="Secure checkout"><FiLock /><span>Secure checkout</span></p>}
         <div className="header-actions">
+          <Link to="/products" className="header-catalog" aria-label="All products" title="All products"><FiGrid aria-hidden="true" /><span>All products</span></Link>
           {!checkout && <button className="icon-button" aria-label="Open search" title="Search and discover" aria-expanded={discoveryOpen} aria-haspopup="dialog" onClick={() => {
             setKeyword(new URLSearchParams(location.search).get("keyword") ?? "");
             setDiscoveryOpen(true);
@@ -53,7 +53,6 @@ export default function Header() {
               {signedIn ? <>
                 <p className="account-name">{details?.firstName || user.username || "Your account"}</p>
                 {links.map(([label, href]) => <MenuItem key={href}><Link to={href}>{label}</Link></MenuItem>)}
-                {details?.roles?.some(role => role === "ROLE_SELLER" || role === "ROLE_ADMIN") && <SellerNoticeIndicator menu />}
                 <MenuItem><button onClick={() => dispatch(logOutUser(navigate))}>Sign out</button></MenuItem>
               </> : <><MenuItem><Link to="/login">Sign in</Link></MenuItem><MenuItem><Link to="/register">Create an account</Link></MenuItem></>}
             </MenuItems>

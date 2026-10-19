@@ -64,7 +64,7 @@ const CancelReasonModal = ({ title, subtitle, onClose, onConfirm, loading, child
           <textarea
             value={custom}
             onChange={e => setCustom(e.target.value)}
-            placeholder="Please describe your reason..."
+            placeholder="Your reason"
             rows={2}
             className="w-full text-xs border border-gray-200 rounded-xl px-3 py-2 mb-3 focus:outline-none focus:ring-1 focus:ring-red-300 resize-none text-gray-700 placeholder-gray-300"
           />

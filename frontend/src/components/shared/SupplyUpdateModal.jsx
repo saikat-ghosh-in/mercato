@@ -6,7 +6,7 @@ import { FiMinus, FiPlus } from "react-icons/fi";
 import toast from "react-hot-toast";
 import api from "../../backend/api";
 
-const ProductCombobox = ({ products = [], value, onChange, placeholder = "Search by name or ID...", showAvailability = false }) => {
+const ProductCombobox = ({ products = [], value, onChange, placeholder = "Product name or ID", showAvailability = false }) => {
   const [query, setQuery] = useState("");
   const selected = products.find(p => p.productId === value);
   const filtered = products.filter(p => !query.trim() || (p.productName + " " + p.productId).toLowerCase().includes(query.toLowerCase()));

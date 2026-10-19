@@ -1,3 +1,5 @@
+Latest follow-up — 19 October 2026: [Compact timeframe editor, seller notice badge, field help and persistent catalog navigation](CONTROL_REFINEMENT_REVIEW.md). Frontend lint/build and 34 tests pass; Browser evidence and screenshots are linked there.
+
 Current revision: checkout/delivery/default addresses, seller onboarding/commission notices, financial analytics, listing approvals and paid promotions are recorded in [Marketplace review](MARKETPLACE_REVIEW.md). Earlier route checks below remain historical evidence. Current automated result: 32 frontend tests, lint/build, and 71 backend tests pass.
 
 # Route and action validation — 19 October 2026
