@@ -2,7 +2,6 @@ package com.mercato.Utils;
 
 import com.mercato.Entity.EcommUser;
 import com.mercato.Entity.fulfillment.TransitionTrigger;
-import com.mercato.Security.services.AuthService;
 import com.mercato.Security.services.UserDetailsServiceImpl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
@@ -13,13 +12,13 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class AuthUtil {
 
-    private final AuthService authService;
     private final UserDetailsServiceImpl userDetailsService;
 
     public EcommUser getLoggedInUser() {
-        String currentUsername = authService.getCurrentUsernameFromAuthentication();
-        if (currentUsername == null) return null;
-        return userDetailsService.getEcommUserByUsername(currentUsername);
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()
+                || authentication instanceof org.springframework.security.authentication.AnonymousAuthenticationToken) return null;
+        return userDetailsService.getEcommUserByUsername(authentication.getName());
     }
 
     public TransitionTrigger resolveTransitionTrigger() {

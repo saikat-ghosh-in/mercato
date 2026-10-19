@@ -73,6 +73,11 @@ public class UserController {
         return ResponseEntity.ok(new MessageResponse("Address deleted successfully."));
     }
 
+    @PatchMapping("/user/addresses/{addressId}/default")
+    public AddressResponseDTO defaultAddress(@PathVariable String addressId) {
+        return addressService.setDefaultAddress(addressId);
+    }
+
     @PatchMapping("/account/deactivate")
     public ResponseEntity<MessageResponse> deactivateAccount() {
         userService.deactivateAccount();

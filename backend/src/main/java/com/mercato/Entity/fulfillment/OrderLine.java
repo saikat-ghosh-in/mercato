@@ -93,6 +93,9 @@ public class OrderLine {
     @Column(updatable = false, length = 100)
     private String sellerEmail;
 
+    @Column(name = "commission_rate_percent", precision = 5, scale = 2, updatable = false)
+    private BigDecimal commissionRatePercent;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
     private OrderLineStatus orderLineStatus;

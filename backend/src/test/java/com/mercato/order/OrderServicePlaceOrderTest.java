@@ -42,6 +42,8 @@ class OrderServicePlaceOrderTest {
     @Mock private CartReservationService cartReservationService;
     @Mock private ProductRepository productRepository;
     @Mock private OrderLineUpdateService orderLineUpdateService;
+    @Mock private CommissionService commissions;
+    @Mock private com.mercato.Repository.SellerApplicationRepository sellerApplications;
 
     @InjectMocks
     private OrderServiceImpl orderService;
@@ -119,11 +121,45 @@ class OrderServicePlaceOrderTest {
         }).when(cashfreeService).initiatePayment(any(Order.class), any(), any());
         when(orderRepository.save(any(Order.class))).thenAnswer(inv -> inv.getArgument(0));
 
+        when(commissions.currentRate()).thenReturn(new BigDecimal("5.00"));
         OrderPlacementResponseDTO response = orderService.placeOrder(request);
 
         assertNotNull(response.getPaymentSessionId());
+        var captured = org.mockito.ArgumentCaptor.forClass(Order.class);
+        verify(orderRepository).save(captured.capture());
+        org.junit.jupiter.api.Assertions.assertEquals(new BigDecimal("5.00"), captured.getValue().getOrderLines().get(0).getCommissionRatePercent());
         verify(cartReservationService, never()).release(any(CartItem.class));
         verify(cartService, never()).clearCart(any(CartContext.class));
         verify(cashfreeService).initiatePayment(any(Order.class), any(), any());
+    }
+
+    @Test
+    void changedQuoteCannotCreateAPayment() {
+        EcommUser user = new EcommUser();
+        Product product = Product.builder().productId("P-QUOTE").sellingPrice(BigDecimal.valueOf(100)).build();
+        Cart cart = new Cart(); cart.setCartItems(List.of(CartItem.builder().product(product).quantity(1).unitPrice(BigDecimal.valueOf(100)).build()));
+        when(authUtil.getLoggedInUser()).thenReturn(user); when(cartService.getCartByUser(user)).thenReturn(cart);
+        OrderCaptureRequestDTO request = new OrderCaptureRequestDTO(); request.setExpectedTotal(BigDecimal.ONE);
+        org.junit.jupiter.api.Assertions.assertThrows(com.mercato.ExceptionHandler.CustomBadRequestException.class, () -> orderService.placeOrder(request));
+        request.setExpectedTotal(cart.getTotal()); request.setDeliveryMethod(com.mercato.Entity.cart.DeliveryMethod.EXPEDITED);
+        org.junit.jupiter.api.Assertions.assertThrows(com.mercato.ExceptionHandler.CustomBadRequestException.class, () -> orderService.placeOrder(request));
+        verifyNoInteractions(cashfreeService);
+    }
+
+    @Test
+    void enrolledUnregisteredSellerCannotShipOutsidePickupState() {
+        EcommUser user = new EcommUser(); user.setUserId("U-STATE");
+        EcommUser seller = new EcommUser(); seller.setUserId("S-STATE");
+        Product product = Product.builder().productId("P-STATE").sellingPrice(BigDecimal.valueOf(100)).seller(seller).build();
+        Cart cart = new Cart(); cart.setCartItems(List.of(CartItem.builder().product(product).quantity(1).unitPrice(BigDecimal.valueOf(100)).build()));
+        Address address = new Address(); address.setAddressId("A-STATE"); address.setState("Maharashtra");
+        var application = new com.mercato.Entity.SellerApplication(); application.setTaxRegistrationType("ENROLLED_UNREGISTERED"); application.setPickupState("Karnataka");
+        when(authUtil.getLoggedInUser()).thenReturn(user); when(cartService.getCartByUser(user)).thenReturn(cart);
+        when(addressRepository.findByAddressIdAndUser_UserId("A-STATE", "U-STATE")).thenReturn(Optional.of(address));
+        when(commissions.currentRate()).thenReturn(new BigDecimal("5.00"));
+        when(sellerApplications.findByUser_UserId("S-STATE")).thenReturn(Optional.of(application));
+        OrderCaptureRequestDTO request = new OrderCaptureRequestDTO(); request.setAddressId("A-STATE");
+        org.junit.jupiter.api.Assertions.assertThrows(com.mercato.ExceptionHandler.CustomBadRequestException.class, () -> orderService.placeOrder(request));
+        verifyNoInteractions(cashfreeService);
     }
 }

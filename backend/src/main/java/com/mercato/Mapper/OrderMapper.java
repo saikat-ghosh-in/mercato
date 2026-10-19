@@ -41,7 +41,9 @@ public class OrderMapper {
                 order.getTotalAmount(),
                 order.isInventoryFinalizationFailed(),
                 order.getCreatedAt(),
-                order.getUpdatedAt()
+                order.getUpdatedAt(),
+                order.getDeliveryMethod(),
+                order.getDeliveryEstimate()
         );
     }
 }

@@ -1,3 +1,4 @@
+import SponsoredShelf from "./SponsoredShelf";
 import { useEffect, useReducer, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
@@ -87,7 +88,8 @@ export default function ProductListingPage() {
             : loading && !products.length ? <div className="product-grid" aria-busy="true" aria-label="Loading products">{Array.from({ length: 12 }, (_, i) => <CardSkeleton key={i} />)}</div>
             : error && !products.length ? <div className="state-panel" role="alert"><FiRefreshCw /><h3>The collection couldn’t load.</h3><p>{error}</p><button className="button button-dark" onClick={() => setAttempt(a => a + 1)}>Try again</button></div>
             : products.length === 0 ? <div className="state-panel"><FiSearch /><h3>No matches just yet.</h3><p>{filterCount || keyword ? "Try a different search or give your filters a little more room." : "Check back soon for new arrivals."}</p>{filterCount > 0 ? <button className="button button-dark" onClick={clearAllFilters}>Clear filters</button> : keyword && <button className="button button-dark" onClick={() => setParam({ keyword: "" })}>Clear search</button>}</div>
-            : <div className="product-grid" aria-busy={loading}>{products.map(p => <ProductCard key={p.productId} product={p} />)}</div>}
+            : <div className="product-grid" aria-busy={loading}>{products.map(p => <ProductCard key={p.productId} product={p} showPurchase />)}</div>}
+          {!loading && !error && !invalidRange && !minPrice && !maxPrice && !selectedSellers.length && <SponsoredShelf placement="catalog" category={category} keyword={keyword} />}
           {!loading && !error && !invalidRange && pagination.totalPages > 1 && <Pagination pageInfo={pagination} loading={loading} onPageChange={page => { setParam({ pageNumber: page }); requestResultsScroll(value => value + 1); }} />}
       </div>
     </div>

@@ -57,7 +57,6 @@ public class ProductRequestDTO {
     @Size(max = 3, message = "Maximum 3 secondary images allowed")
     private List<String> secondaryImageUrls = new ArrayList<>();
 
-    @NotNull(message = "Quantity is required")
     @Min(value = 0, message = "Quantity cannot be negative")
     private Integer physicalQty;
 

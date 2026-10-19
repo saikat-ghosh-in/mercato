@@ -44,6 +44,15 @@ public class Cart {
     @Column(name = "guest_token", unique = true)
     private String guestToken;
 
+    @Builder.Default
+    @Enumerated(EnumType.STRING)
+    @Column(name = "delivery_method", nullable = false, length = 20)
+    private DeliveryMethod deliveryMethod = DeliveryMethod.STANDARD;
+
+    @Transient
+    @Builder.Default
+    private List<com.mercato.Payloads.Response.DeliveryOptionDTO> deliveryOptions = new ArrayList<>();
+
     @OneToMany(
             mappedBy = "cart",
             cascade = {CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REMOVE},
@@ -169,7 +178,7 @@ public class Cart {
             throw new IllegalArgumentException("Quantity must be greater than 0, got: " + quantity);
         if (product == null)
             throw new IllegalArgumentException("Product must not be null");
-        if (!product.isActive())
+        if (!product.isPurchasable())
             throw new IllegalStateException("Product is no longer available: " + product.getProductId());
     }
 

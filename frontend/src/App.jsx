@@ -1,5 +1,5 @@
 import React, { useEffect, lazy, Suspense } from 'react';
-import { Route, BrowserRouter, Routes, Link, useLocation } from 'react-router-dom';
+import { Route, BrowserRouter, Routes, Link, useLocation, Navigate } from 'react-router-dom';
 import './App.css'
 const routeLoaders = [];
 function lazyPage(loader) {
@@ -45,6 +45,15 @@ const AccountDeactivated = lazyPage(() => import("./components/auth/AccountDeact
 import Footer from './components/Footer';
 const Help = lazyPage(() => import("./components/Help"));
 import ErrorBoundary from './components/ErrorBoundary';
+import { accountLanding } from './utils/accountRouting';
+const SellerPolicies = lazyPage(() => import("./components/seller/SellerPolicies"));
+
+function StorefrontEntry() {
+  const { user, userDetails } = useSelector(s => s.auth);
+  if (user && !userDetails) return <div className="site-container route-loading" role="status" aria-label="Loading your workspace"><div /><div /></div>;
+  const destination = accountLanding(userDetails);
+  return destination === "/" ? <HomePage /> : <Navigate to={destination} replace />;
+}
 
 function PageFrame({ children }) {
   const { pathname } = useLocation();
@@ -102,7 +111,8 @@ function App() {
           <ErrorBoundary>
           <Suspense fallback={<div className="site-container route-loading" role="status" aria-label="Loading page"><div /><div /></div>}><Routes>
             <Route path='/help' element={<Help />} />
-            <Route path='/' element={<HomePage />} />
+            <Route path='/' element={<StorefrontEntry />} />
+            <Route path='/seller-policies' element={<SellerPolicies />} />
             <Route path='/products' element={<ProductListingPage />} />
             <Route path='/products/:productId' element={<ProductDetailsPage />} />
             <Route path='/cart' element={<Cart />} />
@@ -134,7 +144,7 @@ function App() {
               <Route path='/admin/dashboard' element={<AdminDashboard />} />
             </Route>
 
-            <Route path='/' element={<PrivateRoute roles={["ROLE_SELLER", "ROLE_ADMIN"]} />}>
+            <Route path='/' element={<PrivateRoute roles={["ROLE_SELLER", "ROLE_ADMIN"]} allowSellerApplicant />}>
               <Route path='/seller/dashboard' element={<SellerDashboard />} />
             </Route>
             <Route path='*' element={<div className="site-container home-section"><div className="state-panel"><p className="eyebrow">404 · PAGE NOT FOUND</p><h1>Let’s find something good.</h1><p>This page may have moved or the link may be incomplete.</p><Link to="/products" className="button button-dark">Explore the collection</Link></div></div>} />

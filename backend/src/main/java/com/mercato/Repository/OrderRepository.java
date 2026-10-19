@@ -18,6 +18,9 @@ import java.util.Optional;
 
 @Repository
 public interface OrderRepository extends JpaRepository<Order, Long> {
+    @EntityGraph(attributePaths={"orderLines", "payment", "payment.refund"})
+    @Query("select distinct o from Order o where o.createdAt >= :start and o.createdAt < :end and (:email is null or exists (select l.id from OrderLine l where l.order = o and l.sellerEmail = :email)) order by o.createdAt desc")
+    List<Order> financialOrders(@Param("start") Instant start, @Param("end") Instant end, @Param("email") String email);
 
     @EntityGraph(attributePaths = {"orderLines"})
     Optional<Order> findByOrderId(String orderId);

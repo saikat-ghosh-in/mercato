@@ -11,7 +11,7 @@ import toast from "react-hot-toast";
 import api from "../../backend/api";
 import { formatDate } from "../../utils/formatDate";
 
-const ALL_ROLES = ["ROLE_USER", "ROLE_SELLER", "ROLE_ADMIN"];
+const ALL_ROLES = ["ROLE_USER", "ROLE_SELLER"];
 
 const ROLE_CONFIG = {
     ROLE_ADMIN: { label: "Admin", color: "bg-purple-100 text-purple-700", icon: MdAdminPanelSettings },
@@ -79,7 +79,7 @@ const EditRolesModal = ({ user, onClose, onSave }) => {
                 </div>
 
                 <div className="p-5 space-y-2">
-                    {ALL_ROLES.map(role => {
+                    {ALL_ROLES.filter(role => role !== "ROLE_SELLER" || user.sellerStatus === "APPROVED").map(role => {
                         const cfg = ROLE_CONFIG[role];
                         const Icon = cfg.icon;
                         const active = roles.has(role);
@@ -141,12 +141,12 @@ const UserDrawer = ({ user, onClose, onRolesEdit }) => (
                 <div>
                     <div className="flex items-center justify-between mb-2">
                         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Roles</p>
-                        <button
+                        {!user.roles.includes("ROLE_ADMIN") && <button
                             onClick={onRolesEdit}
                             className="flex items-center gap-1 text-[11px] font-semibold text-blue-500 hover:text-blue-700 cursor-pointer"
                         >
                             <MdEdit size={12} /> Edit
-                        </button>
+                        </button>}
                     </div>
                     <div className="flex gap-1.5 flex-wrap">
                         {user.roles.map(role => {
@@ -258,7 +258,7 @@ const UsersTab = () => {
                     className="text-xs border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-300 text-gray-700"
                 >
                     <option value="">All Roles</option>
-                    {ALL_ROLES.map(r => (
+                    {Object.keys(ROLE_CONFIG).map(r => (
                         <option key={r} value={r}>{ROLE_CONFIG[r]?.label ?? r}</option>
                     ))}
                 </SelectControl>
@@ -328,12 +328,12 @@ const UsersTab = () => {
                                     </td>
                                     <td className="px-4 py-3 text-xs text-gray-400">{formatDate(u.createdAt)}</td>
                                     <td className="px-4 py-3">
-                                        <button
+                                        {u.roles.includes("ROLE_ADMIN") ? <span className="text-xs text-gray-400">Read only</span> : <button
                                             aria-label={"Edit roles for " + u.username} onClick={e => { e.stopPropagation(); setEditRolesUser(u); }}
                                             className="icon-action p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
                                         >
                                             <MdEdit size={14} />
-                                        </button>
+                                        </button>}
                                     </td>
                                 </tr>
                             ))}

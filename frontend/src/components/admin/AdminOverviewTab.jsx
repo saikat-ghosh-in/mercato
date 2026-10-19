@@ -1,3 +1,4 @@
+import MarketplaceFinance from "../shared/MarketplaceFinance";
 import { ORDER_STATUS_MAP } from "../../utils/dashboardStatus";
 import { useEffect, useState } from "react";
 import {
@@ -9,7 +10,7 @@ import { formatCurrency } from "../../utils/formatCurrency";
 import { formatDate } from "../../utils/formatDate";
 import {
     DashboardSkeleton, DashboardError,
-    RevenueCards, StatCard, SectionCard, SectionLabel,
+    StatCard, SectionCard, SectionLabel,
     TopSellingProducts, StatusBreakdownBars,
 
 } from "../shared/DashboardWidgets";
@@ -104,13 +105,13 @@ const AdminOverviewTab = () => {
     if (loading && !stats) return <DashboardSkeleton />;
     if (error) return <DashboardError message={error} onRetry={fetchStats} />;
 
-    const { users, order, revenue, topSellingProducts, orderStatusBreakdown, recentOrders } = stats;
+    const { users, order, topSellingProducts, orderStatusBreakdown, recentOrders } = stats;
 
     return (
         <div className="space-y-6">
 
             {/* Revenue */}
-            <RevenueCards revenue={revenue} />
+            <MarketplaceFinance admin />
 
             {/* Order + user stats */}
             <div>

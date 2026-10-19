@@ -17,4 +17,6 @@ public interface AddressService {
     AddressResponseDTO updateAddress(String addressId, AddressRequestDTO addressRequestDTO);
 
     void deleteAddress(String addressId);
+
+    AddressResponseDTO setDefaultAddress(String addressId);
 }

@@ -1,8 +1,8 @@
 export const usernameRules = {
     required: "Username is required",
     minLength: {
-        value: 2,
-        message: "Username must be at least 2 characters",
+        value: 3,
+        message: "Username must be at least 3 characters",
     },
     maxLength: {
         value: 20,
@@ -25,8 +25,8 @@ export const emailRules = {
 export const passwordRules = {
     required: "Password is required",
     minLength: {
-        value: 6,
-        message: "Password must be at least 6 characters",
+        value: 8,
+        message: "Password must be at least 8 characters",
     },
     validate: {
         hasUpper: (v) =>

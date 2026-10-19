@@ -45,7 +45,7 @@ public class CartServiceImpl implements CartService {
                     .orElseThrow(() -> new ResourceNotFoundException(
                             "Product", "productId", productId
                     ));
-            if (!product.isActive())
+            if (!product.isPurchasable())
                 throw new IllegalArgumentException("This product is no longer available");
             cart.addProduct(product, requestedQuantity);
 
@@ -64,6 +64,17 @@ public class CartServiceImpl implements CartService {
     public CartResponseDTO getCart(CartContext context) {
         Cart cart = resolveCart(context);
         cartPricingService.applyCharges(cart);
+        return CartMapper.toDTO(cart);
+    }
+
+    @Override
+    @Transactional
+    public CartResponseDTO selectDeliveryMethod(com.mercato.Entity.cart.DeliveryMethod method, CartContext context) {
+        if (method == null) throw new IllegalArgumentException("Choose an available delivery method");
+        Cart cart = resolveCart(context);
+        cart.setDeliveryMethod(method);
+        cartPricingService.applyCharges(cart);
+        cartRepository.save(cart);
         return CartMapper.toDTO(cart);
     }
 
@@ -167,6 +178,7 @@ public class CartServiceImpl implements CartService {
         }
 
         Cart userCart = resolveCart(new CartContext(userId, null));
+        if (userCart.isEmpty()) userCart.setDeliveryMethod(guestCart.getDeliveryMethod());
 
         // Release guest holds before reserving the merged cart. Both operations are in
         // this transaction, so a failed merge restores the original guest holds.
@@ -175,7 +187,7 @@ public class CartServiceImpl implements CartService {
         for (CartItem guestItem : guestCart.getCartItems()) {
             Product product = productRepository.findByProductIdForUpdate(guestItem.getProduct().getProductId())
                     .orElseThrow(() -> new ResourceNotFoundException("Product", "productId", guestItem.getProduct().getProductId()));
-            if (!product.isActive()) continue;
+            if (!product.isPurchasable()) continue;
             userCart.findItemByProductId(product.getProductId())
                     .ifPresentOrElse(
                             existing -> {

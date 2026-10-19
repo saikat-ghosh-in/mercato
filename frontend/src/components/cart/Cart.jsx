@@ -5,6 +5,7 @@ import { useCartProducts } from "../../hooks/useCartProducts";
 import { syncCartFromBackend } from "../../reduxStore/actions/cartActions";
 import { formatCurrency } from "../../utils/formatCurrency";
 import CartItem from "./CartItem";
+import DeliveryMethods from "../shared/DeliveryMethods";
 import { selectCartItems, selectCartQty, selectCharges, selectSubtotal, selectTotal } from "../../reduxStore/selectors/cartSelectors";
 
 export default function Cart() {
@@ -27,6 +28,7 @@ export default function Cart() {
           {enriched.map(item => <CartItem key={item.productId} productId={item.productId} product={item.product} />)}
           {failed && <p className="px-6 py-4 text-xs text-red-700" role="alert">Some product details could not load. Refresh your bag before checkout.</p>}
           <div className="px-6 py-5"><Link className="text-link" to="/products"><FiArrowLeft />Keep discovering</Link></div>
+          <DeliveryMethods />
         </section>
         <aside className="order-summary" aria-label="Order summary">
           <h2 className="text-lg font-medium mb-6">Summary</h2>

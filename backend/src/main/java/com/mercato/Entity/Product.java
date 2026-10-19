@@ -60,6 +60,21 @@ public class Product {
     @Builder.Default
     private boolean active = true;
 
+    // Null denotes a listing approved before moderation was introduced.
+    @Column(name = "listing_status", length = 20)
+    private String listingStatus;
+    @Column(name = "listing_review_note", length = 1000)
+    private String listingReviewNote;
+    private Instant listingReviewedAt;
+    private String listingReviewedBy;
+
+    @Transient
+    public boolean isPurchasable() {
+        return active && (listingStatus == null || "APPROVED".equals(listingStatus))
+            && (seller == null || (seller.isEnabled() && !seller.isAccountLocked()
+                && (seller.getSellerStatus() == null || seller.getSellerStatus() == SellerStatus.APPROVED)));
+    }
+
     @NotBlank(message = "Primary image is required")
     @Column(name = "primary_image_url", nullable = false, length = 500)
     private String primaryImageUrl;

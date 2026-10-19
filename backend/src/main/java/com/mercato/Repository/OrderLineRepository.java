@@ -15,6 +15,9 @@ import java.util.Optional;
 
 @Repository
 public interface OrderLineRepository extends JpaRepository<OrderLine, Long> {
+    // Conservative funding eligibility: no refunded orders, unknown historic rates or unpaid sales.
+    @Query("select coalesce(sum(l.unitPrice * l.shippedQty - round(l.unitPrice * l.shippedQty * l.commissionRatePercent / 100, 2)),0) from OrderLine l where l.sellerEmail = :email and l.commissionRatePercent is not null and l.order.paymentStatus = com.mercato.Entity.fulfillment.payment.PaymentStatus.SUCCESS and l.order.inventoryFinalizationFailed = false and l.order.payment.refund is null")
+    BigDecimal eligiblePromotionEarnings(@Param("email") String email);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""

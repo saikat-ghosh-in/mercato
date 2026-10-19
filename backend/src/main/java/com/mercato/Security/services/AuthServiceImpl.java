@@ -52,6 +52,7 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordEncoder encoder;
     private final EmailVerificationService emailVerificationService;
     private final EmailService emailService;
+    private final com.mercato.Service.SellerOnboardingService sellerOnboardingService;
 
     private CartService cartService;
 
@@ -143,6 +144,8 @@ public class AuthServiceImpl implements AuthService {
         user.setRoles(roles);
 
         EcommUser savedUser = userRepository.save(user);
+        if ("SELLER".equals(registerUserRequest.getAccountType()))
+            sellerOnboardingService.submit(savedUser, registerUserRequest.getSellerApplication());
 
         emailVerificationService.createAndSendVerificationToken(savedUser);
 

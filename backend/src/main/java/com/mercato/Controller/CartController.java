@@ -21,6 +21,12 @@ public class CartController {
 
     private final CartService cartService;
 
+    @PutMapping("/cart/delivery-method")
+    public CartResponseDTO selectDeliveryMethod(HttpServletRequest request,
+            @Valid @RequestBody com.mercato.Payloads.Request.DeliveryMethodRequest body) {
+        return cartService.selectDeliveryMethod(body.deliveryMethod(), CartContext.resolve(request));
+    }
+
     @PostMapping("/cart/add")
     public ResponseEntity<CartResponseDTO> addProductToCart(HttpServletRequest request,
                                                             @Valid @RequestBody CartRequestDTO cartRequestDTO) {

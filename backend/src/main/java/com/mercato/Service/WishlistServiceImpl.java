@@ -33,7 +33,7 @@ public class WishlistServiceImpl implements WishlistService {
         EcommUser user = authUtil.getLoggedInUser();
         return wishlistRepository.findByUser_UserIdOrderByCreatedAtDesc(user.getUserId()).stream()
                 .map(WishlistItem::getProduct)
-                .filter(Product::isActive)
+                .filter(Product::isPurchasable)
                 .map(productMapper::toDTO)
                 .toList();
     }
@@ -57,7 +57,7 @@ public class WishlistServiceImpl implements WishlistService {
 
         Product product = productRepository.findByProductId(productId)
                 .orElseThrow(() -> new ResourceNotFoundException("Product", "productId", productId));
-        if (!product.isActive()) {
+        if (!product.isPurchasable()) {
             throw new CustomBadRequestException("Product is not available");
         }
 

@@ -63,10 +63,12 @@ class RichProductFlowTest {
             .andExpect(jsonPath("$.specifications[1].value").value("Hand wash"));
 
         body.remove("brand"); body.remove("highlights"); body.remove("specifications"); body.remove("care");
+        body.remove("physicalQty"); // Catalogue updates must not overwrite inventory.
         mvc.perform(put("/api/seller/products/" + id).header("Authorization","Bearer " + token)
             .contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(body)))
             .andExpect(status().isOk()).andExpect(jsonPath("$.brand").value("Review Brand"))
-            .andExpect(jsonPath("$.highlights.length()").value(2));
+            .andExpect(jsonPath("$.highlights.length()").value(2))
+            .andExpect(jsonPath("$.physicalQty").value(25));
         body.put("specifications", Arrays.asList((Object)null));
         mvc.perform(put("/api/seller/products/" + id).header("Authorization","Bearer " + token)
             .contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(body))).andExpect(status().isBadRequest());

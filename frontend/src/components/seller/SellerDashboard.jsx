@@ -1,3 +1,4 @@
+import PromotionsTab from "./PromotionsTab";
 import { useState } from "react";
 import { useSelector } from "react-redux";
 import {
@@ -7,23 +8,33 @@ import {
 import SellerOverviewTab from "./SellerOverviewTab";
 import ProductsTab from "../shared/ProductsTab";
 import FulfillmentTab from "./FulfillmentTab";
+import SellerNotices from "./SellerNotices";
+import SellerApplicationStatus from "./SellerApplicationStatus";
+import SellerNoticeIndicator from "./SellerNoticeIndicator";
+import { useSearchParams } from "react-router-dom";
 
 const NAV = [
   { id: "overview", label: "Overview", icon: MdDashboard },
   { id: "products", label: "Products", icon: MdInventory },
   { id: "fulfillment", label: "Fulfillment", icon: MdLocalShipping },
+  { id: "promotions", label: "Promotions", icon: MdStorefront },
+  { id: "notices", label: "Notices", icon: MdStorefront },
 ];
 
 const SellerDashboard = () => {
-  const [activeTab, setActiveTab] = useState("overview");
+  const [params, setParams] = useSearchParams();
+  const activeTab = NAV.some(item => item.id === params.get("tab")) ? params.get("tab") : "overview";
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const user = useSelector(s => s.auth?.userDetails);
+  if (["PENDING", "REJECTED"].includes(user?.sellerStatus) && !user?.roles?.includes("ROLE_ADMIN")) return <SellerApplicationStatus user={user} />;
 
   const renderTab = () => {
     switch (activeTab) {
       case "overview": return <SellerOverviewTab />;
       case "products": return <ProductsTab />;
       case "fulfillment": return <FulfillmentTab />;
+      case "promotions": return <PromotionsTab />;
+      case "notices": return <SellerNotices />;
       default: return <SellerOverviewTab />;
     }
   };
@@ -45,20 +56,21 @@ const SellerDashboard = () => {
           </div>
           {/* Mobile nav toggle */}
           <button
-            className="icon-action ml-auto lg:hidden p-2 rounded-xl bg-white border border-gray-100 text-gray-500"
+            className="dashboard-nav-toggle icon-action ml-auto lg:hidden p-2 rounded-xl bg-white border border-gray-100 text-gray-500"
             aria-label="Toggle dashboard navigation" aria-expanded={mobileNavOpen} onClick={() => setMobileNavOpen(v => !v)}
           >
             {mobileNavOpen ? <MdClose size={18} /> : <MdMenu size={18} />}
           </button>
         </div>
 
+        {activeTab !== "notices" && <SellerNoticeIndicator />}
         {/* Tab nav */}
         <div className={`${mobileNavOpen ? "flex" : "hidden"} lg:flex flex-col lg:flex-row gap-1 surface p-1.5 mb-6`}>
           {NAV.map(({ id, label, icon: Icon }) => (
             <button
               key={id}
               aria-pressed={activeTab === id}
-              onClick={() => { setActiveTab(id); setMobileNavOpen(false); }}
+              onClick={() => { setParams(id === "overview" ? {} : { tab: id }); setMobileNavOpen(false); }}
               className={`control flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-[transform,opacity,background-color] cursor-pointer flex-1 justify-center lg:justify-start ${activeTab === id
                   ? "bg-gray-950 text-white shadow-sm"
                   : "text-gray-500 hover:bg-gray-50 hover:text-gray-800"

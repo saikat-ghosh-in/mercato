@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { MdClose, MdCloudUpload, MdImage, MdLink } from 'react-icons/md';
 import api from "../../backend/api";
@@ -7,11 +7,15 @@ export default function ProductImageUpload({
   primaryImage,
   secondaryImages = [],
   onPrimaryChange,
-  onSecondaryChange
+  onSecondaryChange,
+  onBusyChange
 }) {
   const [uploadingPrimary, setUploadingPrimary] = useState(false);
   const [uploadingSecondary, setUploadingSecondary] = useState(false);
   const [inputMode, setInputMode] = useState('upload');
+  const [primaryUrl, setPrimaryUrl] = useState(primaryImage || '');
+  const [secondaryUrl, setSecondaryUrl] = useState('');
+  useEffect(() => { onBusyChange?.(uploadingPrimary || uploadingSecondary); }, [uploadingPrimary, uploadingSecondary, onBusyChange]);
 
   const handleUploadImage = async (file, isPrimary = true) => {
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
@@ -73,9 +77,7 @@ export default function ProductImageUpload({
   };
 
   const handleUrlSubmit = (isPrimary = true) => {
-    const inputId = isPrimary ? 'primary-url-input' : 'secondary-url-input';
-    const input = document.getElementById(inputId);
-    const url = input?.value?.trim();
+    const url = (isPrimary ? primaryUrl : secondaryUrl).trim();
 
     if (!url) {
       toast.error('Please enter a valid URL');
@@ -83,7 +85,7 @@ export default function ProductImageUpload({
     }
 
     try {
-      new URL(url);
+      if (!['https:', 'http:'].includes(new URL(url).protocol)) throw new Error('Unsupported image URL');
     } catch {
       toast.error('Invalid URL format');
       return;
@@ -94,7 +96,7 @@ export default function ProductImageUpload({
     } else {
       if (secondaryImages.length < 3) {
         onSecondaryChange([...secondaryImages, url]);
-        input.value = '';
+        setSecondaryUrl('');
       } else {
         toast.error('Maximum 3 secondary images allowed');
       }
@@ -151,7 +153,7 @@ export default function ProductImageUpload({
                 />
                 <label
                   htmlFor="primary-upload"
-                  className="absolute bottom-3 right-3 bg-gray-950 text-white px-3 py-1.5 rounded-lg cursor-pointer hover:bg-gray-800 transition text-xs font-semibold opacity-0 group-hover:opacity-100"
+                  className="control absolute bottom-3 right-3 bg-gray-950 text-white px-3 py-1.5 rounded-lg cursor-pointer hover:bg-gray-800 transition-colors text-xs font-semibold"
                 >
                   {uploadingPrimary ? 'Uploading...' : 'Change'}
                 </label>
@@ -168,11 +170,12 @@ export default function ProductImageUpload({
             )}
             <input
               id="primary-upload"
+              aria-label="Upload primary product image"
               type="file"
               accept="image/jpeg,image/jpg,image/png,image/webp"
               onChange={handlePrimaryFileChange}
               disabled={uploadingPrimary}
-              className="hidden"
+              className="sr-only"
             />
           </div>
         ) : (
@@ -180,13 +183,16 @@ export default function ProductImageUpload({
             <div className="flex gap-2">
               <input
                 id="primary-url-input"
+                aria-label="Primary product image URL"
                 type="url"
                 placeholder="https://example.com/image.jpg"
-                defaultValue={primaryImage}
-                className="flex-1 text-xs border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-300 text-gray-700"
+                value={primaryUrl}
+                onChange={e => setPrimaryUrl(e.target.value)}
+                className="flex-1 min-w-0 text-xs border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-300 text-gray-700"
               />
               <button
                 type="button"
+                aria-label="Set primary product image URL"
                 onClick={() => handleUrlSubmit(true)}
                 className="control px-4 py-2 bg-gray-950 text-white rounded-xl hover:bg-gray-800 transition text-xs font-semibold"
               >
@@ -221,7 +227,8 @@ export default function ProductImageUpload({
               <button
                 type="button"
                 onClick={() => removeSecondaryImage(index)}
-                className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition"
+                aria-label={`Remove secondary image ${index + 1}`}
+                className="icon-action absolute top-1 right-1 bg-white text-gray-950 border border-gray-200 p-1 rounded-lg transition-colors"
               >
                 <MdClose size={12} />
               </button>
@@ -237,11 +244,12 @@ export default function ProductImageUpload({
               <span className="text-[10px] text-gray-500 font-semibold">Add</span>
               <input
                 id="secondary-upload"
+                aria-label="Upload secondary product image"
                 type="file"
                 accept="image/jpeg,image/jpg,image/png,image/webp"
                 onChange={handleSecondaryFileChange}
                 disabled={uploadingSecondary}
-                className="hidden"
+                className="sr-only"
               />
             </label>
           )}
@@ -251,9 +259,12 @@ export default function ProductImageUpload({
           <div className="flex gap-2">
             <input
               id="secondary-url-input"
+              aria-label="Secondary product image URL"
               type="url"
               placeholder="https://example.com/image.jpg"
-              className="flex-1 text-xs border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-300 text-gray-700"
+              value={secondaryUrl}
+              onChange={e => setSecondaryUrl(e.target.value)}
+              className="flex-1 min-w-0 text-xs border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-300 text-gray-700"
             />
             <button
               type="button"

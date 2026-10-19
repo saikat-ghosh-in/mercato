@@ -22,8 +22,7 @@ import AddressInfoModal from "../address/AddressInfoModal";
 import { DeleteModal } from "../address/DeleteModal";
 import ProgressBar from "./ProgressBar";
 import AddressStep from "./steps/AddressStep";
-import ReviewStep from "./steps/ReviewStep";
-import PaymentStep from "./steps/PaymentStep";
+import ReviewStep from "./steps/ReviewPaymentStep";
 import OrderSummary from "./OrderSummary";
 
 const Checkout = () => {
@@ -32,7 +31,7 @@ const Checkout = () => {
   const location = useLocation();
 
   const { user, addresses, selectedAddressForCheckout } = useSelector((s) => s.auth);
-  const { cartLoading, cartError } = useSelector(s => s.cart);
+  const { cartLoading, cartError, deliveryMethod } = useSelector(s => s.cart);
   const cartLoaded = useSelector(selectCartLoaded);
   const cartItems = useSelector(selectCartItems);
   const cartQty = useSelector(selectCartQty);
@@ -42,7 +41,7 @@ const Checkout = () => {
 
   const { items: cartWithProducts, loading: loadingProducts, failed: productsUnavailable } = useCartProducts(cartItems);
 
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(2);
   const [loadingAddresses, setLoadingAddresses] = useState(false);
   const [openAddressModal, setOpenAddressModal] = useState(false);
   const [editingAddress, setEditingAddress] = useState(null);
@@ -67,7 +66,10 @@ const Checkout = () => {
       navigate("/cart");
     }
   }, [cartLoaded, cartItems.length, navigate, isChildRoute]);
-  useEffect(() => { dispatch(getUserAddresses(setLoadingAddresses, setAddressError)); }, [dispatch]);
+  useEffect(() => {
+    dispatch(setSelectedAddressForCheckout(null));
+    dispatch(getUserAddresses(setLoadingAddresses, setAddressError));
+  }, [dispatch]);
   useEffect(() => {
     if (previousStep.current !== visibleStep) {
       checkoutPanel.current?.querySelector("h2")?.focus({ preventScroll: true });
@@ -131,7 +133,7 @@ const Checkout = () => {
     setPaymentError("");
     try {
       const response = await dispatch(
-        placeOrder({ addressId: selectedAddress.addressId })
+        placeOrder({ addressId: selectedAddress.addressId, expectedTotal: total, deliveryMethod })
       );
 
       dispatch(setPaymentData(paymentHandoff(response)));
@@ -171,16 +173,8 @@ const Checkout = () => {
                 selectedAddress={selectedAddress}
                 cartWithProducts={cartWithProducts}
                 onBack={() => setStep(1)}
-                onNext={() => { if (!bagIssue) setStep(3); }}
-                disabled={Boolean(bagIssue)}
-              />
-            )}
-            {visibleStep === 3 && (
-              <PaymentStep
-                onBack={() => setStep(2)}
+                onEditAddress={handleEditAddress}
                 onSubmit={handlePlaceOrder}
-                onChangeAddress={() => setStep(1)}
-                selectedAddress={selectedAddress}
                 total={total}
                 error={paymentError}
                 loading={placingOrder}

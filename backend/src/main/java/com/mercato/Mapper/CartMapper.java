@@ -29,7 +29,9 @@ public class CartMapper {
                                 cartItem.getProduct().getAvailableQty() > 0,
                                 cartItem.isOutOfStock()
                         )).toList(),
-                null
+                null,
+                cart.getDeliveryMethod() == null ? com.mercato.Entity.cart.DeliveryMethod.STANDARD : cart.getDeliveryMethod(),
+                cart.getDeliveryOptions()
         );
     }
 }

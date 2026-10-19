@@ -11,10 +11,14 @@ import OrdersTab from "./OrdersTab";
 import ProductsTab from "../shared/ProductsTab";
 import CategoriesTab from "./CategoriesTab";
 import CartsTab from "./CartsTab";
+import SellerApplicationsTab from "./SellerApplicationsTab";
+import CommissionTab from "./CommissionTab";
 
 const NAV = [
   { id: "overview", label: "Overview", icon: MdDashboard },
   { id: "users", label: "Users", icon: MdPeople },
+  { id: "applications", label: "Seller approvals", icon: MdPeople },
+  { id: "commission", label: "Commission", icon: MdShoppingBag },
   { id: "orders", label: "Orders", icon: MdShoppingBag },
   { id: "categories", label: "Categories", icon: MdCategory },
   { id: "products", label: "Products", icon: MdInventory },
@@ -30,6 +34,8 @@ const AdminDashboard = () => {
     switch (activeTab) {
       case "overview": return <AdminOverviewTab />;
       case "users": return <UsersTab />;
+      case "applications": return <SellerApplicationsTab />;
+      case "commission": return <CommissionTab />;
       case "orders": return <OrdersTab />;
       case "categories": return <CategoriesTab />;
       case "products": return <ProductsTab mode="admin" />;
@@ -52,7 +58,7 @@ const AdminDashboard = () => {
             <p className="text-xs text-gray-500 mt-0.5">{user?.username}</p>
           </div>
           <button
-            className="icon-action ml-auto lg:hidden p-2 rounded-xl bg-white border border-gray-100 text-gray-500"
+            className="dashboard-nav-toggle icon-action ml-auto lg:hidden p-2 rounded-xl bg-white border border-gray-100 text-gray-500"
             aria-label="Toggle dashboard navigation" aria-expanded={mobileNavOpen} onClick={() => setMobileNavOpen(v => !v)}
           >
             {mobileNavOpen ? <MdClose size={18} /> : <MdMenu size={18} />}

@@ -50,6 +50,8 @@ public class ProductMapper {
                 .reservedQty(product.getReservedQty())
                 .availableQty(product.getAvailableQty())
                 .active(product.isActive())
+                .listingStatus(product.getListingStatus() == null ? "APPROVED" : product.getListingStatus())
+                .listingReviewNote(product.getListingReviewNote())
                 .createdAt(product.getCreatedAt())
                 .updatedAt(product.getUpdatedAt())
                 .build();
@@ -81,7 +83,7 @@ public class ProductMapper {
             dto.getSecondaryImageUrls().forEach(product::addSecondaryImage);
         }
 
-        product.setPhysicalQty(dto.getPhysicalQty());
+        if (dto.getPhysicalQty() != null) product.setPhysicalQty(dto.getPhysicalQty());
         product.setActive(dto.isActive());
         updateDetails(product, dto);
     }

@@ -68,16 +68,27 @@ class OrderRetryHoldServiceTest {
 
         when(cartService.getCartByUser(user)).thenReturn(cart);
         when(productRepository.findByProductIdForUpdate(PRODUCT_ID)).thenReturn(Optional.of(product));
-        when(cartRepository.save(any(Cart.class))).thenAnswer(inv -> inv.getArgument(0));
     }
 
     @Test
     void ensureCartHoldsForRetry_restoresMissingCartItemAndReserves() {
+        when(cartRepository.save(any(Cart.class))).thenAnswer(inv -> inv.getArgument(0));
         orderRetryHoldService.ensureCartHoldsForRetry(order, user);
 
         CartItem cartItem = cart.findItemByProductId(PRODUCT_ID).orElseThrow();
         verify(cartReservationService).reserve(cartItem);
         verify(cartPricingService).applyCharges(cart);
         verify(cartRepository).save(cart);
+    }
+    @Test void retryCannotPayForAnUnapprovedProductAlreadyInTheBag() {
+        cart.addProduct(product, 2);
+        product.setListingStatus("PENDING");
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class, () -> orderRetryHoldService.ensureCartHoldsForRetry(order,user));
+        org.mockito.Mockito.verifyNoInteractions(cartReservationService,cartPricingService,cartRepository);
+    }
+    @Test void retryCannotRestoreADisabledListingToTheBag() {
+        product.setActive(false);
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class, () -> orderRetryHoldService.ensureCartHoldsForRetry(order,user));
+        org.mockito.Mockito.verifyNoInteractions(cartReservationService,cartPricingService,cartRepository);
     }
 }

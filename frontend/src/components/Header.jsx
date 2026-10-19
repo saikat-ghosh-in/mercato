@@ -10,6 +10,8 @@ import Brand from "./Brand";
 import ExplorePanel from "./ExplorePanel";
 import { useMeasuredHeight } from "../hooks/useMeasuredHeight";
 import { useInputModality } from "../hooks/useInputModality";
+import { isSellerAccount } from "../utils/accountRouting";
+import SellerNoticeIndicator from "./seller/SellerNoticeIndicator";
 
 export default function Header() {
   useInputModality();
@@ -27,7 +29,7 @@ export default function Header() {
   const checkout = location.pathname.startsWith("/checkout");
   const links = [["My account", "/profile"], ["Your orders", "/orders"], ["Saved items", "/wishlist"],
     ...(details?.roles?.includes("ROLE_ADMIN") ? [["Admin dashboard", "/admin/dashboard"]] : []),
-    ...(details?.roles?.some(r => ["ROLE_SELLER", "ROLE_ADMIN"].includes(r)) ? [["Seller dashboard", "/seller/dashboard"]] : [])];
+    ...(isSellerAccount(details) || details?.roles?.includes("ROLE_ADMIN") ? [["Seller dashboard", "/seller/dashboard"]] : [])];
   const search = event => {
     event.preventDefault();
     navigate("/products" + (keyword.trim() ? "?keyword=" + encodeURIComponent(keyword.trim()) : ""));
@@ -51,6 +53,7 @@ export default function Header() {
               {signedIn ? <>
                 <p className="account-name">{details?.firstName || user.username || "Your account"}</p>
                 {links.map(([label, href]) => <MenuItem key={href}><Link to={href}>{label}</Link></MenuItem>)}
+                {details?.roles?.some(role => role === "ROLE_SELLER" || role === "ROLE_ADMIN") && <SellerNoticeIndicator menu />}
                 <MenuItem><button onClick={() => dispatch(logOutUser(navigate))}>Sign out</button></MenuItem>
               </> : <><MenuItem><Link to="/login">Sign in</Link></MenuItem><MenuItem><Link to="/register">Create an account</Link></MenuItem></>}
             </MenuItems>

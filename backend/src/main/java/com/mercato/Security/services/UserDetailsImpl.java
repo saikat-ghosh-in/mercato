@@ -33,6 +33,8 @@ public class UserDetailsImpl implements UserDetails {
 
     public static UserDetailsImpl build(EcommUser user) {
         List<GrantedAuthority> authorities = user.getRoles().stream()
+                .filter(role -> role.getRoleName() != com.mercato.Entity.AppRole.ROLE_SELLER
+                        || user.getSellerStatus() == null || user.getSellerStatus() == com.mercato.Entity.SellerStatus.APPROVED)
                 .map(role -> new SimpleGrantedAuthority(role.getRoleName().name()))
                 .collect(Collectors.toList());
 

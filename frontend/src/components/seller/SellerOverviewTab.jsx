@@ -1,3 +1,4 @@
+import MarketplaceFinance from "../shared/MarketplaceFinance";
 import { ORDER_LINE_STATUS_MAP } from "../../utils/dashboardStatus";
 import { useEffect, useState } from "react";
 import { MdShoppingBag, MdAccessTime, MdHourglassEmpty, MdTrendingUp } from "react-icons/md";
@@ -5,7 +6,7 @@ import api from "../../backend/api";
 import { formatCurrency } from "../../utils/formatCurrency";
 import {
     DashboardSkeleton, DashboardError,
-    RevenueCards, StatCard, SectionLabel,
+    StatCard, SectionLabel,
     TopSellingProducts, InventoryAlerts,
     StatusBreakdownBars,
 } from "../shared/DashboardWidgets";
@@ -33,13 +34,13 @@ const SellerOverviewTab = () => {
     if (loading && !stats) return <DashboardSkeleton />;
     if (error) return <DashboardError message={error} onRetry={fetchStats} />;
 
-    const { revenue, fulfillment, topSellingProducts, inventoryAlerts, orderLineStatusBreakdown } = stats;
+    const { fulfillment, topSellingProducts, inventoryAlerts, orderLineStatusBreakdown } = stats;
 
     return (
         <div className="space-y-6">
 
             {/* Revenue */}
-            <RevenueCards revenue={revenue} />
+            <MarketplaceFinance />
 
             {/* Fulfillment stats */}
             <div>

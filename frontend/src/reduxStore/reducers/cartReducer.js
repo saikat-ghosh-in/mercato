@@ -13,6 +13,8 @@ const initialState = {
     platformFee: 0,
     processingAndHandling: 0,
     totalCharges: 0,
+    deliveryMethod: "STANDARD",
+    deliveryOptions: [],
     updateSeq: 0
 };
 
@@ -76,6 +78,8 @@ export const cartReducer = (state = initialState, action) => {
                 platformFee,
                 processingAndHandling,
                 totalCharges: cart.totalCharges || 0,
+                deliveryMethod: cart.deliveryMethod || "STANDARD",
+                deliveryOptions: cart.deliveryOptions || [],
                 cartLoaded: true,
                 cartLoading: state.pendingCount > 0,
                 cartError: null,

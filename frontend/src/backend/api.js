@@ -19,6 +19,7 @@ const api = axios.create({
 
 const PROTECTED_ENDPOINTS = [
     "/user/",
+    "/account/",
     "/admin/",
     "/seller/",
     "/orders"

@@ -1,6 +1,7 @@
 import SelectControl from "./SelectControl";
-import RichProductFields from "./RichProductFields";
-import { detailsForForm, detailsPayload } from "../../utils/productDetails.js";
+import ProductSubmissionModal from "./ProductSubmissionModal";
+import ListingReviewModal from "../admin/ListingReviewModal";
+
 import ModalFrame from "./ModalFrame";
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -11,7 +12,7 @@ import toast from "react-hot-toast";
 import api from "../../backend/api";
 import { formatCurrency } from "../../utils/formatCurrency";
 import SupplyUpdateModal from "./SupplyUpdateModal";
-import ProductImageUpload from "./ProductImageUpload";
+
 
 const SUBTABS = [
   { id: "pim", label: "Product Catalogue" },
@@ -35,212 +36,6 @@ const SectionCard = ({ children, className = "" }) => (
     {children}
   </div>
 );
-
-const ProductFormModal = ({ product, categories, onClose, onSave }) => {
-  const isEdit = !!product;
-  const [form, setForm] = useState({
-    ...detailsForForm(product),
-    productName: product?.productName ?? "",
-    description: product?.description ?? "",
-    retailPrice: product?.retailPrice ?? "",
-    discountPercent: product?.discountPercent ?? 0,
-    primaryImageUrl: product?.primaryImageUrl ?? "",
-    secondaryImageUrls: product?.secondaryImageUrls ?? [],
-    active: product?.active ?? true,
-    categoryId: product?.categoryId ?? "",
-    physicalQty: product?.physicalQty ?? 0,
-  });
-  const [saving, setSaving] = useState(false);
-
-  const set = (key, val) => setForm(f => ({ ...f, [key]: val }));
-
-  const handleSave = async () => {
-    if (!form.productName || !form.retailPrice || (!isEdit && !form.categoryId)) {
-      toast.error("Please fill all required fields");
-      return;
-    }
-    if (!form.primaryImageUrl) {
-      toast.error("Primary image is required");
-      return;
-    }
-    setSaving(true);
-    try {
-      const payload = {
-        ...detailsPayload(form),
-        productName: form.productName,
-        description: form.description,
-        retailPrice: parseFloat(form.retailPrice),
-        discountPercent: parseFloat(form.discountPercent) || 0,
-        primaryImageUrl: form.primaryImageUrl,
-        secondaryImageUrls: form.secondaryImageUrls,
-        active: form.active,
-        physicalQty: Number(form.physicalQty),
-      };
-      if (isEdit) {
-        await api.put(`/seller/products/${product.productId}`, payload,
-          { params: form.categoryId !== product.categoryId ? { categoryId: form.categoryId } : {} }
-        );
-        toast.success("Product updated");
-      } else {
-        await api.post(`/seller/categories/${form.categoryId}/product`, payload);
-        toast.success("Product created");
-      }
-      onSave();
-    } catch (err) {
-      toast.error(err?.response?.data?.message || err.message || "Failed to save product");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <ModalFrame title={isEdit ? "Edit product" : "Create product"} onClose={() => { if (!saving) onClose(); }}>
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-5 border-b border-gray-100">
-          <h2 className="text-sm font-bold text-gray-800">{isEdit ? "Edit Product" : "Add New Product"}</h2>
-          <button aria-label="Close product editor" onClick={onClose} className="icon-action text-gray-400 hover:text-gray-600 cursor-pointer transition-colors">
-            <MdClose size={18} />
-          </button>
-        </div>
-
-        <div className="p-5 space-y-4">
-          {/* Category */}
-          <div>
-            <label htmlFor="product-field-1" className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">
-              Category <span className="text-red-400">*</span>
-            </label>
-            <div className="relative group">
-              <SelectControl
-id="product-field-1"                 value={form.categoryId}
-                onChange={e => set("categoryId", e.target.value)}
-                className="w-full text-xs border border-gray-200 rounded-xl px-3 py-2.5 pr-10 focus:outline-none focus:ring-1 focus:ring-blue-300 text-gray-700 appearance-none bg-white cursor-pointer"
-              >
-                <option value="">Select a category</option>
-                {categories.map(c => (
-                  <option key={c.categoryId} value={c.categoryId}>{c.categoryName}</option>
-                ))}
-              </SelectControl>
-            </div>
-          </div>
-
-          {/* Product name */}
-          <div className="flex items-end gap-3">
-            <div className="flex-1">
-              <label htmlFor="product-field-2" className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">
-                Product Name <span className="text-red-400">*</span>
-              </label>
-              <input
-id="product-field-2"                 type="text"
-                value={form.productName}
-                onChange={e => set("productName", e.target.value)}
-                placeholder="Enter product name"
-                className="w-full text-xs border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-blue-300 text-gray-700"
-              />
-            </div>
-            <div className="w-25 shrink-0">
-              <label htmlFor="product-field-3" className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">
-                Stock
-              </label>
-              <input
-id="product-field-3"                 type="number"
-                value={form.physicalQty}
-                onChange={e => set("physicalQty", e.target.value)}
-                placeholder="0"
-                min={0}
-                className="w-full text-xs border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-blue-300 text-gray-700"
-              />
-            </div>
-          </div>
-
-          {/* Description */}
-          <div>
-            <label htmlFor="product-field-4" className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Description</label>
-            <textarea
-id="product-field-4"               value={form.description}
-              onChange={e => set("description", e.target.value)}
-              placeholder="Product description..."
-              rows={3}
-              className="w-full text-xs border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-blue-300 text-gray-700 resize-none"
-            />
-          </div>
-
-          <RichProductFields form={form} set={set} />
-
-          {/* Price + Discount */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label htmlFor="product-field-5" className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">
-                Retail Price (₹) <span className="text-red-400">*</span>
-              </label>
-              <input
-id="product-field-5"                 type="number"
-                value={form.retailPrice}
-                onChange={e => set("retailPrice", e.target.value)}
-                placeholder="0.00"
-                className="w-full text-xs border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-blue-300 text-gray-700"
-              />
-            </div>
-            <div>
-              <label htmlFor="product-field-6" className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">
-                Discount (%)
-              </label>
-              <input
-id="product-field-6"                 type="number"
-                value={form.discountPercent}
-                onChange={e => set("discountPercent", e.target.value)}
-                placeholder="0"
-                min={0}
-                max={100}
-                className="w-full text-xs border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-blue-300 text-gray-700"
-              />
-            </div>
-          </div>
-
-          {/* Selling price preview */}
-          {form.retailPrice > 0 && (
-            <div className="bg-blue-50 rounded-xl px-3 py-2 flex items-center justify-between">
-              <span className="text-xs text-blue-600 font-semibold">Selling Price</span>
-              <span className="text-sm font-black text-blue-700">
-                {formatCurrency(form.retailPrice * (1 - (form.discountPercent || 0) / 100))}
-              </span>
-            </div>
-          )}
-
-          {/* Image Upload Component */}
-          <ProductImageUpload
-            primaryImage={form.primaryImageUrl}
-            secondaryImages={form.secondaryImageUrls}
-            onPrimaryChange={(url) => set("primaryImageUrl", url)}
-            onSecondaryChange={(urls) => set("secondaryImageUrls", urls)}
-          />
-
-          {/* Active toggle */}
-          <label className="flex items-center gap-2.5 cursor-pointer">
-            <input type="checkbox" checked={form.active} onChange={e => set("active", e.target.checked)} />
-            <span className="text-xs text-gray-600 font-medium">Active (visible to customers)</span>
-          </label>
-        </div>
-
-        <div className="flex gap-3 p-5 border-t border-gray-100">
-          <button
-            onClick={onClose}
-            className="control flex-1 px-3 py-2.5 text-sm border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer font-medium"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            aria-label={isEdit ? "Save product changes" : "Create product"}
-            className="control flex-1 px-3 py-2.5 text-sm bg-gray-950 hover:bg-gray-800 text-white rounded-xl transition-colors cursor-pointer font-bold active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
-          >
-            {saving ? "Saving…" : isEdit ? "Save" : "Create"}
-          </button>
-        </div>
-      </div>
-    </ModalFrame>
-  );
-};
 
 const DeleteModal = ({ product, onClose, onConfirm, loading }) => (
   <ModalFrame title="Delete Product" onClose={onClose}>
@@ -271,6 +66,7 @@ const PIMTab = ({ products, categories, loading, onRefresh, showSeller = false }
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [editProduct, setEditProduct] = useState(null);
+  const [reviewProduct, setReviewProduct] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [deleteProduct, setDeleteProduct] = useState(null);
   const [deleting, setDeleting] = useState(false);
@@ -330,24 +126,25 @@ const PIMTab = ({ products, categories, loading, onRefresh, showSeller = false }
             onClick={() => setShowAddModal(true)}
             className="control flex items-center gap-1.5 bg-gray-950 hover:bg-gray-800 text-white text-xs font-bold px-4 py-2 rounded-xl transition-[transform,opacity,background-color] cursor-pointer active:scale-[0.98]"
           >
-            <MdAdd size={14} /> Add Product
+            <MdAdd size={14} /> Request listing
           </button>
         </div>
 
+        <p className="px-4 py-3 text-xs text-gray-500">Listing requests are free. Approval is required before products appear in the marketplace. Seller edits require another review.</p>
         {/* Table */}
         {loading && !products.length ? <TableSkeleton cols={6} /> : (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-gray-50">
-                  {["Product", "Category", ...(showSeller ? ["Seller"] : []), "Price", "Stock", "Status", ""].map(h => (
+                  {["Product", "Category", ...(showSeller ? ["Seller"] : []), "Price", "Status", ""].map(h => (
                     <th key={h} className="text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest px-4 py-3">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {filtered.length === 0 ? (
-                  <tr><td colSpan={showSeller ? 7 : 6} className="text-center py-10 text-sm text-gray-400">No products found</td></tr>
+                  <tr><td colSpan={showSeller ? 6 : 5} className="text-center py-10 text-sm text-gray-400">No products found</td></tr>
                 ) : filtered.map(p => (
                   <tr key={p.productId} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
                     <td className="px-4 py-3">
@@ -380,17 +177,14 @@ const PIMTab = ({ products, categories, loading, onRefresh, showSeller = false }
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      <p className="text-xs font-semibold text-gray-700">{p.availableQty} avail.</p>
-                      <p className="text-[10px] text-gray-400">{p.reservedQty} reserved</p>
-                    </td>
-                    <td className="px-4 py-3">
                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${p.active ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-500"
                         }`}>
-                        {p.active ? "Active" : "Inactive"}
+                        {p.listingStatus !== "APPROVED" ? p.listingStatus : p.active ? "Approved" : "Disabled"}
                       </span>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1 justify-end">
+                        {showSeller && p.listingStatus === "PENDING" && <button className="button button-outline" onClick={() => setReviewProduct(p)}>Review listing</button>}
                         <button
                           aria-label={"Edit " + p.productName} onClick={() => setEditProduct(p)}
                           className="icon-action p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
@@ -414,13 +208,15 @@ const PIMTab = ({ products, categories, loading, onRefresh, showSeller = false }
       </SectionCard>
 
       {(showAddModal || editProduct) && (
-        <ProductFormModal
+        <ProductSubmissionModal
+          admin={showSeller}
           product={editProduct}
           categories={categories}
           onClose={() => { setShowAddModal(false); setEditProduct(null); }}
           onSave={() => { setShowAddModal(false); setEditProduct(null); onRefresh(); }}
         />
       )}
+      {reviewProduct && <ListingReviewModal product={reviewProduct} onClose={() => setReviewProduct(null)} onSave={() => { setReviewProduct(null); onRefresh(); }} />}
       {deleteProduct && (
         <DeleteModal
           product={deleteProduct}

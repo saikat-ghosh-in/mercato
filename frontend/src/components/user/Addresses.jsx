@@ -261,7 +261,7 @@ const AddressFormModal = ({ address, onClose, onSave }) => {
   );
 };
 
-const AddressCard = ({ address, onEdit, onDelete }) => (
+const AddressCard = ({ address, onEdit, onDelete, onDefault, defaulting }) => (
   <div className="surface p-5 hover:shadow-md transition-shadow">
     <div className="flex items-start justify-between gap-3">
       <div className="flex items-start gap-3 min-w-0">
@@ -283,6 +283,7 @@ const AddressCard = ({ address, onEdit, onDelete }) => (
             {address.city}, {address.state} — {address.pincode}
           </p>
           <p className="text-xs text-gray-400 mt-0.5">{address.country}</p>
+          {address.defaultAddress ? <span className="status-tag mt-3">Default address</span> : <button className="button button-outline mt-3" disabled={defaulting} onClick={() => onDefault(address)}>Make default</button>}
         </div>
       </div>
 
@@ -316,6 +317,14 @@ const Addresses = () => {
   const [editAddress, setEditAddress] = useState(null);
   const [deleteAddress, setDeleteAddress] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  const [defaulting, setDefaulting] = useState(false);
+
+  const handleDefault = async address => {
+    setDefaulting(true);
+    try { await api.patch(`/user/addresses/${address.addressId}/default`); await fetchAddresses(); toast.success("Default address updated"); }
+    catch (error) { toast.error(error?.response?.data?.message || "Couldn’t change the default address"); }
+    finally { setDefaulting(false); }
+  };
 
   const fetchAddresses = async () => {
     try {
@@ -395,6 +404,8 @@ const Addresses = () => {
                 address={a}
                 onEdit={addr => { setEditAddress(addr); setShowForm(true); }}
                 onDelete={setDeleteAddress}
+                onDefault={handleDefault}
+                defaulting={defaulting}
               />
             ))}
           </div>

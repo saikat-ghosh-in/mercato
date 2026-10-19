@@ -70,6 +70,9 @@ public class Address {
     @Size(min = 2, message = "Country name must be at least 2 characters")
     private String country;
 
+    @Column(name = "is_default", nullable = false)
+    private boolean defaultAddress;
+
     @ManyToOne
     @JoinColumn(name = "user_id")
     @OnDelete(action = OnDeleteAction.CASCADE)

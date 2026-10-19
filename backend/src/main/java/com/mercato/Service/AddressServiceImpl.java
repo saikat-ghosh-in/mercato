@@ -22,11 +22,24 @@ public class AddressServiceImpl implements AddressService {
 
     private final AddressRepository addressRepository;
     private final AuthUtil authUtil;
+    private final com.mercato.Repository.UserRepository userRepository;
+
+    private EcommUser lockCurrentUser() {
+        return userRepository.findByUserIdForUpdate(authUtil.getLoggedInUser().getUserId()).orElseThrow();
+    }
+
+    private List<Address> normalizeDefaults(EcommUser user) {
+        List<Address> addresses = addressRepository.findByUser_UserIdOrderByIdAsc(user.getUserId());
+        Address chosen = addresses.stream().filter(Address::isDefaultAddress).findFirst()
+                .orElse(addresses.isEmpty() ? null : addresses.get(0));
+        addresses.forEach(address -> address.setDefaultAddress(address == chosen));
+        return addresses;
+    }
 
     @Override
     @Transactional
     public AddressResponseDTO createAddress(AddressRequestDTO addressRequestDTO) {
-        EcommUser currentUser = authUtil.getLoggedInUser();
+        EcommUser currentUser = lockCurrentUser();
 
         Address newAddress = new Address();
         newAddress.setRecipientName(addressRequestDTO.getRecipientName());
@@ -37,6 +50,7 @@ public class AddressServiceImpl implements AddressService {
         newAddress.setState(addressRequestDTO.getState());
         newAddress.setPincode(addressRequestDTO.getPincode());
         newAddress.setCountry(addressRequestDTO.getCountry());
+        newAddress.setDefaultAddress(normalizeDefaults(currentUser).isEmpty());
 
         currentUser.addAddress(newAddress);
 
@@ -61,10 +75,10 @@ public class AddressServiceImpl implements AddressService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public List<AddressResponseDTO> getUserAddresses() {
-        EcommUser currentUser = authUtil.getLoggedInUser();
-        List<Address> addresses = currentUser.getAddresses();
+        EcommUser currentUser = lockCurrentUser();
+        List<Address> addresses = normalizeDefaults(currentUser);
         return addresses.stream()
                 .map(AddressMapper::toDTO)
                 .toList();
@@ -98,8 +112,8 @@ public class AddressServiceImpl implements AddressService {
     @Override
     @Transactional
     public void deleteAddress(String addressId) {
+        EcommUser currentUser = lockCurrentUser();
         Address address = getAddressById(addressId);
-        EcommUser currentUser = authUtil.getLoggedInUser();
 
         if (address.getUser() == null) {
             throw new IllegalStateException("Address is not associated with any user");
@@ -109,6 +123,22 @@ public class AddressServiceImpl implements AddressService {
         }
 
         currentUser.removeAddress(address);
+        addressRepository.delete(address);
+        addressRepository.flush();
+        normalizeDefaults(currentUser);
+    }
+
+    @Override
+    @Transactional
+    public AddressResponseDTO setDefaultAddress(String addressId) {
+        EcommUser user = lockCurrentUser();
+        List<Address> addresses = addressRepository.findByUser_UserIdOrderByIdAsc(user.getUserId());
+        Address selected = addresses.stream().filter(address -> addressId.equals(address.getAddressId())).findFirst()
+                .orElseThrow(() -> new ResourceNotFoundException("Address", "addressId", addressId));
+        addresses.forEach(address -> address.setDefaultAddress(false));
+        addressRepository.flush();
+        selected.setDefaultAddress(true);
+        return AddressMapper.toDTO(selected);
     }
 
 

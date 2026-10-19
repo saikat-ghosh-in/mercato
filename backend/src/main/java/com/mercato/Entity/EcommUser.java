@@ -103,6 +103,10 @@ public class EcommUser {
     @Column(name = "seller_display_name", length = 100)
     private String sellerDisplayName;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "seller_status", length = 20)
+    private SellerStatus sellerStatus;
+
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
             name = "user_role",

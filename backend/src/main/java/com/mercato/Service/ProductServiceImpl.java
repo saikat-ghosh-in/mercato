@@ -61,9 +61,12 @@ public class ProductServiceImpl implements ProductService {
         EcommUser seller = authUtil.getLoggedInUser();
         validateIfAlreadyExists(productRequestDTO.getProductName(), seller.getUserId());
 
+        if (productRequestDTO.getPhysicalQty() == null) productRequestDTO.setPhysicalQty(0);
+
         Product product = productMapper.toEntity(productRequestDTO);
         product.setCategory(category);
         product.setSeller(seller);
+        product.setListingStatus("PENDING");
 
         Product savedProduct = productRepository.save(product);
         return productMapper.toDTO(savedProduct);
@@ -106,6 +109,7 @@ public class ProductServiceImpl implements ProductService {
             throw new IllegalArgumentException("productId must not be null!");
         Product product = productRepository.findByProductIdAndActiveTrue(productId)
                 .orElseThrow(() -> new ResourceNotFoundException("Product", "productId", productId));
+        if (!product.isPurchasable()) throw new ResourceNotFoundException("Product", "productId", productId);
         return productMapper.toDTO(product);
     }
 
@@ -170,7 +174,7 @@ public class ProductServiceImpl implements ProductService {
             product.setCategory(category);
         }
 
-        if (productRequestDTO.getPhysicalQty() != product.getPhysicalQty()) {
+        if (productRequestDTO.getPhysicalQty() != null && productRequestDTO.getPhysicalQty() != product.getPhysicalQty()) {
             forceSetInventory(product, productRequestDTO.getPhysicalQty());
         }
 
@@ -191,6 +195,12 @@ public class ProductServiceImpl implements ProductService {
         }
 
         productMapper.updateEntity(product, productRequestDTO);
+        if (!seller.isAdmin()) {
+            product.setListingStatus("PENDING");
+            product.setListingReviewNote(null);
+            product.setListingReviewedAt(null);
+            product.setListingReviewedBy(null);
+        }
 
         Product savedProduct = productRepository.save(product);
         return productMapper.toDTO(savedProduct);
@@ -257,7 +267,10 @@ public class ProductServiceImpl implements ProductService {
     }
 
     private Specification<Product> buildActiveSpec(ProductFilterRequestDTO filter) {
-        Specification<Product> activeOnly = (root, query, cb) -> cb.isTrue(root.get("active"));
+        Specification<Product> activeOnly = (root, query, cb) -> cb.and(cb.isTrue(root.get("active")),
+                cb.or(cb.isNull(root.get("listingStatus")), cb.equal(root.get("listingStatus"), "APPROVED")),
+                cb.isTrue(root.get("seller").get("enabled")), cb.isFalse(root.get("seller").get("accountLocked")),
+                cb.or(cb.isNull(root.get("seller").get("sellerStatus")), cb.equal(root.get("seller").get("sellerStatus"), com.mercato.Entity.SellerStatus.APPROVED)));
         Specification<Product> filters = buildSpec(
                 filter.getCategory(), filter.getSellers(),
                 filter.getKeyword(), filter.getMinPrice(), filter.getMaxPrice(), filter.isInStock()

@@ -53,6 +53,8 @@ public class ProductResponseDTO {
     private Integer availableQty;
 
     private Boolean active;
+    private String listingStatus;
+    private String listingReviewNote;
 
     private Instant createdAt;
     private Instant updatedAt;

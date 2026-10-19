@@ -80,4 +80,24 @@ class CartPricingServiceImplTest {
         cart.setCartItems(List.of(item));
         return cart;
     }
+
+    @Test
+    void deliveryChoiceRepricesAtThresholdAndDoesNotAccumulateSurcharges() {
+        Cart cart = cartWithSubtotal(BigDecimal.valueOf(500));
+        pricingService.applyCharges(cart);
+        assertEquals(BigDecimal.ZERO, cart.getChargeAmount(ChargeType.SHIPPING));
+        cart.setDeliveryMethod(com.mercato.Entity.cart.DeliveryMethod.EXPEDITED);
+        pricingService.applyCharges(cart);
+        assertEquals(BigDecimal.valueOf(99), cart.getChargeAmount(ChargeType.SHIPPING));
+        pricingService.applyCharges(cart);
+        assertEquals(BigDecimal.valueOf(99), cart.getChargeAmount(ChargeType.SHIPPING));
+        cart.setDeliveryMethod(com.mercato.Entity.cart.DeliveryMethod.CONSOLIDATED);
+        pricingService.applyCharges(cart);
+        assertEquals(BigDecimal.ZERO, cart.getChargeAmount(ChargeType.SHIPPING));
+        assertEquals(3, cart.getDeliveryOptions().size());
+        Cart small = cartWithSubtotal(BigDecimal.valueOf(499));
+        small.setDeliveryMethod(com.mercato.Entity.cart.DeliveryMethod.EXPEDITED);
+        pricingService.applyCharges(small);
+        assertEquals(BigDecimal.valueOf(149), small.getChargeAmount(ChargeType.SHIPPING));
+    }
 }

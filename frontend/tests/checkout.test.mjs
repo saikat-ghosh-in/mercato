@@ -7,7 +7,15 @@ test("checkout uses the latest saved address and rejects deleted or stale select
   const updated = { addressId: "one", addressLine1: "New address" };
   assert.equal(currentDeliveryAddress([updated], selected), updated);
   assert.equal(currentDeliveryAddress([], selected), null);
-  assert.equal(currentDeliveryAddress([updated], null), null);
+  assert.equal(currentDeliveryAddress([updated], null), updated);
+});
+test("checkout selects the default address, preserves an explicit choice and recovers after deletion", () => {
+  const first = { addressId: "one", defaultAddress: true };
+  const second = { addressId: "two", defaultAddress: false };
+  assert.equal(currentDeliveryAddress([first, second], null), first);
+  assert.equal(currentDeliveryAddress([first, second], second), second);
+  assert.equal(currentDeliveryAddress([first], second), first);
+  assert.equal(currentDeliveryAddress([second, { addressId: "three" }], null), null);
 });
 test("checkout cannot pay with an unverified, failed or empty bag", () => {
   const ready = { cartLoaded: true, cartQty: 2 };

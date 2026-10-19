@@ -69,3 +69,12 @@ export const setSelectedAddressForCheckout = (address) => ({
     type: "SELECT_CHECKOUT_ADDRESS",
     payload: address,
 });
+
+export const makeAddressDefault = addressId => async dispatch => {
+    try {
+        const { data } = await api.patch(`/user/addresses/${addressId}/default`);
+        dispatch(setSelectedAddressForCheckout(data));
+        await dispatch(getUserAddresses(() => {}));
+        toast.success("Default address updated");
+    } catch (error) { toast.error(error?.response?.data?.message || "Couldn’t change the default address"); }
+};

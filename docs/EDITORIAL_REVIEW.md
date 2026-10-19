@@ -1,3 +1,5 @@
+Latest delivery — 19 October 2026: [Marketplace journey, financial dashboards, free listing approval and paid promotions](MARKETPLACE_REVIEW.md). This supersedes earlier notes about button-free PLP cards, the three-step checkout and immediate seller publishing. Review the linked startup, additive schema instructions, screenshots, test evidence and external-service limitations.
+
 # Editorial redesign review — 19 October 2026
 
 The approved white / black / soft-blue direction is implemented across storefront, authentication, account, checkout, seller and admin surfaces. Original Mercato SVG branding and a locally bundled WebP campaign photograph replace the green visual system. Existing marketplace categories and server pricing remain authoritative.

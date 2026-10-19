@@ -2,6 +2,7 @@ import api from "../../backend/api";
 import { setUserData, clearUserToken, getUserData } from "../../utils/tokenManager";
 import toast from "react-hot-toast";
 import { syncCartFromBackend, waitForCartRequests, invalidateCartRequests } from "./cartActions";
+import { loginDestination } from "../../utils/accountRouting";
 
 export const authenticateUser = (loginRequest, navigate, resetForm, redirect = "/") => async (dispatch, getState) => {
     try {
@@ -17,7 +18,7 @@ export const authenticateUser = (loginRequest, navigate, resetForm, redirect = "
 
         await dispatch(syncCartFromBackend());
         resetForm();
-        const destination = redirect.startsWith("/") && !redirect.startsWith("//") ? redirect : "/";
+        const destination = loginDestination(userDetails, redirect);
         navigate(destination.startsWith("/checkout") && getState().cart.cartError ? "/cart" : destination);
     } catch (error) {
         toast.error(error?.response?.data?.message || "Oops! Something went wrong!");
@@ -32,6 +33,7 @@ export const registerNewUser = (signUpRequest, resetForm, navigate) => async () 
         navigate("/verify-email-pending", { state: { email: signUpRequest.email } });
     } catch (error) {
         toast.error(error?.response?.data?.message || "Oops! Something went wrong!");
+        throw error;
     }
 };
 

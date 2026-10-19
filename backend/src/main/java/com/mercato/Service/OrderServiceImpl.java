@@ -39,6 +39,8 @@ public class OrderServiceImpl implements OrderService {
     private final CartReservationService cartReservationService;
     private final OrderLineUpdateService orderLineUpdateService;
     private final OrderRetryHoldService orderRetryHoldService;
+    private final CommissionService commissions;
+    private final com.mercato.Repository.SellerApplicationRepository sellerApplications;
 
     @Override
     @Transactional
@@ -49,9 +51,12 @@ public class OrderServiceImpl implements OrderService {
         if (cart == null || cart.getCartItems() == null || cart.getCartItems().isEmpty()) {
             throw new CustomBadRequestException("Cart is empty");
         }
+        if ((request.getExpectedTotal() != null && request.getExpectedTotal().compareTo(cart.getTotal()) != 0)
+                || (request.getDeliveryMethod() != null && request.getDeliveryMethod() != cart.getDeliveryMethod()))
+            throw new CustomBadRequestException("Your bag or delivery price changed. Refresh your bag and review the latest total before paying.");
 
         cart.getCartItems().forEach(item -> {
-            if (!item.getProduct().isActive()) throw new CustomBadRequestException("An item in your cart is no longer available");
+            if (!item.getProduct().isPurchasable()) throw new CustomBadRequestException("An item in your cart is no longer available");
             cartReservationService.validateHeld(item);
         });
 
@@ -238,12 +243,21 @@ public class OrderServiceImpl implements OrderService {
         order.setDeliveryCity(address.getCity());
         order.setDeliveryState(address.getState());
         order.setDeliveryPincode(address.getPincode());
+        order.setDeliveryMethod(cart.getDeliveryMethod());
+        cart.getDeliveryOptions().stream().filter(option -> option.code() == cart.getDeliveryMethod())
+                .findFirst().ifPresent(option -> order.setDeliveryEstimate(option.estimate()));
 
         Map<String, String> sellerFulfillmentIds = new HashMap<>();
 
+        java.math.BigDecimal commissionRate = commissions.currentRate();
         int lineNumber = 1;
         for (CartItem cartItem : cartItems) {
             EcommUser seller = cartItem.getProduct().getSeller();
+            sellerApplications.findByUser_UserId(seller.getUserId()).ifPresent(application -> {
+                if ("ENROLLED_UNREGISTERED".equals(application.getTaxRegistrationType())
+                        && !application.getPickupState().trim().equalsIgnoreCase(address.getState().trim()))
+                    throw new CustomBadRequestException("This seller currently delivers only within " + application.getPickupState());
+            });
 
             String fulfillmentId = sellerFulfillmentIds.computeIfAbsent(
                     seller.getEmail(), k -> generateFulfillmentId()
@@ -259,6 +273,7 @@ public class OrderServiceImpl implements OrderService {
             orderLine.setLineTotal(cartItem.getLineTotal());
             orderLine.setSellerName(seller.getSellerDisplayName());
             orderLine.setSellerEmail(seller.getEmail());
+            orderLine.setCommissionRatePercent(commissionRate);
             orderLine.setOrderLineStatus(OrderLineStatus.CREATED);
 
             order.addOrderLine(orderLine);
@@ -267,6 +282,8 @@ public class OrderServiceImpl implements OrderService {
         order.setCurrency("INR");
         order.setSubtotal(cart.getSubtotal());
         order.setCharges(cart.getTotalCharges());
+        order.setShippingCharge(cart.getChargeAmount(com.mercato.Entity.cart.ChargeType.SHIPPING));
+        order.setPlatformFee(cart.getChargeAmount(com.mercato.Entity.cart.ChargeType.PLATFORM_FEE));
         order.setTotalAmount(order.getSubtotal().add(order.getCharges()));
 
         return order;

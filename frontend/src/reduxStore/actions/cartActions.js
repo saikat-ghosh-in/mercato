@@ -52,3 +52,7 @@ export const removeFromCart = productId => mutate(productId, async () => {
 export const clearCart = () => mutate("*", async () => {
   await api.delete("/cart"); return (await api.get("/cart")).data;
 });
+
+export const selectDeliveryMethod = deliveryMethod => mutate("delivery", async () => {
+  const { data } = await api.put("/cart/delivery-method", { deliveryMethod }); return data;
+});

@@ -1,3 +1,5 @@
+Latest delivery — 19 October 2026: [Marketplace journey, financial dashboards, free listing approval and paid promotions](docs/MARKETPLACE_REVIEW.md). See current startup, migration, screenshots, test results and external-service limitations there.
+
 # Staging review — storefront and application hardening
 
 ## Current revision: spacious editorial redesign

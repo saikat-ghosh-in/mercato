@@ -56,6 +56,12 @@ public class UserServiceImpl implements UserService {
         EcommUser user = userRepository.findByUserId(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "userId", userId));
 
+        protectAdmin(user);
+        if (roleNames.contains("ROLE_ADMIN")) throw new org.springframework.security.access.AccessDeniedException("Administrator access cannot be assigned from user management");
+        if (roleNames.contains("ROLE_SELLER") && user.getSellerStatus() != com.mercato.Entity.SellerStatus.APPROVED
+                && !(user.getSellerStatus() == null && user.isSeller()))
+            throw new IllegalArgumentException("Approve the seller application before granting selling access");
+
         Set<Role> newRoles = new HashSet<>();
         for (String roleName : roleNames) {
             AppRole appRole;
@@ -117,6 +123,7 @@ public class UserServiceImpl implements UserService {
     public void deactivateUser(String userId, boolean deleteNow) {
         EcommUser user = userRepository.findByUserId(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "userId", userId));
+        protectAdmin(user);
 
         if (deleteNow) {
             userRepository.delete(user);
@@ -138,6 +145,7 @@ public class UserServiceImpl implements UserService {
     public void reactivateAccount(String userId) {
         EcommUser user = userRepository.findByUserId(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "userId", userId));
+        protectAdmin(user);
 
         if (user.getDeactivatedAt() == null) {
             throw new CustomConflictException("Account is not deactivated");
@@ -150,6 +158,10 @@ public class UserServiceImpl implements UserService {
 
         emailService.sendReactivationConfirmationEmail(user.getEmail(), user.getUsername());
         log.info("User {} reactivated.", user.getUserId());
+    }
+
+    private void protectAdmin(EcommUser user) {
+        if (user.isAdmin()) throw new org.springframework.security.access.AccessDeniedException("Administrator accounts are read-only in user management");
     }
 
     @Override

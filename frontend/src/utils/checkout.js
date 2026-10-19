@@ -1,6 +1,8 @@
 // Reject a selection that disappeared during a refresh or deletion.
 export function currentDeliveryAddress(addresses, selected) {
-  return addresses?.find(address => address.addressId === selected?.addressId) ?? null;
+  return addresses?.find(address => address.addressId === selected?.addressId)
+    ?? addresses?.find(address => address.defaultAddress)
+    ?? (addresses?.length === 1 ? addresses[0] : null);
 }
 export function checkoutIssue({ cartLoaded, cartLoading, cartError, loadingProducts, productsUnavailable, cartQty }) {
   if (!cartLoaded || cartLoading || loadingProducts) return "We’re checking your bag. Please wait a moment.";

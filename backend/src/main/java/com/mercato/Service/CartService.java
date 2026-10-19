@@ -15,6 +15,8 @@ public interface CartService {
 
     CartResponseDTO getCart(CartContext context);
 
+    CartResponseDTO selectDeliveryMethod(com.mercato.Entity.cart.DeliveryMethod method, CartContext context);
+
     CartResponseDTO updateProductQuantityInCart(CartItemRequestDTO cartItemRequestDTO, CartContext context);
 
     void deleteProductFromCart(String productId, CartContext context);
