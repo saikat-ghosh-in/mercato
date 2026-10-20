@@ -61,6 +61,7 @@ public class ProductServiceImpl implements ProductService {
 
         Category category = getCategoryByCategoryId(categoryId);
         EcommUser seller = authUtil.getLoggedInUser();
+        requireSellingAccess(seller);
         validateIfAlreadyExists(productRequestDTO.getProductName(), seller.getUserId());
 
         if (productRequestDTO.getPhysicalQty() == null) productRequestDTO.setPhysicalQty(0);
@@ -169,6 +170,7 @@ public class ProductServiceImpl implements ProductService {
         productRequestDTO.validate();
 
         EcommUser seller = authUtil.getLoggedInUser();
+        requireSellingAccess(seller);
         Product product = getProductByIdForUpdate(productId);
         validateAuthority(product, seller);
 
@@ -280,12 +282,17 @@ public class ProductServiceImpl implements ProductService {
         Specification<Product> activeOnly = (root, query, cb) -> cb.and(cb.isTrue(root.get("active")),
                 cb.or(cb.isNull(root.get("listingStatus")), cb.equal(root.get("listingStatus"), "APPROVED")),
                 cb.isTrue(root.get("seller").get("enabled")), cb.isFalse(root.get("seller").get("accountLocked")),
+                cb.isFalse(root.get("seller").get("sellerSuspended")),
                 cb.or(cb.isNull(root.get("seller").get("sellerStatus")), cb.equal(root.get("seller").get("sellerStatus"), com.mercato.Entity.SellerStatus.APPROVED)));
         Specification<Product> filters = buildSpec(
                 filter.getCategory(), filter.getSellers(),
                 filter.getKeyword(), filter.getMinPrice(), filter.getMaxPrice(), filter.isInStock()
         );
         return activeOnly.and(filters);
+    }
+
+    private void requireSellingAccess(EcommUser user) {
+        if (user.isSellerSuspended()) throw new org.springframework.security.access.AccessDeniedException("Selling is suspended. You can still manage existing orders and view your account");
     }
 
     @Transactional

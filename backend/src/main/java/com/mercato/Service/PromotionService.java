@@ -23,6 +23,7 @@ public class PromotionService {
     private final OrderLineRepository lines;
     private final ProductMapper mapper;
     private final AuthUtil auth;
+    @jakarta.persistence.PersistenceContext private jakarta.persistence.EntityManager entityManager;
     @Value("${marketplace.promotions.discovery-daily:49}") private BigDecimal discovery;
     @Value("${marketplace.promotions.featured-daily:99}") private BigDecimal featured;
     @Value("${marketplace.promotions.spotlight-daily:199}") private BigDecimal spotlight;
@@ -53,6 +54,8 @@ public class PromotionService {
     public SellerPromotion book(Request request) {
         var seller=seller();
         users.findByUserIdForUpdate(seller.getUserId()).orElseThrow(); // Serialize all bookings/cancellations for this seller.
+        entityManager.refresh(seller);
+        if(seller.isSellerSuspended()) throw new AccessDeniedException("Selling is suspended. New promotions are unavailable");
         var prior=campaigns.findByRequestId(request.requestId());
         if(prior.isPresent()) {
             var p=prior.get();

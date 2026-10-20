@@ -29,7 +29,10 @@ public class EcommUserMapper {
                 user.isSeller(),
                 user.getSellerDisplayName(),
                 roles,
-                user.getSellerStatus() == null ? (user.isSeller() ? com.mercato.Entity.SellerStatus.APPROVED : com.mercato.Entity.SellerStatus.NONE) : user.getSellerStatus()
+                user.getSellerStatus() == null ? (user.isSeller() ? com.mercato.Entity.SellerStatus.APPROVED : com.mercato.Entity.SellerStatus.NONE) : user.getSellerStatus(),
+                user.isSellerSuspended(),
+                user.getAccessVersion(),
+                user.isSelfDeactivated()
         );
     }
 }

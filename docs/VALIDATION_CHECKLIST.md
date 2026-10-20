@@ -1,4 +1,13 @@
-Latest follow-up — 20 October 2026: [Role-specific user activity and direct admin creation](USER_ACTIVITY_REVIEW.md).
+Latest follow-up — 20 October 2026: [Account access and refined user management](ROLE_ACCESS_REVIEW.md).
+
+- [x] Protected admins, mandatory reasons, base User role, stale-version rejection and append-only access decisions (backend regressions).
+- [x] Admin deactivation cannot be bypassed by login; voluntary pause requires the correct password; old sessions stay revoked after restoration (backend regressions).
+- [x] Selling suspension hides catalog/PDP listings and prevents promotions while retaining shopping and fulfillment access (backend regressions).
+- [x] Responsive list, custom menus, search/status/sort/reset, mobile navigation, account detail, admin read-only, short-reason error, cancellation/Escape and focus restoration checked in Browser at 320/390/768/1440px.
+- [x] Shopper/seller registration toggle and business information retained; no account or seller approval submitted in Browser.
+- [x] Backend 99 tests; frontend 41 tests, lint/build; Taste source lint 0 failures/warnings. Retention/schema deployment instructions and remaining service/device limitations documented.
+
+Previous follow-up — 20 October 2026: [Role-specific user activity and direct admin creation](USER_ACTIVITY_REVIEW.md).
 
 - [x] Shopper panel omits seller fields; active bag and order sections work; seller products and filtered decision history work (Browser + API regressions).
 - [x] Admin-only scoped/paginated activity; request snapshots survive edits, decisions, resubmission and deletion; bag inspection preserves owned holds (backend tests).

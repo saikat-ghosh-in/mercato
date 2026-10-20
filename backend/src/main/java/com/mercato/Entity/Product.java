@@ -71,7 +71,7 @@ public class Product {
     @Transient
     public boolean isPurchasable() {
         return active && (listingStatus == null || "APPROVED".equals(listingStatus))
-            && (seller == null || (seller.isEnabled() && !seller.isAccountLocked()
+            && (seller == null || (seller.isEnabled() && !seller.isAccountLocked() && !seller.isSellerSuspended()
                 && (seller.getSellerStatus() == null || seller.getSellerStatus() == SellerStatus.APPROVED)));
     }
 

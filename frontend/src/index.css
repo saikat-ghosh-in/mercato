@@ -960,4 +960,7 @@ span.rounded-full,.catalog-filter-chips>span { border-radius:var(--radius-small)
 @media(prefers-reduced-motion:reduce){.report-timeframe-panel,.field-info-panel{transition:none;transform:none}}
 html[data-input=keyboard] .report-timeframe-panel,html[data-input=keyboard] .field-info-panel{transition:none}
 .field-info-panel{width:min(300px,calc(100vw - 32px))}
+.paused-account { width:min(480px,100%); margin:0 auto; padding:64px 20px 80px; }
+.auth-page .paused-account h1 { font-size:28px; margin-bottom:20px; }
+.paused-account p { color:#5f6368; font-size:14px; line-height:1.7; margin:16px 0; }
 @media(max-width:639px){.header-main .header-catalog>span{font-size:12px;white-space:nowrap}.header-main .header-catalog{padding-inline:5px}.site-header .header-main{width:calc(100% - 16px);gap:4px}.site-header .header-actions{flex-shrink:0}}

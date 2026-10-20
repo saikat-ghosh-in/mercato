@@ -1,12 +1,13 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useSelector } from "react-redux";
 import {
   MdDashboard, MdPeople, MdShoppingBag,
-  MdCategory, MdShoppingCart, MdAdminPanelSettings,
+  MdCategory, MdShoppingCart,
   MdInventory, MdMenu, MdClose,
 } from "react-icons/md";
 import AdminOverviewTab from "./AdminOverviewTab";
-import UsersTab from "./UsersTab";
+import UsersTab from "./UserManagement";
 import OrdersTab from "./OrdersTab";
 import ProductsTab from "../shared/ProductsTab";
 import CategoriesTab from "./CategoriesTab";
@@ -26,7 +27,8 @@ const NAV = [
 ];
 
 const AdminDashboard = () => {
-  const [activeTab, setActiveTab] = useState("overview");
+  const [params, setParams] = useSearchParams();
+  const activeTab = NAV.some(item => item.id === params.get("tab")) ? params.get("tab") : "overview";
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const user = useSelector(s => s.auth?.userDetails);
 
@@ -45,16 +47,13 @@ const AdminDashboard = () => {
   };
 
   return (
-    <div className="bg-gray-50 min-h-screen">
+    <div className="admin-workspace bg-gray-50 min-h-screen">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
 
         {/* Header */}
         <div className="flex items-center gap-3 mb-6">
-          <div className="p-2 bg-purple-50 rounded-xl">
-            <MdAdminPanelSettings size={20} className="text-purple-500" />
-          </div>
           <div>
-            <h1 className="text-xl font-bold text-gray-900">Admin Panel</h1>
+            <h1 className="text-xl font-bold text-gray-900">Administration</h1>
             <p className="text-xs text-gray-500 mt-0.5">{user?.username}</p>
           </div>
           <button
@@ -66,14 +65,14 @@ const AdminDashboard = () => {
         </div>
 
         {/* Tab nav */}
-        <div className={`${mobileNavOpen ? "flex" : "hidden"} lg:flex flex-col lg:flex-row gap-1 surface p-1.5 mb-6`}>
+        <div className={`admin-tabs ${mobileNavOpen ? "flex" : "hidden"} lg:flex flex-col lg:flex-row flex-wrap gap-1 surface p-1.5 mb-6`}>
           {NAV.map(({ id, label, icon: Icon }) => (
             <button
               key={id}
               aria-pressed={activeTab === id}
-              onClick={() => { setActiveTab(id); setMobileNavOpen(false); }}
+              onClick={() => { setParams(previous => { const next = new URLSearchParams(previous); next.set("tab", id); return next; }); setMobileNavOpen(false); }}
               className={`control flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-[transform,opacity,background-color] cursor-pointer flex-1 justify-center lg:justify-start ${activeTab === id
-                ? "bg-gray-950 text-white shadow-sm"
+                ? "bg-gray-950 text-white"
                 : "text-gray-500 hover:bg-gray-50 hover:text-gray-800"
                 }`}
             >

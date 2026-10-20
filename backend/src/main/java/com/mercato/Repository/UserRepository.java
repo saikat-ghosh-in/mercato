@@ -22,6 +22,10 @@ public interface UserRepository extends JpaRepository<EcommUser, Long> {
 
     Optional<EcommUser> findByUsername(String username);
 
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("select u from EcommUser u where u.username = :username")
+    Optional<EcommUser> findByUsernameForUpdate(@Param("username") String username);
+
     Optional<EcommUser> findByEmail(String email);
 
     boolean existsByUsername(String username);

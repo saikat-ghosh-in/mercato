@@ -66,7 +66,7 @@ public class AuthServiceImpl implements AuthService {
     public ResponseEntity<UserInfoResponse> authenticateUser(LoginRequest loginRequest,
                                                              HttpServletRequest request,
                                                              HttpServletResponse httpServletResponse) {
-        EcommUser user = userRepository.findByUsername(loginRequest.getUsername())
+        EcommUser user = userRepository.findByUsernameForUpdate(loginRequest.getUsername())
                 .orElseThrow(() -> new ResourceNotFoundException("User", "username", loginRequest.getUsername()));
 
         if (!user.isEmailVerified()) {
@@ -77,8 +77,9 @@ public class AuthServiceImpl implements AuthService {
             throw new DisabledException("Account is locked. Please contact support.");
         }
 
-        if (!user.isEnabled() && user.getDeactivatedAt() != null) {
+        if (!user.isEnabled() && user.isSelfDeactivated() && encoder.matches(loginRequest.getPassword(), user.getPassword())) {
             user.setEnabled(true);
+            user.setSelfDeactivated(false);
             user.setDeactivatedAt(null);
             userRepository.save(user);
             log.info("User {} auto-reactivated on login", user.getUsername());

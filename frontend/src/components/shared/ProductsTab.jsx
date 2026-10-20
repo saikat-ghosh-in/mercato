@@ -65,6 +65,7 @@ const DeleteModal = ({ product, onClose, onConfirm, loading }) => (
 
 const PIMTab = ({ products, categories, loading, onRefresh, showSeller = false }) => {
   const adminActor = useSelector(state => Boolean(state.auth?.userDetails?.roles?.includes("ROLE_ADMIN")));
+  const sellingSuspended = useSelector(state => Boolean(state.auth?.userDetails?.sellerSuspended)) && !showSeller;
   const directCreation = showSeller || adminActor;
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
@@ -127,6 +128,8 @@ const PIMTab = ({ products, categories, loading, onRefresh, showSeller = false }
           </SelectControl>
           <button
             onClick={() => setShowAddModal(true)}
+            disabled={sellingSuspended}
+            title={sellingSuspended ? "Selling is suspended" : undefined}
             className="control flex items-center gap-1.5 bg-gray-950 hover:bg-gray-800 text-white text-xs font-bold px-4 py-2 rounded-xl transition-[transform,opacity,background-color] cursor-pointer active:scale-[0.98]"
           >
             <MdAdd size={14} /> {directCreation ? "Create product" : "Request listing"}
@@ -189,7 +192,7 @@ const PIMTab = ({ products, categories, loading, onRefresh, showSeller = false }
                       <div className="flex items-center gap-1 justify-end">
                         {showSeller && p.listingStatus === "PENDING" && <button className="button button-outline" onClick={() => setReviewProduct(p)}>Review listing</button>}
                         <button
-                          aria-label={"Edit " + p.productName} onClick={() => setEditProduct(p)}
+                          aria-label={"Edit " + p.productName} onClick={() => setEditProduct(p)} disabled={sellingSuspended}
                           className="icon-action p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
                         >
                           <MdEdit size={14} />

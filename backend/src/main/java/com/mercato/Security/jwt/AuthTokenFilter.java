@@ -47,6 +47,13 @@ public class AuthTokenFilter extends OncePerRequestFilter {
                 String username = jwtUtils.getUserNameFromJwtToken(jwt);
                 UserDetailsImpl userDetails = userDetailsServiceImpl.loadUserByUsername(username);
 
+                String version = jwtUtils.getClaimFromToken(jwt, "accessVersion");
+                if (!userDetails.getUserId().equals(jwtUtils.getClaimFromToken(jwt, "userId"))
+                        || !Long.toString(userDetails.getAccessVersion()).equals(version == null ? "0" : version)) {
+                    response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Session expired. Sign in again");
+                    return;
+                }
+
                 if (!userDetails.isEnabled()) {
                     response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Account is deactivated");
                     return;

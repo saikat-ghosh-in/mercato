@@ -22,7 +22,7 @@ export default function UserActivity({ user }) {
       .catch(err => { if (!controller.signal.aborted) setError({ key, message: err.response?.data?.message || "Activity couldn’t load. Try again." }); })
       .finally(() => { if (!controller.signal.aborted) setLoading(false); });
     return () => controller.abort();
-  }, [user.userId, section, page, status, key, retry]);
+  }, [user.userId, user.accessVersion, section, page, status, key, retry]);
   const data = cache[key];
   const summary = data || Object.values(cache).at(-1);
   const tabs = [["overview", "Active bag", summary?.cart?.units ?? 0], ["orders", "Orders", summary?.orderCount],

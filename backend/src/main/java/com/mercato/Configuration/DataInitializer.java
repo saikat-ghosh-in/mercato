@@ -73,7 +73,7 @@ public class DataInitializer implements CommandLineRunner {
                 .enabled(true)
                 .accountLocked(false)
                 .emailVerified(true)
-                .roles(Set.of(adminRole, sellerRole))
+                .roles(Set.of(adminRole, sellerRole, roleRepository.findByRoleName(AppRole.ROLE_USER).orElseThrow()))
                 .sellerDisplayName("Marcato Admin")
                 .build();
 

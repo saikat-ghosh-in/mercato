@@ -48,7 +48,7 @@ const Login = () => {
                         <Field label="Username" error={errors.username?.message} icon={FiUser} required>
                             <input
                                 {...register("username", { required: "Username is required" })}
-                                placeholder="johndoe"
+                                placeholder="Your username"
                                 autoComplete="username"
                                 className={inputCls}
                             />

@@ -18,6 +18,7 @@ public class SellerOnboardingService {
     private final RoleRepository roles;
     private final AuthUtil auth;
     private final CommissionService commissions;
+    private final AccountAccessEventRepository accessEvents;
 
     @Transactional
     public void submit(EcommUser user, SellerApplicationRequest request) {
@@ -82,9 +83,13 @@ public class SellerOnboardingService {
         if (!approve && (note == null || note.isBlank())) throw new IllegalArgumentException("Give a reason for rejection");
         if (approve) {
             commissions.notifyNewSeller(user);
+            user.getRoles().add(roles.findByRoleName(AppRole.ROLE_USER).orElseThrow());
             user.getRoles().add(roles.findByRoleName(AppRole.ROLE_SELLER).orElseThrow());
         }
         user.setSellerStatus(approve ? SellerStatus.APPROVED : SellerStatus.REJECTED);
         application.setReviewedAt(Instant.now()); application.setReviewedBy(reviewer.getUserId()); application.setReviewNote(note);
+        accessEvents.save(new AccountAccessEvent(user, reviewer, approve ? "SELLER_APPROVED" : "SELLER_REJECTED",
+                note == null || note.isBlank() ? "Business verification confirmed in seller approval workflow." : note.strip().substring(0, Math.min(note.strip().length(), 500)),
+                "Seller application pending", approve ? "Seller application approved" : "Seller application rejected"));
     }
 }

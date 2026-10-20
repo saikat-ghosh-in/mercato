@@ -21,6 +21,17 @@ public class UserController {
 
     private final UserService userService;
     private final AddressService addressService;
+    private final com.mercato.Service.AccountAccessService accessService;
+
+    @PostMapping("/admin/users/{userId}/access")
+    public EcommUserResponseDTO changeAccess(@PathVariable String userId, @Valid @RequestBody com.mercato.Service.AccountAccessService.Change change) {
+        return accessService.change(userId, change);
+    }
+
+    @GetMapping("/admin/users/{userId}/access-history")
+    public org.springframework.data.domain.Page<com.mercato.Entity.AccountAccessEvent> accessHistory(@PathVariable String userId, @RequestParam(defaultValue="0") int page) {
+        return accessService.history(userId, page);
+    }
 
     @GetMapping("/admin/users")
     public ResponseEntity<List<EcommUserResponseDTO>> getAllUsers() {
@@ -32,7 +43,7 @@ public class UserController {
     public ResponseEntity<String> updateRoles(@PathVariable String userId,
                                               @RequestBody Set<String> roles) {
 
-        userService.updateUserRoles(userId, roles);
+        accessService.legacyChange(userId, roles, false);
         return ResponseEntity.ok("Roles modified successfully");
     }
 
@@ -82,22 +93,22 @@ public class UserController {
     public ResponseEntity<MessageResponse> deactivateAccount() {
         userService.deactivateAccount();
         return ResponseEntity.ok(new MessageResponse(
-                "Account deactivated. You have 7 days to reactivate before permanent deletion."
+                "Account paused. Sign in again to restore it. Your account history is retained."
         ));
     }
 
     @PatchMapping("/admin/deactivate-account")
     public ResponseEntity<MessageResponse> deactivateUser(@RequestParam String userId,
                                                           @RequestParam(defaultValue = "false") boolean deleteNow) {
-        userService.deactivateUser(userId, deleteNow);
+        accessService.legacyChange(userId, null, deleteNow);
         return ResponseEntity.ok(new MessageResponse(
-                "Account reactivated successfully. A confirmation email has been sent."
+                "Account deactivated."
         ));
     }
 
     @PatchMapping("/admin/reactivate-account")
     public ResponseEntity<MessageResponse> reactivateAccount(@RequestParam String userId) {
-        userService.reactivateAccount(userId);
+        accessService.legacyChange(userId, null, false);
         return ResponseEntity.ok(new MessageResponse(
                 "Account reactivated successfully. A confirmation email has been sent."
         ));
