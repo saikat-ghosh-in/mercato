@@ -10,6 +10,8 @@ import {
 import toast from "react-hot-toast";
 import api from "../../backend/api";
 import { formatDate } from "../../utils/formatDate";
+import { isSellerAccount } from "../../utils/accountRouting";
+import UserActivity from "./UserActivity";
 
 const ALL_ROLES = ["ROLE_USER", "ROLE_SELLER"];
 
@@ -187,7 +189,7 @@ const UserDrawer = ({ user, onClose, onRolesEdit }) => (
                     ["User ID", user.userId],
                     ["Username", user.username],
                     ["Phone", user.phoneNumber ?? "—"],
-                    ["Seller Name", user.sellerDisplayName ?? "—"],
+                    ...(isSellerAccount(user) ? [["Store name", user.sellerDisplayName ?? "—"], ["Seller status", user.sellerStatus ?? "APPROVED"]] : []),
                     ["Member Since", formatDate(user.createdAt)],
                     ["Last Login", formatDate(user.lastLoginAt)],
                 ].map(([label, value]) => (
@@ -196,6 +198,7 @@ const UserDrawer = ({ user, onClose, onRolesEdit }) => (
                         <span className="text-xs font-semibold text-gray-800 text-right max-w-[60%] break-all">{value}</span>
                     </div>
                 ))}
+                <UserActivity key={user.userId} user={user} />
             </div>
         </DialogPanel>
     </Dialog>

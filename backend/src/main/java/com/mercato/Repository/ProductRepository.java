@@ -16,6 +16,8 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
     Optional<Product> findByProductIdAndActiveTrue(String productId);
 
     List<Product> findAllBySellerUserId(String sellerId, Sort sort);
+    org.springframework.data.domain.Page<Product> findBySellerUserId(String sellerId, org.springframework.data.domain.Pageable page);
+    long countBySellerUserId(String sellerId);
 
     Optional<Product> findByProductIdAndSellerUserId(String productId, String sellerId);
 

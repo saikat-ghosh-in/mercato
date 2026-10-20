@@ -51,6 +51,7 @@ public class ProductServiceImpl implements ProductService {
     private final OrderReservationRepository orderReservationRepository;
     private final CartReservationRepository cartReservationRepository;
     private final FileService fileService;
+    private final ListingHistoryService listingHistory;
 
     @Override
     @Transactional
@@ -67,9 +68,15 @@ public class ProductServiceImpl implements ProductService {
         Product product = productMapper.toEntity(productRequestDTO);
         product.setCategory(category);
         product.setSeller(seller);
-        product.setListingStatus("PENDING");
+        product.setListingStatus(seller.isAdmin() ? "APPROVED" : "PENDING");
+        if (seller.isAdmin()) {
+            product.setListingReviewedAt(java.time.Instant.now());
+            product.setListingReviewedBy(seller.getUserId());
+            product.setListingReviewNote("Created directly by an administrator.");
+        }
 
         Product savedProduct = productRepository.save(product);
+        if (!seller.isAdmin()) listingHistory.submitted(savedProduct);
         return productMapper.toDTO(savedProduct);
     }
 
@@ -201,6 +208,7 @@ public class ProductServiceImpl implements ProductService {
             product.setListingReviewNote(null);
             product.setListingReviewedAt(null);
             product.setListingReviewedBy(null);
+            listingHistory.submitted(product);
         }
 
         Product savedProduct = productRepository.save(product);
@@ -225,6 +233,7 @@ public class ProductServiceImpl implements ProductService {
             log.warn("Failed to delete images for product: {}", productId, e);
         }
 
+        listingHistory.closeOpen(product,"WITHDRAWN","Product removed before review.");
         productRepository.delete(product);
     }
 

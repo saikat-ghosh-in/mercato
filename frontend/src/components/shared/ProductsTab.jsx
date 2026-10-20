@@ -1,3 +1,4 @@
+import { useSelector } from "react-redux";
 import SelectControl from "./SelectControl";
 import ProductSubmissionModal from "./ProductSubmissionModal";
 import ListingReviewModal from "../admin/ListingReviewModal";
@@ -63,6 +64,8 @@ const DeleteModal = ({ product, onClose, onConfirm, loading }) => (
 );
 
 const PIMTab = ({ products, categories, loading, onRefresh, showSeller = false }) => {
+  const adminActor = useSelector(state => Boolean(state.auth?.userDetails?.roles?.includes("ROLE_ADMIN")));
+  const directCreation = showSeller || adminActor;
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [editProduct, setEditProduct] = useState(null);
@@ -126,11 +129,11 @@ const PIMTab = ({ products, categories, loading, onRefresh, showSeller = false }
             onClick={() => setShowAddModal(true)}
             className="control flex items-center gap-1.5 bg-gray-950 hover:bg-gray-800 text-white text-xs font-bold px-4 py-2 rounded-xl transition-[transform,opacity,background-color] cursor-pointer active:scale-[0.98]"
           >
-            <MdAdd size={14} /> Request listing
+            <MdAdd size={14} /> {directCreation ? "Create product" : "Request listing"}
           </button>
         </div>
 
-        <p className="px-4 py-3 text-xs text-gray-500">Listing requests are free. Approval is required before products appear in the marketplace. Seller edits require another review.</p>
+        <p className="px-4 py-3 text-xs text-gray-500">{directCreation ? "Create products directly in the catalog. Manage stock separately in Perpetual Inventory. Seller submissions still require your approval." : "Listing requests are free. Approval is required before products appear in the marketplace. Seller edits require another review."}</p>
         {/* Table */}
         {loading && !products.length ? <TableSkeleton cols={6} /> : (
           <div className="overflow-x-auto">
@@ -209,7 +212,7 @@ const PIMTab = ({ products, categories, loading, onRefresh, showSeller = false }
 
       {(showAddModal || editProduct) && (
         <ProductSubmissionModal
-          admin={showSeller}
+          admin={directCreation}
           product={editProduct}
           categories={categories}
           onClose={() => { setShowAddModal(false); setEditProduct(null); }}

@@ -1,4 +1,12 @@
-Latest UI follow-up — 20 October 2026: [User details, custom dropdowns and navigation](CONTROL_POLISH_REVIEW.md).
+Latest follow-up — 20 October 2026: [Role-specific user activity and direct admin creation](USER_ACTIVITY_REVIEW.md).
+
+- [x] Shopper panel omits seller fields; active bag and order sections work; seller products and filtered decision history work (Browser + API regressions).
+- [x] Admin-only scoped/paginated activity; request snapshots survive edits, decisions, resubmission and deletion; bag inspection preserves owned holds (backend tests).
+- [x] Admin creation immediately approves; seller submissions remain pending; no upfront stock mutation (Browser + backend tests).
+- [x] Mobile two-column activity sections and no measured drawer/content overflow at 320/390/768/1440px (Browser).
+- [x] Backend 92 tests, frontend 37 tests, lint/build and diff checks pass. PostgreSQL migration supplied; live execution remains unverified.
+
+Previous UI follow-up — 20 October 2026: [User details, custom dropdowns and navigation](CONTROL_POLISH_REVIEW.md).
 
 - [x] User details visibly open on desktop/mobile; Escape restores focus; admin accounts remain read-only.
 - [x] Custom role/category/status, catalog sort, listing category, promotion product/duration, address state and registration controls work in Browser.

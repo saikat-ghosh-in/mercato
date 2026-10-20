@@ -15,7 +15,7 @@ class CatalogValidationTest {
     @Test
     void invalidPagingIsRejectedBeforeQueryingTheDatabase() {
         ProductRepository products = mock(ProductRepository.class);
-        ProductServiceImpl service = new ProductServiceImpl(products, mock(CategoryRepository.class), mock(AuthUtil.class), new ProductMapper(), mock(OrderReservationRepository.class), mock(CartReservationRepository.class), mock(FileService.class));
+        ProductServiceImpl service = new ProductServiceImpl(products, mock(CategoryRepository.class), mock(AuthUtil.class), new ProductMapper(), mock(OrderReservationRepository.class), mock(CartReservationRepository.class), mock(FileService.class), mock(com.mercato.Service.ListingHistoryService.class));
         ProductFilterRequestDTO filter = new ProductFilterRequestDTO();
         filter.setPageSize(1000000);
         assertThrows(IllegalArgumentException.class, () -> service.getActiveProducts(filter));

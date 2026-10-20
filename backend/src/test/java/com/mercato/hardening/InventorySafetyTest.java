@@ -72,7 +72,7 @@ class InventorySafetyTest {
         OrderReservationRepository paid = mock(OrderReservationRepository.class);
         CartReservationRepository carts = mock(CartReservationRepository.class);
         AuthUtil auth = mock(AuthUtil.class);
-        ProductServiceImpl service = new ProductServiceImpl(products, mock(CategoryRepository.class), auth, new ProductMapper(), paid, carts, mock(FileService.class));
+        ProductServiceImpl service = new ProductServiceImpl(products, mock(CategoryRepository.class), auth, new ProductMapper(), paid, carts, mock(FileService.class), mock(com.mercato.Service.ListingHistoryService.class));
         EcommUser admin = mock(EcommUser.class);
         when(admin.isAdmin()).thenReturn(true);
         when(auth.getLoggedInUser()).thenReturn(admin);

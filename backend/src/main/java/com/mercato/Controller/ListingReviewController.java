@@ -18,6 +18,7 @@ public class ListingReviewController {
     private final ProductRepository products;
     private final AuthUtil auth;
     private final ProductMapper mapper;
+    private final com.mercato.Service.ListingHistoryService history;
     public record Review(boolean approve, @NotBlank @Size(min=10,max=1000) String note) {}
     @PostMapping("/api/admin/products/{id}/review") @Transactional
     public Object review(@PathVariable String id, @Valid @RequestBody Review request) {
@@ -30,6 +31,7 @@ public class ListingReviewController {
         product.setListingStatus(request.approve() ? "APPROVED" : "REJECTED");
         product.setListingReviewNote(request.note().trim());
         product.setListingReviewedAt(Instant.now()); product.setListingReviewedBy(admin.getUserId());
+        history.reviewed(product);
         return mapper.toDTO(product);
     }
 }

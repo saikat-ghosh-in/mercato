@@ -23,7 +23,7 @@ public class ProductController {
 
     private final ProductService productService;
 
-    @PostMapping("/seller/categories/{categoryId}/product")
+    @PostMapping({"/seller/categories/{categoryId}/product", "/admin/categories/{categoryId}/product"})
     public ResponseEntity<ProductResponseDTO> addProduct(@Valid @RequestBody ProductRequestDTO productRequestDTO,
                                                          @PathVariable String categoryId) {
         ProductResponseDTO savedProductResponseDTO = productService.addProduct(categoryId, productRequestDTO);
