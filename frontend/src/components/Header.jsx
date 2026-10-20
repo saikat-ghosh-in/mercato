@@ -1,6 +1,6 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/react";
-import { FiSearch, FiShoppingBag, FiUser, FiLock, FiHelpCircle, FiChevronDown, FiGrid } from "react-icons/fi";
+import { FiSearch, FiShoppingBag, FiUser, FiLock, FiHelpCircle, FiChevronDown } from "react-icons/fi";
 import { useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { logOutUser } from "../reduxStore/actions/authActions";
@@ -41,11 +41,11 @@ export default function Header() {
         <Brand />
         {checkout && <p className="checkout-lock" aria-label="Secure checkout"><FiLock /><span>Secure checkout</span></p>}
         <div className="header-actions">
-          <Link to="/products" className="header-catalog" aria-label="All products" title="All products"><FiGrid aria-hidden="true" /><span>All products</span></Link>
-          {!checkout && <button className="icon-button" aria-label="Open search" title="Search and discover" aria-expanded={discoveryOpen} aria-haspopup="dialog" onClick={() => {
+          <Link to="/products" className="header-catalog" aria-label="All products" title="All products"><span>All products</span></Link>
+          <button className="icon-button" aria-label="Open search" title="Search and discover" aria-expanded={discoveryOpen} aria-haspopup="dialog" onClick={() => {
             setKeyword(new URLSearchParams(location.search).get("keyword") ?? "");
             setDiscoveryOpen(true);
-          }}><FiSearch /></button>}
+          }}><FiSearch /></button>
           <Link to="/help" className="header-help" aria-label="Help"><FiHelpCircle /><span>Help</span></Link>
           <Menu>
             <MenuButton className="header-account" aria-label="Account menu"><FiUser /><span>Account</span><FiChevronDown className="account-chevron" aria-hidden="true" /></MenuButton>

@@ -1,4 +1,12 @@
-Latest follow-up — 20 October 2026: [Capped delivery and seller funding](SELLER_DELIVERY_REVIEW.md). Standard/grouped delivery is capped at ₹250 per bag; sellers can cover their item shares, with ₹49 expedited upgrade. Grouped delivery explains its longer estimate. Finance includes captured seller delivery contributions. Backend: 87 tests pass. Frontend: 37 tests, lint/build pass. Browser bag/checkout and mobile evidence, additive SQL and limitations are linked there.
+Latest UI follow-up — 20 October 2026: [User details, custom dropdowns and navigation](CONTROL_POLISH_REVIEW.md).
+
+- [x] User details visibly open on desktop/mobile; Escape restores focus; admin accounts remain read-only.
+- [x] Custom role/category/status, catalog sort, listing category, promotion product/duration, address state and registration controls work in Browser.
+- [x] Menu keyboard selection/dismissal and nested modal behavior; registration conditional fields and long-value mobile fit.
+- [x] All products has no icon and never wraps; search opens from checkout; timeframe submit reads Apply.
+- [x] Frontend 37 tests, lint and production build pass; final screenshot/limitations linked above.
+
+Latest shipping follow-up — 20 October 2026: [Capped delivery and seller funding](SELLER_DELIVERY_REVIEW.md). Standard/grouped delivery is capped at ₹250 per bag; sellers can cover their item shares, with ₹49 expedited upgrade. Grouped delivery explains its longer estimate. Finance includes captured seller delivery contributions. Backend: 87 tests pass. Frontend: 37 tests, lint/build pass. Browser bag/checkout and mobile evidence, additive SQL and limitations are linked there.
 
 - [x] Whole-bag cap remains ₹250 when bulky quantity increases (Browser and regression tests).
 - [x] Seller coverage saves through editor, review and persistence; PDP offer and free bag/checkout normal delivery (Browser and tests).

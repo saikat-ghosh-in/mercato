@@ -1,5 +1,5 @@
 import SelectControl from "../shared/SelectControl";
-import { Dialog, DialogPanel, DialogTitle } from "@headlessui/react";
+import { Dialog, DialogBackdrop, DialogPanel, DialogTitle } from "@headlessui/react";
 import ModalFrame from "../shared/ModalFrame";
 import { useEffect, useState } from "react";
 import {
@@ -116,14 +116,14 @@ const EditRolesModal = ({ user, onClose, onSave }) => {
 };
 
 const UserDrawer = ({ user, onClose, onRolesEdit }) => (
-    <Dialog open onClose={onClose} className="relative z-[80]"><div className="dialog-backdrop" aria-hidden="true" /><DialogPanel transition className="mobile-panel management-drawer"><DialogTitle className="sr-only">User details</DialogTitle>
+    <Dialog open onClose={onClose} className="relative z-[80]"><DialogBackdrop transition className="dialog-backdrop" /><DialogPanel transition className="management-drawer">
             <div className="flex items-center justify-between p-5 border-b border-gray-100">
-                <h2 className="text-sm font-bold text-gray-800">User Details</h2>
+                <DialogTitle className="text-sm font-bold text-gray-800">User details</DialogTitle>
                 <button aria-label="Close dialog" onClick={onClose} className="icon-action text-gray-400 hover:text-gray-600 cursor-pointer">
                     <MdClose size={18} />
                 </button>
             </div>
-            <div className="p-5 space-y-5 flex-1">
+            <div className="management-drawer-body p-5 space-y-5 flex-1">
                 {/* Avatar + name */}
                 <div className="flex items-center gap-3">
                     <div className="w-12 h-12 rounded-full bg-linear-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-base shrink-0">
@@ -285,10 +285,10 @@ const UsersTab = () => {
                                 <tr
                                     key={u.userId}
                                     className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors cursor-pointer"
-                                    tabIndex={0} onKeyDown={e => { if (e.target === e.currentTarget && ["Enter", " "].includes(e.key)) { e.preventDefault(); setSelectedUser(u); } }} onClick={() => setSelectedUser(u)}
+                                    onClick={() => setSelectedUser(u)}
                                 >
                                     <td className="px-4 py-3">
-                                        <div className="flex items-center gap-2.5">
+                                        <button type="button" aria-label={"View user details for " + u.username} className="user-details-trigger flex items-center gap-2.5 text-left" onClick={event => { event.stopPropagation(); setSelectedUser(u); }}>
                                             <div className="w-8 h-8 rounded-full bg-linear-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
                                                 {u.firstName?.[0] ?? u.username?.[0] ?? "?"}
                                             </div>
@@ -296,9 +296,9 @@ const UsersTab = () => {
                                                 <p className="text-sm font-semibold text-gray-900">
                                                     {[u.firstName, u.lastName].filter(Boolean).join(" ") || u.username}
                                                 </p>
-                                                <p className="text-[10px] text-gray-400">{u.username}</p>
+                                                <p className="text-[10px] text-gray-400">{u.username}<span className="user-details-hint"> · View details</span></p>
                                             </div>
-                                        </div>
+                                        </button>
                                     </td>
                                     <td className="px-4 py-3 text-xs text-gray-600">{u.email}</td>
                                     <td className="px-4 py-3">

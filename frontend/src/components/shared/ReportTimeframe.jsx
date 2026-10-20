@@ -14,7 +14,7 @@ export default function ReportTimeframe({ range, loading, onApply }) {
         <h3>Edit timeframe</h3><p>Reports use dates in UTC.</p>
         <div className="report-timeframe-fields"><label>From<input type="date" value={draft.from} max={draft.through} onInput={event => { const value = event.currentTarget.value; setDraft(d => ({ ...d, from: value })); setError(""); }} aria-invalid={Boolean(error)} aria-describedby={error ? "timeframe-error" : undefined} /></label><label>Through<input type="date" value={draft.through} min={draft.from} max={new Date().toISOString().slice(0, 10)} onInput={event => { const value = event.currentTarget.value; setDraft(d => ({ ...d, through: value })); setError(""); }} aria-invalid={Boolean(error)} aria-describedby={error ? "timeframe-error" : undefined} /></label></div>
         {error && <p id="timeframe-error" className="inline-error" role="alert">{error}</p>}
-        <div className="report-timeframe-actions"><button type="button" className="button button-outline" onClick={() => close()}>Cancel</button><button className="button button-dark" type="submit">Apply timeframe</button></div>
+        <div className="report-timeframe-actions"><button type="button" className="button button-outline" onClick={() => close()}>Cancel</button><button className="button button-dark" type="submit">Apply</button></div>
       </form>
     </PopoverPanel>
   </>}</Popover>;
