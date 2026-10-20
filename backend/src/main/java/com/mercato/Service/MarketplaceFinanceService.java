@@ -27,13 +27,14 @@ public class MarketplaceFinanceService {
     }
     private static BigDecimal units(OrderLine l,int qty) {return money(l.getUnitPrice().multiply(BigDecimal.valueOf(qty)));}
     private static class Bucket {
-        BigDecimal booked=BigDecimal.ZERO,fulfilled=BigDecimal.ZERO,returned=BigDecimal.ZERO,cancelled=BigDecimal.ZERO,commission=BigDecimal.ZERO,unknown=BigDecimal.ZERO,refunds=BigDecimal.ZERO,hold=BigDecimal.ZERO,promotion=BigDecimal.ZERO;
+        BigDecimal booked=BigDecimal.ZERO,fulfilled=BigDecimal.ZERO,returned=BigDecimal.ZERO,cancelled=BigDecimal.ZERO,commission=BigDecimal.ZERO,unknown=BigDecimal.ZERO,refunds=BigDecimal.ZERO,hold=BigDecimal.ZERO,promotion=BigDecimal.ZERO,sellerDelivery=BigDecimal.ZERO;
         String seller;
         Map<String,Object> result() {
             Map<String,Object> out=new LinkedHashMap<>();
             out.put("seller",seller==null?"All sellers":seller);out.put("paidMerchandise",money(booked));out.put("fulfilledSales",money(fulfilled));out.put("cancelledMerchandise",money(cancelled));out.put("commission",money(commission));out.put("unpricedLegacySales",money(unknown));out.put("refunds",money(refunds));out.put("refundHold",money(hold));out.put("promotionFees",money(promotion));
             out.put("refundedFulfilledSales",money(returned));
-            out.put("knownNetEarnings",money(fulfilled.subtract(returned).subtract(unknown).subtract(commission).subtract(hold).subtract(promotion)));
+            out.put("sellerPaidDelivery",money(sellerDelivery));
+            out.put("knownNetEarnings",money(fulfilled.subtract(returned).subtract(unknown).subtract(commission).subtract(hold).subtract(promotion).subtract(sellerDelivery)));
             return out;
         }
     }
@@ -74,6 +75,7 @@ public class MarketplaceFinanceService {
                 BigDecimal gross=units(line,line.getShippedQty());
                 BigDecimal returned=fullRefund?gross:BigDecimal.ZERO;
                 BigDecimal charge=com.mercato.Utils.CommissionMath.forUnits(line.getUnitPrice(),fullRefund?0:line.getShippedQty(),line.getCommissionRatePercent(),line.getCommissionCapPerItem());
+                BigDecimal delivery = fullRefund || line.getSellerDeliveryCharge() == null ? BigDecimal.ZERO : money(line.getSellerDeliveryCharge().multiply(BigDecimal.valueOf(line.getShippedQty())).divide(BigDecimal.valueOf(line.getOrderedQty()), 10, RoundingMode.HALF_UP));
                 BigDecimal unknown=line.getCommissionRatePercent()==null?gross.subtract(returned):BigDecimal.ZERO;
                 BigDecimal cancelled=units(line,line.getCancelledQty());
                 BigDecimal allocated=cancelValue.signum()==0?BigDecimal.ZERO:money(refundAmount.min(cancelValue).multiply(cancelled).divide(cancelValue,10,RoundingMode.HALF_UP));
@@ -81,9 +83,10 @@ public class MarketplaceFinanceService {
                 for(var dest:List.of(bucket,total)) {
                     dest.booked=dest.booked.add(line.getLineTotal());dest.fulfilled=dest.fulfilled.add(gross);dest.cancelled=dest.cancelled.add(cancelled);dest.commission=dest.commission.add(charge);dest.unknown=dest.unknown.add(unknown);dest.refunds=dest.refunds.add(allocated);dest.hold=dest.hold.add(hold);
                     dest.returned=dest.returned.add(returned);
+                    dest.sellerDelivery=dest.sellerDelivery.add(delivery);
                 }
                 if(ledger.size()<100) {
-                    Map<String,Object> row=new LinkedHashMap<>();row.put("orderId",order.getOrderId());row.put("product",line.getProductName());row.put("seller",line.getSellerName());row.put("fulfilled",gross);row.put("refunded",returned);row.put("commissionRate",line.getCommissionRatePercent());row.put("commissionCapPerItem",line.getCommissionCapPerItem());row.put("commission",charge);row.put("netBeforePromotions",line.getCommissionRatePercent()==null?null:money(gross.subtract(returned).subtract(charge).subtract(hold)));row.put("createdAt",order.getCreatedAt());ledger.add(row);
+                    Map<String,Object> row=new LinkedHashMap<>();row.put("orderId",order.getOrderId());row.put("product",line.getProductName());row.put("seller",line.getSellerName());row.put("fulfilled",gross);row.put("refunded",returned);row.put("commissionRate",line.getCommissionRatePercent());row.put("commissionCapPerItem",line.getCommissionCapPerItem());row.put("commission",charge);row.put("sellerPaidDelivery",delivery);row.put("netBeforePromotions",line.getCommissionRatePercent()==null?null:money(gross.subtract(returned).subtract(charge).subtract(hold).subtract(delivery)));row.put("createdAt",order.getCreatedAt());ledger.add(row);
                 }
             }
         }

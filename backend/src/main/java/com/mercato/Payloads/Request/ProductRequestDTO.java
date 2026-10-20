@@ -34,6 +34,8 @@ public class ProductRequestDTO {
     private BigDecimal widthCm;
     @DecimalMin("0.01") @DecimalMax("600") @Digits(integer = 3, fraction = 2)
     private BigDecimal heightCm;
+    // Omission preserves an existing listing's delivery policy.
+    private Boolean sellerPaysShipping;
 
     @AssertTrue(message = "Provide packed weight and all three dimensions together")
     public boolean isPackageComplete() {

@@ -1,5 +1,7 @@
 # Delivery, product measurements and commission — 19 October 2026
 
+Shipping prices and coverage below are historical evidence. [20 October follow-up](SELLER_DELIVERY_REVIEW.md) supersedes them with a ₹250 normal-delivery bag cap, seller-funded item shares, ₹49 expedited upgrade and the grouped-delivery explanation. Commission and package validation remain as described here.
+
 Frontend and backend follow-up on local `stg`. No remote branch or `main` changes. The pre-existing README and local configuration edits remain excluded.
 
 ## Customer-facing changes

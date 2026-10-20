@@ -119,16 +119,21 @@ class MarketplaceFinancePromotionTest {
     @Test @org.springframework.transaction.annotation.Transactional
     void cappedSnapshotIsSharedByFinanceAndPromotionFundingAndRefundReversal() throws Exception {
         String admin=login("reviewer","ReviewOnly!2026");
-        jdbc.update("update order_lines_snapshot set unit_price=200000, shipped_qty=2, line_total=400000, commission_rate_percent=0.5, commission_cap_per_item=500 where fulfillment_id='DEMO-FULFILLMENT-001'");
+        jdbc.update("update order_lines_snapshot set unit_price=200000, shipped_qty=2, line_total=400000, commission_rate_percent=0.5, commission_cap_per_item=500, seller_delivery_charge=250 where fulfillment_id='DEMO-FULFILLMENT-001'");
         entities.clear();
         var report=getReport(admin);
         assertEquals(0,new BigDecimal("1000").compareTo(report.get("totals").get("commission").decimalValue()));
-        assertEquals(0,new BigDecimal("399000").compareTo(report.get("totals").get("knownNetEarnings").decimalValue()));
-        mvc.perform(get("/api/seller/promotions").header("Authorization","Bearer "+admin)).andExpect(status().isOk()).andExpect(jsonPath("$.availableBudget").value(399000));
+        assertEquals(0,new BigDecimal("398750").compareTo(report.get("totals").get("knownNetEarnings").decimalValue()));
+        assertEquals(0,new BigDecimal("250").compareTo(report.get("totals").get("sellerPaidDelivery").decimalValue()));
+        mvc.perform(get("/api/seller/promotions").header("Authorization","Bearer "+admin)).andExpect(status().isOk()).andExpect(jsonPath("$.availableBudget").value(398750));
+        jdbc.update("update order_lines_snapshot set shipped_qty=1 where fulfillment_id='DEMO-FULFILLMENT-001'"); entities.clear();
+        assertEquals(0,new BigDecimal("125").compareTo(getReport(admin).get("totals").get("sellerPaidDelivery").decimalValue()));
+        mvc.perform(get("/api/seller/promotions").header("Authorization","Bearer "+admin)).andExpect(jsonPath("$.availableBudget").value(199375));
         var order=orders.findByOrderId("DEMO-EARNINGS-001").orElseThrow();
         order.getPayment().setRefund(Refund.builder().refundId("CAPPED-FULL-REFUND").payment(order.getPayment()).amount(order.getTotalAmount()).currency("INR").status(RefundStatus.SUCCESS).build());
         orders.flush();
         assertEquals(0,getReport(admin).get("totals").get("commission").decimalValue().signum());
+        assertEquals(0,getReport(admin).get("totals").get("sellerPaidDelivery").decimalValue().signum());
         mvc.perform(get("/api/seller/promotions").header("Authorization","Bearer "+admin)).andExpect(jsonPath("$.availableBudget").value(0));
     }
 }

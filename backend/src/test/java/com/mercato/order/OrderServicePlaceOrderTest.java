@@ -94,6 +94,7 @@ class OrderServicePlaceOrderTest {
 
         Cart cart = new Cart();
         cart.setCartItems(List.of(cartItem));
+        cartItem.setSellerDeliveryCharge(new BigDecimal("250.00"));
 
         Address address = new Address();
         address.setAddressId("ADR-1");
@@ -129,6 +130,7 @@ class OrderServicePlaceOrderTest {
         verify(orderRepository).save(captured.capture());
         org.junit.jupiter.api.Assertions.assertEquals(new BigDecimal("0.50"), captured.getValue().getOrderLines().get(0).getCommissionRatePercent());
         org.junit.jupiter.api.Assertions.assertEquals(new BigDecimal("500.00"), captured.getValue().getOrderLines().get(0).getCommissionCapPerItem());
+        org.junit.jupiter.api.Assertions.assertEquals(new BigDecimal("250.00"), captured.getValue().getOrderLines().get(0).getSellerDeliveryCharge());
         verify(cartReservationService, never()).release(any(CartItem.class));
         verify(cartService, never()).clearCart(any(CartContext.class));
         verify(cashfreeService).initiatePayment(any(Order.class), any(), any());

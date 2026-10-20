@@ -1,4 +1,13 @@
-Latest follow-up: [Delivery, package measurements and capped commission](PACKAGE_PRICING_REVIEW.md) — simplified delivery choices, validated packed weight/dimensions, configurable bulky delivery, 0.5% / ₹500-per-item commission, dropdown/mobile-dialog fixes and pointer cursors. Frontend: 36 tests, lint/build pass. Backend: 81 tests pass.
+Latest follow-up — 20 October 2026: [Capped delivery and seller funding](SELLER_DELIVERY_REVIEW.md). Standard/grouped delivery is capped at ₹250 per bag; sellers can cover their item shares, with ₹49 expedited upgrade. Grouped delivery explains its longer estimate. Finance includes captured seller delivery contributions. Backend: 87 tests pass. Frontend: 37 tests, lint/build pass. Browser bag/checkout and mobile evidence, additive SQL and limitations are linked there.
+
+- [x] Whole-bag cap remains ₹250 when bulky quantity increases (Browser and regression tests).
+- [x] Seller coverage saves through editor, review and persistence; PDP offer and free bag/checkout normal delivery (Browser and tests).
+- [x] Expedited ₹49 and grouped explanation; checkout totals/default address and method retention (Browser).
+- [x] Mixed covered/uncovered allocation, exact paise, price spoofing, explicit disable/omitted update, immutable contribution, partial shipment/full refund and promotion budget (backend tests).
+- [x] Narrow bag/checkout layouts at 320px, phone 390px, tablet 768px and desktop 1440px; no measured horizontal document overflow (Browser).
+- [ ] Live carrier/payment/email, bank settlement and PostgreSQL deployment remain unverified external integrations.
+
+Previous follow-up: [Delivery, package measurements and capped commission](PACKAGE_PRICING_REVIEW.md) — simplified delivery choices, validated packed weight/dimensions, configurable bulky delivery, 0.5% / ₹500-per-item commission, dropdown/mobile-dialog fixes and pointer cursors. Frontend: 36 tests, lint/build pass. Backend: 81 tests pass.
 
 Latest follow-up — 19 October 2026: [Compact timeframe editor, seller notice badge, field help and persistent catalog navigation](CONTROL_REFINEMENT_REVIEW.md). Frontend lint/build and 34 tests pass; Browser evidence and screenshots are linked there.
 

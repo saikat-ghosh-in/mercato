@@ -24,6 +24,7 @@ public class ProductResponseDTO {
     private BigDecimal lengthCm;
     private BigDecimal widthCm;
     private BigDecimal heightCm;
+    private boolean sellerPaysShipping;
     private String materials;
     private String care;
     private String warranty;

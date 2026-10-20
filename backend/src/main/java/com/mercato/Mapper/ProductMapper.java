@@ -35,6 +35,7 @@ public class ProductMapper {
                 .description(product.getDescription())
                 .brand(product.getBrand()).productCode(product.getProductCode())
                 .weightKg(product.getWeightKg()).lengthCm(product.getLengthCm()).widthCm(product.getWidthCm()).heightCm(product.getHeightCm())
+                .sellerPaysShipping(product.isSellerPaysShipping())
                 .materials(product.getMaterials()).care(product.getCare()).warranty(product.getWarranty())
                 .packageContents(product.getPackageContents()).deliveryReturns(product.getDeliveryReturns())
                 .highlights(new ArrayList<>(product.getHighlights()))
@@ -89,6 +90,7 @@ public class ProductMapper {
         updateDetails(product, dto);
     }
     private void updateDetails(Product product, ProductRequestDTO dto) {
+        if (dto.getSellerPaysShipping() != null) product.setSellerPaysShipping(dto.getSellerPaysShipping());
         if (dto.getWeightKg() != null) {
             product.setWeightKg(dto.getWeightKg()); product.setLengthCm(dto.getLengthCm());
             product.setWidthCm(dto.getWidthCm()); product.setHeightCm(dto.getHeightCm());

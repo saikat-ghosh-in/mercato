@@ -193,6 +193,11 @@ button,.button,a[class*="rounded-"] { border-radius:var(--radius-control); trans
 .rich-editor input,.rich-editor textarea { width:100%; border:1px solid #ddd; border-radius:6px; padding:12px; font-size:14px; }
 .rich-editor textarea { min-height:100px; }
 .rich-editor small { color:#666; font-size:12px; }
+.rich-editor .seller-delivery-choice { display:flex; align-items:flex-start; gap:12px; padding:18px; border:1px solid #dfe4eb; border-radius:8px; background:#f7f9fc; }
+.rich-editor .seller-delivery-choice input { width:18px; height:18px; padding:0; margin-top:2px; flex-shrink:0; }
+.seller-delivery-choice strong { display:block; font-size:14px; font-weight:550; margin-bottom:6px; }
+.seller-delivery-choice small { display:block; line-height:1.65; }
+.pdp-delivery-offer { font-size:13px; color:#415870; margin:-12px 0 20px; }
 .route-loading { min-height:55svh; padding-block:64px; }
 .route-loading div { height:18px; width:240px; margin-block:24px; background:#f4f4f4; }
 .route-loading div:last-child { width:100%; height:280px; }

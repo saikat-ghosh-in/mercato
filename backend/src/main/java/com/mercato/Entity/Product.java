@@ -108,6 +108,9 @@ public class Product {
     private BigDecimal widthCm;
     @Column(precision = 8, scale = 2)
     private BigDecimal heightCm;
+    @Builder.Default
+    @Column(nullable = false)
+    private boolean sellerPaysShipping = false;
     @Column(columnDefinition = "TEXT")
     private String materials;
     @Column(columnDefinition = "TEXT")

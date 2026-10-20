@@ -34,6 +34,8 @@ class MarketplaceJourneyTest {
     @Autowired CommissionSettingsRepository settings; @Autowired CommissionChangeRepository changes;
     @Autowired SellerNoticeRepository notices; @Autowired SellerNoticeMailer mailer; @Autowired CommissionService commissions;
     @MockitoBean JavaMailSender mail;
+    @Autowired org.springframework.jdbc.core.JdbcTemplate jdbc;
+    @Autowired jakarta.persistence.EntityManager entities;
     static AtomicLong phones = new AtomicLong(8880000000L);
 
     @BeforeEach void resetRates() {
@@ -89,7 +91,7 @@ class MarketplaceJourneyTest {
         assertEquals("STANDARD", standard.get("deliveryMethod").asText());
         assertEquals(new BigDecimal("50.00"), standard.get("deliveryOptions").get(0).get("price").decimalValue().setScale(2));
         mvc.perform(put("/api/cart/delivery-method").header("Authorization", "Bearer " + guest).contentType(MediaType.APPLICATION_JSON).content("{\"deliveryMethod\":\"EXPEDITED\",\"price\":0}"))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.deliveryMethod").value("EXPEDITED")).andExpect(jsonPath("$.total").value(1060));
+                .andExpect(status().isOk()).andExpect(jsonPath("$.deliveryMethod").value("EXPEDITED")).andExpect(jsonPath("$.total").value(1010));
         mvc.perform(get("/api/cart").header("Authorization", "Bearer " + guest)).andExpect(jsonPath("$.deliveryMethod").value("EXPEDITED"));
         mvc.perform(put("/api/cart/delivery-method").header("Authorization", "Bearer " + guest).contentType(MediaType.APPLICATION_JSON).content("{\"deliveryMethod\":\"FREE_INVENTED\"}")).andExpect(status().isBadRequest());
         mvc.perform(put("/api/cart/delivery-method").header("Authorization", "Bearer " + guest).contentType(MediaType.APPLICATION_JSON).content("{\"deliveryMethod\":\"CONSOLIDATED\"}"))
@@ -100,11 +102,28 @@ class MarketplaceJourneyTest {
         var catalog=json.readTree(mvc.perform(get("/api/public/products").param("pageSize","50")).andReturn().getResponse().getContentAsString());
         String chair=java.util.stream.StreamSupport.stream(catalog.get("content").spliterator(),false).filter(p->p.get("productName").asText().equals("Linen lounge chair")).findFirst().orElseThrow().get("productId").asText();
         var response=mvc.perform(post("/api/cart/add").contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(Map.of("cartItems",List.of(Map.of("productId",chair,"quantity",2))))))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.deliveryOptions[0].price").value(1100)).andExpect(jsonPath("$.deliveryOptions[0].bulkyItemSurcharge").value(1100)).andReturn();
+                .andExpect(status().isOk()).andExpect(jsonPath("$.deliveryOptions[0].price").value(250)).andExpect(jsonPath("$.deliveryOptions[0].bulkyItemSurcharge").value(250)).andReturn();
         String guest=response.getResponse().getHeader("X-Guest-Token");
         mvc.perform(put("/api/cart/delivery-method").header("Authorization","Bearer "+guest).contentType(MediaType.APPLICATION_JSON).content("{\"deliveryMethod\":\"EXPEDITED\",\"price\":0,\"bulkyItemSurcharge\":0}"))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.deliveryOptions[1].price").value(1199));
-        mvc.perform(get("/api/cart").header("Authorization","Bearer "+guest)).andExpect(status().isOk()).andExpect(jsonPath("$.deliveryOptions[1].price").value(1199));
+                .andExpect(status().isOk()).andExpect(jsonPath("$.deliveryOptions[1].price").value(299));
+        mvc.perform(get("/api/cart").header("Authorization","Bearer "+guest)).andExpect(status().isOk()).andExpect(jsonPath("$.deliveryOptions[1].price").value(299));
+    }
+
+    @Test @org.springframework.transaction.annotation.Transactional
+    void sellerCoverageComesOnlyFromTheListingAndRefreshesServerQuotes() throws Exception {
+        var catalog=json.readTree(mvc.perform(get("/api/public/products").param("pageSize","50")).andReturn().getResponse().getContentAsString());
+        String chair=java.util.stream.StreamSupport.stream(catalog.get("content").spliterator(),false).filter(p->p.get("productName").asText().equals("Linen lounge chair")).findFirst().orElseThrow().get("productId").asText();
+        var response=mvc.perform(post("/api/cart/add").contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(Map.of("cartItems",List.of(Map.of("productId",chair,"quantity",1,"sellerPaysShipping",true))))))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.deliveryOptions[0].price").value(250)).andReturn();
+        String guest=response.getResponse().getHeader("X-Guest-Token");
+        jdbc.update("update products set seller_pays_shipping=true where product_id=?",chair); entities.clear();
+        mvc.perform(get("/api/public/products/"+chair)).andExpect(jsonPath("$.sellerPaysShipping").value(true));
+        mvc.perform(get("/api/cart").header("Authorization","Bearer "+guest)).andExpect(jsonPath("$.deliveryOptions[0].price").value(0))
+            .andExpect(jsonPath("$.deliveryOptions[0].sellerPaidStandard").value(true)).andExpect(jsonPath("$.deliveryOptions[1].price").value(49));
+        mvc.perform(put("/api/cart/delivery-method").header("Authorization","Bearer "+guest).contentType(MediaType.APPLICATION_JSON).content("{\"deliveryMethod\":\"EXPEDITED\",\"price\":0}"))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.total").value(11110.15));
+        jdbc.update("update products set seller_pays_shipping=false where product_id=?",chair); entities.clear();
+        mvc.perform(get("/api/cart").header("Authorization","Bearer "+guest)).andExpect(jsonPath("$.deliveryOptions[0].price").value(250)).andExpect(jsonPath("$.deliveryOptions[1].price").value(299));
     }
 
     @Test void administratorsAreImmutableAndSellerRolesCannotBypassApproval() throws Exception {

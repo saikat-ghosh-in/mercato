@@ -1,4 +1,6 @@
-Latest follow-up: [Delivery, package measurements and capped commission](docs/PACKAGE_PRICING_REVIEW.md) — simplified delivery choices, validated packed weight/dimensions, configurable bulky delivery, 0.5% / ₹500-per-item commission, dropdown/mobile-dialog fixes and pointer cursors. Frontend: 36 tests, lint/build pass. Backend: 81 tests pass.
+Latest follow-up — 20 October 2026: [Capped delivery and seller funding](docs/SELLER_DELIVERY_REVIEW.md). Standard/grouped delivery is capped at ₹250 per bag; sellers can cover their item shares, with ₹49 expedited upgrade. Grouped delivery explains its longer estimate. Finance includes captured seller delivery contributions. Backend: 87 tests pass. Frontend: 37 tests, lint/build pass. Browser bag/checkout and mobile evidence, additive SQL and limitations are linked there.
+
+Previous follow-up: [Delivery, package measurements and capped commission](docs/PACKAGE_PRICING_REVIEW.md) — simplified delivery choices, validated packed weight/dimensions, configurable bulky delivery, 0.5% / ₹500-per-item commission, dropdown/mobile-dialog fixes and pointer cursors. Frontend: 36 tests, lint/build pass. Backend: 81 tests pass.
 
 Latest follow-up — 19 October 2026: [Compact timeframe editor, seller notice badge, field help and persistent catalog navigation](docs/CONTROL_REFINEMENT_REVIEW.md). Frontend lint/build and 34 tests pass; Browser evidence and screenshots are linked there.
 

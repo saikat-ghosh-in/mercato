@@ -42,6 +42,7 @@ function ProductContent({ productId }) {
         <h1>{product.productName}</h1><Link className="pdp-subtitle" to={"/products?category=" + encodeURIComponent(product.categoryName)}>{product.categoryName}</Link>
         <p className="product-price"><strong>{formatCurrency(product.sellingPrice)}</strong>{product.discountPercent > 0 && <><del>{formatCurrency(product.retailPrice)}</del><span>{product.discountPercent}% off</span></>}</p><p className="tax-note">Inclusive of applicable taxes</p>
         <p className="pdp-availability">{inStock ? "In stock" : "Currently sold out"}</p>
+        {product.sellerPaysShipping && <p className="pdp-delivery-offer">Free standard delivery for this item.</p>}
         <AddToCartControl product={product} className="w-full" />
         <WishlistToggle productId={productId} />
         {product.highlights?.length > 0 && <ul className="pdp-highlights">{product.highlights.map((text, i) => <li key={i}>{text}</li>)}</ul>}

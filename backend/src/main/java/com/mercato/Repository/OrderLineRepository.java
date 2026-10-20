@@ -19,7 +19,8 @@ public interface OrderLineRepository extends JpaRepository<OrderLine, Long> {
     @Query("""
         select coalesce(sum(l.unitPrice * l.shippedQty -
           case when l.commissionCapPerItem is null then round(l.unitPrice * l.shippedQty * l.commissionRatePercent / 100, 2)
-          else least(round(l.unitPrice * l.commissionRatePercent / 100, 2), l.commissionCapPerItem) * l.shippedQty end),0)
+          else least(round(l.unitPrice * l.commissionRatePercent / 100, 2), l.commissionCapPerItem) * l.shippedQty end
+          - coalesce(round(l.sellerDeliveryCharge * l.shippedQty / l.orderedQty, 2),0)),0)
         from OrderLine l where l.sellerEmail = :email and l.commissionRatePercent is not null
           and l.order.paymentStatus = com.mercato.Entity.fulfillment.payment.PaymentStatus.SUCCESS
           and l.order.inventoryFinalizationFailed = false and l.order.payment.refund is null

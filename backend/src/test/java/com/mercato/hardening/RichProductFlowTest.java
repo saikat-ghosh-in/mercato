@@ -53,12 +53,14 @@ class RichProductFlowTest {
         body.put("highlights", List.of("A verified highlight", "Another useful detail"));
         body.put("specifications", List.of(Map.of("label","Material","value","Cotton"), Map.of("label","Care","value","Hand wash")));
         body.put("care", "Wash gently.");
+        body.put("sellerPaysShipping", true);
         body.putAll(Map.of("weightKg", "6.125", "lengthCm", "30.25", "widthCm", "20", "heightCm", "15"));
         mvc.perform(put("/api/seller/products/" + id).header("Authorization","Bearer " + token)
             .contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(body)))
             .andExpect(status().isOk());
         mvc.perform(get("/api/public/products/" + id)).andExpect(status().isOk())
             .andExpect(jsonPath("$.brand").value("Review Brand"))
+            .andExpect(jsonPath("$.sellerPaysShipping").value(true))
             .andExpect(jsonPath("$.weightKg").value(6.125))
             .andExpect(jsonPath("$.lengthCm").value(30.25))
             .andExpect(jsonPath("$.highlights[1]").value("Another useful detail"))
@@ -67,13 +69,18 @@ class RichProductFlowTest {
 
         body.remove("brand"); body.remove("highlights"); body.remove("specifications"); body.remove("care");
         body.remove("physicalQty"); // Catalogue updates must not overwrite inventory.
+        body.remove("sellerPaysShipping");
         body.remove("weightKg"); body.remove("lengthCm"); body.remove("widthCm"); body.remove("heightCm");
         mvc.perform(put("/api/seller/products/" + id).header("Authorization","Bearer " + token)
             .contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(body)))
             .andExpect(status().isOk()).andExpect(jsonPath("$.brand").value("Review Brand"))
             .andExpect(jsonPath("$.highlights.length()").value(2))
             .andExpect(jsonPath("$.weightKg").value(6.125))
+            .andExpect(jsonPath("$.sellerPaysShipping").value(true))
             .andExpect(jsonPath("$.physicalQty").value(25));
+        body.put("sellerPaysShipping", false);
+        mvc.perform(put("/api/seller/products/" + id).header("Authorization","Bearer " + token).contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(body)))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.sellerPaysShipping").value(false));
         body.put("weightKg", -1);
         mvc.perform(put("/api/seller/products/" + id).header("Authorization","Bearer " + token).contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(body))).andExpect(status().isBadRequest());
         body.put("weightKg", 2);
