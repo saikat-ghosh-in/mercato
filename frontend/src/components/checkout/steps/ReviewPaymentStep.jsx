@@ -1,5 +1,6 @@
+import ActionArrow from "../../shared/ActionArrow";
 import { Link } from "react-router-dom";
-import { FiArrowUpRight, FiCreditCard, FiLock, FiPackage } from "react-icons/fi";
+import { FiCreditCard, FiLock, FiPackage } from "react-icons/fi";
 import { formatCurrency } from "../../../utils/formatCurrency";
 import DeliveryDetails from "../DeliveryDetails";
 import DeliveryMethods from "../../shared/DeliveryMethods";
@@ -13,6 +14,6 @@ export default function ReviewPaymentStep({ selectedAddress, cartWithProducts, o
     <ul className="checkout-review-items">{cartWithProducts.map(item => <li key={item.productId}><Link className="checkout-item-image" to={`/products/${item.productId}`} aria-label={`View ${item.product?.productName || "product"}`}>{item.product?.primaryImageUrl ? <img src={item.product.primaryImageUrl} alt="" width="96" height="112" /> : <FiPackage />}</Link><div className="checkout-item-info"><Link to={`/products/${item.productId}`}>{item.product?.productName || "Product information unavailable"}</Link>{item.product?.sellerName && <p>Sold by {item.product.sellerName}</p>}<p>Quantity {item.quantity}</p><strong>{formatCurrency(item.lineTotal)}</strong></div></li>)}</ul>
     <section className="checkout-payment-card"><div className="checkout-payment-mark"><FiCreditCard aria-hidden="true" /><span>Pay securely with Cashfree<span>Choose your payment method on the next screen</span></span><FiLock aria-hidden="true" /></div><div className="checkout-payment-amount"><span>Amount to pay</span><strong>{formatCurrency(total)}</strong></div></section>
     {error && <div className="checkout-payment-error" role="alert"><strong>We couldn’t start your payment.</strong><p>{error}</p><p>Your details are retained. Please try again.</p></div>}
-    <div className="checkout-step-actions"><Link className="button checkout-back" to="/cart">Back to bag</Link><button className="button button-dark button-prominent checkout-pay" onClick={onSubmit} disabled={loading || disabled} aria-busy={loading}><span>Continue to Cashfree</span>{loading ? <span className="checkout-spinner" aria-hidden="true" /> : <FiArrowUpRight aria-hidden="true" />}</button></div><p className="sr-only" role="status">{loading ? "Preparing your secure payment…" : ""}</p>
+    <div className="checkout-step-actions"><Link className="button checkout-back" to="/cart">Back to bag</Link><button className="button button-dark button-prominent checkout-pay" onClick={onSubmit} disabled={loading || disabled} aria-busy={loading}><span>Continue to Cashfree</span>{loading ? <span className="checkout-spinner" aria-hidden="true" /> : <ActionArrow aria-hidden="true" />}</button></div><p className="sr-only" role="status">{loading ? "Preparing your secure payment…" : ""}</p>
   </>;
 }

@@ -1,4 +1,11 @@
-Latest follow-up — 20 October 2026: [Account access and refined user management](ROLE_ACCESS_REVIEW.md).
+Latest follow-up — 20 October 2026: [Shared seller/admin interface and navigation arrows](SELLER_INTERFACE_REVIEW.md).
+
+- [x] Shared dashboard frame, 24px headings, neutral tabs and 36px/44px navigation targets; admin/seller geometry compared in Browser.
+- [x] Seller overview, catalog/inventory, fulfillment history, promotions and notices checked on desktop/mobile; no measured page overflow in tested 320/390/768/1440px views.
+- [x] Mobile menu keyboard focus, query preservation and browser Back; product form open/dismiss and reference-style arrow navigation checked.
+- [x] Frontend 43 tests, lint/build and Taste source checks pass. No backend/schema change in this follow-up.
+
+Previous follow-up — 20 October 2026: [Account access and refined user management](ROLE_ACCESS_REVIEW.md).
 
 - [x] Protected admins, mandatory reasons, base User role, stale-version rejection and append-only access decisions (backend regressions).
 - [x] Admin deactivation cannot be bypassed by login; voluntary pause requires the correct password; old sessions stay revoked after restoration (backend regressions).

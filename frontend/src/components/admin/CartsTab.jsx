@@ -1,7 +1,8 @@
+import ActionArrow from "../shared/ActionArrow";
 import { useEffect, useState } from "react";
 import {
     MdSearch, MdClose, MdShoppingCart,
-    MdArrowBack, MdArrowForward, MdPerson,
+    MdArrowBack, MdPerson,
 } from "react-icons/md";
 import toast from "react-hot-toast";
 import api from "../../backend/api";
@@ -228,7 +229,7 @@ const CartsTab = () => {
                                         {c.cartItems?.length ?? 0} item{(c.cartItems?.length ?? 0) !== 1 ? "s" : ""}
                                     </td>
                                     <td className="px-4 py-3 text-sm font-black text-gray-900">{formatCurrency(c.total)}</td>
-                                    <td className="px-4 py-3"><MdArrowForward size={14} className="text-gray-300" /></td>
+                                    <td className="px-4 py-3"><ActionArrow size={14} className="text-gray-300" /></td>
                                 </tr>
                             ))}
                         </tbody>

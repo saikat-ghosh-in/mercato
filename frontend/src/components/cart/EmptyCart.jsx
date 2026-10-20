@@ -1,6 +1,6 @@
+import ActionArrow from "../shared/ActionArrow";
 import { useNavigate } from "react-router-dom";
 import { MdShoppingCart } from "react-icons/md";
-import { FiArrowRight } from "react-icons/fi";
 
 const SUGGESTIONS = [
     { label: "Electronics",   emoji: "💻" },
@@ -37,7 +37,7 @@ const EmptyCart = () => {
                 onClick={() => navigate("/products")}
                 className="control inline-flex items-center gap-2 bg-blue-500 hover:bg-blue-600 active:scale-[0.98] text-white font-bold px-6 py-3 rounded-xl text-sm transition-[transform,opacity,background-color] shadow-sm cursor-pointer mb-10"
             >
-                Start Shopping <FiArrowRight size={16} />
+                Start Shopping <ActionArrow size={16} />
             </button>
 
             {/* Category suggestions */}

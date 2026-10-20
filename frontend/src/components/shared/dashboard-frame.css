@@ -1,0 +1,35 @@
+.dashboard-frame { background: #fff; color: #171717; min-height: 60svh; }
+.dashboard-container { max-width: 1280px; margin: 0 auto; padding: 24px 32px 48px; }
+.dashboard-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 24px; }
+.dashboard-header > div { min-width: 0; }
+.app-page .dashboard-header h1 { font-size: 24px; font-weight: 600; line-height: 1.25; letter-spacing: -.5px; margin: 0 0 6px; }
+.dashboard-header p { font-size: 13px; line-height: 1.6; color: #5f6368; overflow-wrap: anywhere; }
+.dashboard-header .dashboard-menu-toggle { display: none; }
+.dashboard-tabs { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; margin-bottom: 24px; }
+.dashboard-tabs > button { display: inline-flex; align-items: center; justify-content: flex-start; gap: 8px; min-height: 36px; padding: 0 12px; border-radius: 8px; font-size: 13px; font-weight: 500; color: #5f6368; cursor: pointer; transition: color 140ms ease, background-color 140ms ease, transform 140ms var(--ease-out); }
+.dashboard-tabs > button > svg { width: 16px; height: 16px; flex: none; }
+.dashboard-tabs > button[aria-pressed=true] { background: #eee; color: #171717; }
+.dashboard-tabs > button:focus-visible, .dashboard-menu-toggle:focus-visible { outline: 2px solid #171717; outline-offset: 3px; }
+.dashboard-header h1:focus { outline: none; }
+.dashboard-header h1:focus-visible { outline: 2px solid #171717; outline-offset: 4px; border-radius: 4px; }
+.dashboard-tabs > button:active { transform: scale(.98); }
+.dashboard-notice-count { min-width: 20px; padding: 2px 5px; border-radius: 4px; background: #e3ecf9; color: #1b416d; text-align: center; font-size: 11px; font-variant-numeric: tabular-nums; }
+.dashboard-content { min-width: 0; }
+.dashboard-content .finance-heading h2 { font-size: 24px; }
+.dashboard-stat-label, .dashboard-stat-detail { color: #5f6368; font-size: 13px; line-height: 1.6; }
+.dashboard-stat-value { margin: 12px 0 4px; font-size: 24px; font-weight: 600; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.dashboard-section-heading { margin-bottom: 16px; font-size: 16px; font-weight: 500; line-height: 1.5; }
+.dashboard-content table th { font-size: 12px; font-weight: 500; text-transform: none; letter-spacing: 0; color: #5f6368; }
+.dashboard-content .dashboard-search { min-width: min(100%, 240px); }
+@media (hover: hover) and (pointer: fine) { .dashboard-tabs > button:hover { color: #171717; background: #f5f5f5; } .dashboard-tabs > button[aria-pressed=true]:hover { background: #e8e8e8; } }
+@media (max-width: 1023px) {
+  .dashboard-container { padding-inline: 24px; }
+  .dashboard-header .dashboard-menu-toggle { display: inline-flex; width: 44px; height: 44px; flex: none; border: 1px solid #e8e8e8; }
+  .dashboard-tabs { display: none; }
+  .dashboard-tabs[data-open] { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 8px; }
+  .dashboard-tabs > button { min-height: 44px; }
+}
+@media (max-width: 639px) { .dashboard-container { padding: 24px 16px 40px; } .dashboard-header { align-items: flex-start; } .dashboard-tabs[data-open] { grid-template-columns: minmax(0,1fr); } }
+@media (prefers-reduced-motion: reduce) { .dashboard-tabs > button,.dashboard-tabs > button:active { transition: none; transform: none; } }
+html[data-input=keyboard] .dashboard-tabs > button { transition: none; }
+html[data-input=keyboard] .dashboard-tabs > button:active { transform: none; }

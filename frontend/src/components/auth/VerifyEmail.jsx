@@ -1,6 +1,7 @@
+import ActionArrow from "../shared/ActionArrow";
 import { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { MdCheckCircle, MdCancel, MdHourglassEmpty, MdArrowForward, MdEmail, MdRefresh } from "react-icons/md";
+import { MdCheckCircle, MdCancel, MdHourglassEmpty, MdEmail, MdRefresh } from "react-icons/md";
 import toast from "react-hot-toast";
 import api from "../../backend/api";
 
@@ -94,7 +95,7 @@ const VerifyEmail = () => {
                         onClick={() => navigate("/login")}
                         className="w-full flex items-center justify-center gap-2 py-3 text-sm font-bold bg-gray-950 hover:bg-gray-800 text-white rounded-xl transition-[transform,opacity,background-color] cursor-pointer active:scale-[0.98]"
                     >
-                        Go to Login <MdArrowForward size={15} />
+                        Go to Login <ActionArrow size={15} />
                     </button>
                 )}
 

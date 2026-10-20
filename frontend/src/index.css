@@ -23,6 +23,13 @@
   button { transition:transform 140ms cubic-bezier(.23,1,.32,1),background-color 140ms ease; }
 }
 :root { --ease-out:cubic-bezier(.23,1,.32,1); --ease-drawer:cubic-bezier(.32,.72,0,1); --radius-control:8px; --radius-panel:10px; --radius-small:4px; --site-header-height:72px; --catalog-toolbar-height:72px; }
+/* Small, quiet navigation arrows brighten with their parent; no independent animation or target. */
+.action-arrow,.button .action-arrow,.text-link .action-arrow { width:16px; height:16px; flex:none; color:#737373; transition:color 180ms ease,opacity 180ms ease; }
+.button-dark .action-arrow { color:inherit; opacity:.75; }
+a:focus-visible .action-arrow,button:focus-visible .action-arrow { color:inherit; opacity:1; transition:none; }
+@media (hover:hover) and (pointer:fine) { a:hover .action-arrow,button:enabled:hover .action-arrow { color:inherit; opacity:1; } .dashboard-content tr:hover .action-arrow { color:#171717; } }
+@media (prefers-reduced-motion:reduce) { .action-arrow,.button .action-arrow,.text-link .action-arrow { transition:none; } }
+html[data-input=keyboard] .action-arrow { transition:none; }
 /* Unlayered so framework resets cannot turn enabled actions into text cursors. */
 button:enabled,.button[href],a[href],[role="button"]:not([aria-disabled="true"]),input[type="button"]:enabled,input[type="submit"]:enabled { cursor:pointer; }
 button:disabled,[aria-disabled="true"],input[type="button"]:disabled,input[type="submit"]:disabled { cursor:not-allowed; }
@@ -886,7 +893,7 @@ span.rounded-full,.catalog-filter-chips>span { border-radius:var(--radius-small)
 .application-review>p { font-size:12px; line-height:1.8; color:#777; margin-bottom:24px; }
 .application-review .policy-acknowledgment,.application-review .review-note { margin-block:24px; }
 .management-page .lg\:flex.flex-col.lg\:flex-row { flex-wrap:wrap; }
-@media (hover:hover) and (pointer:fine) { .account-destinations>a:hover { background:#f6f8fb; } }
+@media (hover:hover) and (pointer:fine) { .account-destinations>a:hover,.explore-categories>a:hover { background:white; border-color:#c9cdd1; } }
 @media (max-width:1023px),(pointer:coarse) {
  .card-purchase { min-height:44px; }
  .registration-input,.commission-form input,.commission-form textarea,.review-note textarea { font-size:16px; }

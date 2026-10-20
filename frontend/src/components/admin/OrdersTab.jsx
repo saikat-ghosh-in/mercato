@@ -1,8 +1,9 @@
+import ActionArrow from "../shared/ActionArrow";
 import SelectControl from "../shared/SelectControl";
 import ModalFrame from "../shared/ModalFrame";
 import { useCallback, useEffect, useState } from "react";
 import {
-    MdSearch, MdClose, MdArrowBack, MdArrowForward,
+    MdSearch, MdClose, MdArrowBack,
     MdCheckCircle, MdCancel, MdHourglassEmpty,
     MdAccessTime, MdWarning, MdShoppingBag,
     MdLocationOn, MdPayment, MdContentCopy,
@@ -344,7 +345,7 @@ const OrdersTab = () => {
                                         <td className="px-4 py-3 text-sm font-black text-gray-900">{formatCurrency(o.totalAmount)}</td>
                                         <td className="px-4 py-3 text-xs text-gray-400">{formatDate(o.createdAt)}</td>
                                         <td className="px-4 py-3">
-                                            <MdArrowForward size={14} className="text-gray-300" />
+                                            <ActionArrow size={14} className="text-gray-300" />
                                         </td>
                                     </tr>
                                 );

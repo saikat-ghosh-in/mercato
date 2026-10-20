@@ -1,7 +1,8 @@
+import ActionArrow from "../shared/ActionArrow";
 import { useCallback, useEffect, useState } from "react";
 import {
   MdLocalShipping, MdCheckCircle, MdAccessTime,
-  MdCancel, MdHourglassEmpty, MdArrowForward,
+  MdCancel, MdHourglassEmpty,
   MdArrowBack, MdClose, MdPerson,
   MdLocationOn, MdSearch,
 } from "react-icons/md";
@@ -234,7 +235,7 @@ const FulfillmentCard = ({ fo, onClick }) => {
           <p className="text-sm font-bold text-gray-900">{fo.fulfillmentId}</p>
           <p className="text-[11px] text-gray-400 mt-0.5">Order #{fo.orderId}</p>
         </div>
-        <MdArrowForward size={16} className="text-gray-300 group-hover:text-blue-500 transition-colors shrink-0 mt-0.5" />
+        <ActionArrow size={16} className="text-gray-300 group-hover:text-blue-500 transition-colors shrink-0 mt-0.5" />
       </div>
 
       <div className="flex items-center gap-3 text-[11px] text-gray-500 mb-3">

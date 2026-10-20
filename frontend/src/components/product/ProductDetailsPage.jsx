@@ -1,7 +1,7 @@
+import ActionArrow from "../shared/ActionArrow";
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { FiArrowRight } from "react-icons/fi";
 import { setProductToDisplay } from "../../reduxStore/actions/productActions";
 import { formatCurrency } from "../../utils/formatCurrency";
 import ProductCard from "./ProductCard";
@@ -52,7 +52,7 @@ function ProductContent({ productId }) {
         {!product.deliveryReturns && <p className="tax-note mt-6">Delivery charges are shown in your bag. <Link to="/help" className="text-link">Shopping help</Link></p>}
       </section>
     </div>
-    {related.length > 0 && <section className="pdp-related"><div className="section-heading"><h2>You might also like</h2><Link className="text-link" to={"/products?category=" + encodeURIComponent(product.categoryName)}>See all <FiArrowRight /></Link></div><div className="product-grid">{related.map(p => <ProductCard product={p} key={p.productId} />)}</div></section>}
+    {related.length > 0 && <section className="pdp-related"><div className="section-heading"><h2>You might also like</h2><Link className="text-link" to={"/products?category=" + encodeURIComponent(product.categoryName)}>See all <ActionArrow /></Link></div><div className="product-grid">{related.map(p => <ProductCard product={p} key={p.productId} />)}</div></section>}
   </div>;
 }
 export default function ProductDetailsPage() {

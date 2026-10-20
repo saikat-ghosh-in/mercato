@@ -1,3 +1,4 @@
+import ActionArrow from "../shared/ActionArrow";
 import { Link } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { FiArrowLeft, FiArrowRight, FiShield, FiShoppingBag } from "react-icons/fi";
@@ -22,7 +23,7 @@ export default function Cart() {
   return <div className="site-container pb-16">
     <div className="page-heading"><p className="eyebrow"><Link to="/">HOME</Link> / YOUR BAG</p><h1>Bag</h1><p>{qty} item{qty === 1 ? "" : "s"} in your shopping bag.</p></div>
     {cartError && <div className="state-panel mb-6" role="alert"><h3>Your bag couldn’t be refreshed.</h3><p>{cartError}</p><button className="button button-dark" onClick={() => dispatch(syncCartFromBackend())}>Refresh bag</button></div>}
-    {!cartLoaded && items.length === 0 ? <div className="state-panel" role="status">Loading your bag…</div> : items.length === 0 ? <div className="state-panel"><FiShoppingBag /><h3>Make room for something good.</h3><p>Your bag is waiting for its first favourite.</p><Link className="button button-dark" to="/products">Explore the collection <FiArrowRight /></Link></div>
+    {!cartLoaded && items.length === 0 ? <div className="state-panel" role="status">Loading your bag…</div> : items.length === 0 ? <div className="state-panel"><FiShoppingBag /><h3>Make room for something good.</h3><p>Your bag is waiting for its first favourite.</p><Link className="button button-dark" to="/products">Explore the collection <ActionArrow /></Link></div>
       : <div className="bag-layout">
         <section className="bag-items" aria-label="Shopping bag items" aria-busy={cartLoading}>
           {enriched.map(item => <CartItem key={item.productId} productId={item.productId} product={item.product} />)}

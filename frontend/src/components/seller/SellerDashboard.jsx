@@ -1,9 +1,10 @@
+import DashboardFrame from "../shared/DashboardFrame";
+import { activeDashboardTab, dashboardParams } from "../../utils/dashboardNavigation";
 import PromotionsTab from "./PromotionsTab";
-import { useState } from "react";
 import { useSelector } from "react-redux";
 import {
   MdDashboard, MdInventory, MdLocalShipping,
-  MdStorefront, MdMenu, MdClose,
+  MdStorefront,
 } from "react-icons/md";
 import SellerOverviewTab from "./SellerOverviewTab";
 import ProductsTab from "../shared/ProductsTab";
@@ -23,8 +24,7 @@ const NAV = [
 
 const SellerDashboard = () => {
   const [params, setParams] = useSearchParams();
-  const activeTab = NAV.some(item => item.id === params.get("tab")) ? params.get("tab") : "overview";
-  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const activeTab = activeDashboardTab(NAV, params);
   const user = useSelector(s => s.auth?.userDetails);
   const inbox = useSellerNotices(Boolean(user?.roles?.some(role => ["ROLE_SELLER", "ROLE_ADMIN"].includes(role))));
   if (["PENDING", "REJECTED"].includes(user?.sellerStatus) && !user?.roles?.includes("ROLE_ADMIN")) return <SellerApplicationStatus user={user} />;
@@ -40,56 +40,10 @@ const SellerDashboard = () => {
     }
   };
 
-  return (
-    <div className="bg-gray-50 min-h-screen">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-
-        {/* Header */}
-        <div className="flex items-center gap-3 mb-6">
-          <div className="p-2 bg-blue-50 rounded-xl">
-            <MdStorefront size={20} className="text-blue-500" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-gray-900">Seller Dashboard</h1>
-            <p className="text-xs text-gray-500 mt-0.5">
-              {user?.sellerDisplayName ?? user?.username}
-            </p>
-          </div>
-          {/* Mobile nav toggle */}
-          <button
-            className="dashboard-nav-toggle icon-action ml-auto lg:hidden p-2 rounded-xl bg-white border border-gray-100 text-gray-500"
-            aria-label="Toggle dashboard navigation" aria-expanded={mobileNavOpen} onClick={() => setMobileNavOpen(v => !v)}
-          >
-            {mobileNavOpen ? <MdClose size={18} /> : <MdMenu size={18} />}
-          </button>
-        </div>
-
-        {/* Tab nav */}
-        <div className={`${mobileNavOpen ? "flex" : "hidden"} lg:flex flex-col lg:flex-row gap-1 surface p-1.5 mb-6`}>
-          {NAV.map(({ id, label, icon: Icon }) => (
-            <button
-              key={id}
-              aria-pressed={activeTab === id}
-              aria-label={id === "notices" && inbox.unread ? `Seller notices, ${inbox.unread} unread` : label}
-              onClick={() => { setParams(id === "overview" ? {} : { tab: id }); setMobileNavOpen(false); }}
-              className={`control flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-[transform,opacity,background-color] cursor-pointer flex-1 justify-center lg:justify-start ${activeTab === id
-                  ? "bg-gray-950 text-white shadow-sm"
-                  : "text-gray-500 hover:bg-gray-50 hover:text-gray-800"
-                }`}
-            >
-              <Icon size={16} />
-              {label}
-              {id === "notices" && inbox.unread > 0 && <span className="notice-count" aria-hidden="true">{inbox.unread > 99 ? "99+" : inbox.unread}</span>}
-            </button>
-          ))}
-        </div>
-
-        {/* Tab content */}
-        {user?.sellerSuspended && <section className="surface p-4 mb-5" role="status"><h2 className="text-base font-semibold">Selling is suspended</h2><p className="text-sm text-gray-600 mt-2">Your listings are hidden. New listings and promotions are unavailable. You can still manage existing orders, view earnings and use your shopper account. Contact support through Help for assistance.</p></section>}
-        {renderTab()}
-      </div>
-    </div>
-  );
+  return <DashboardFrame title="Seller dashboard" subtitle={user?.sellerDisplayName || user?.username} items={NAV.map(item => ({ ...item, count: item.id === "notices" ? inbox.unread : 0 }))} activeTab={activeTab} onSelect={id => setParams(previous => dashboardParams(previous, id))}>
+    {user?.sellerSuspended && <section className="surface p-4 mb-5" role="status"><h2 className="text-base font-semibold">Selling is suspended</h2><p className="text-sm text-gray-600 mt-2">Your listings are hidden. New listings and promotions are unavailable. You can still manage existing orders, view earnings and use your shopper account. Contact support through Help for assistance.</p></section>}
+    {renderTab()}
+  </DashboardFrame>;
 };
 
 export default SellerDashboard;

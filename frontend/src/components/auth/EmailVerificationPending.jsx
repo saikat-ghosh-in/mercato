@@ -1,6 +1,7 @@
+import ActionArrow from "../shared/ActionArrow";
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { MdEmail, MdRefresh, MdCheckCircle, MdArrowForward } from "react-icons/md";
+import { MdEmail, MdRefresh, MdCheckCircle } from "react-icons/md";
 import toast from "react-hot-toast";
 import api from "../../backend/api";
 
@@ -95,7 +96,7 @@ const EmailVerificationPending = () => {
                         onClick={() => navigate("/login")}
                         className="flex items-center gap-1.5 text-sm text-blue-500 hover:text-blue-700 font-semibold cursor-pointer transition-colors mx-auto"
                     >
-                        Go to Login <MdArrowForward size={15} />
+                        Go to Login <ActionArrow size={15} />
                     </button>
                 </div>
             </div>

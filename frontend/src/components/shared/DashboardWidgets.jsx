@@ -13,23 +13,18 @@ export const StatSkeleton = () => (
     </div>
 );
 
-export const StatCard = ({ label, value, sub, icon: Icon, iconBg }) => (
-    <div className="surface p-5">
-        <div className="flex items-start justify-between mb-3">
-            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">{label}</p>
-            <div className={`p-2 rounded-xl ${iconBg}`}>
-                <Icon size={14} className="text-white" />
-            </div>
-        </div>
-        <p className="text-2xl font-black text-gray-950">{value}</p>
-        {sub && <p className="text-[11px] text-gray-400 mt-1">{sub}</p>}
+export const StatCard = ({ label, value, sub }) => (
+    <div className="surface dashboard-stat">
+        <p className="dashboard-stat-label">{label}</p>
+        <p className="dashboard-stat-value">{value}</p>
+        {sub && <p className="dashboard-stat-detail">{sub}</p>}
     </div>
 );
 
 export const SectionCard = ({ title, icon: Icon, children }) => (
     <div className="surface p-5">
         {title && (
-            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-1.5">
+            <h3 className="dashboard-section-heading flex items-center gap-2">
                 {Icon && <Icon size={13} />}{title}
             </h3>
         )}
@@ -38,7 +33,7 @@ export const SectionCard = ({ title, icon: Icon, children }) => (
 );
 
 export const SectionLabel = ({ children }) => (
-    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">{children}</p>
+    <h2 className="dashboard-section-heading">{children}</h2>
 );
 
 export const RevenueCards = ({ revenue }) => (

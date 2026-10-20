@@ -1,9 +1,10 @@
+import ActionArrow from "../shared/ActionArrow";
 import { useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   MdShoppingBag, MdArrowBack,
-  MdArrowForward, MdWarning,
+  MdWarning,
   MdAccessTime
 } from "react-icons/md";
 import api from "../../backend/api";
@@ -94,7 +95,7 @@ const OrderCard = ({ ord, onClick, onResumePayment, resumingOrderId }) => {
         </div>
         <div className="flex items-center gap-3 shrink-0">
           <span className="text-base font-black text-gray-950">{formatCurrency(ord.totalAmount)}</span>
-          <MdArrowForward size={16} className="text-gray-300 group-hover:text-blue-500 transition-colors" />
+          <ActionArrow size={16} className="text-gray-300 group-hover:text-blue-500 transition-colors" />
         </div>
       </button>
       {needsPayment && (
