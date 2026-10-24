@@ -1,0 +1,12 @@
+[Unit]
+Description=Mercato daily differential backup between weekly full backups
+
+[Timer]
+OnCalendar=Mon..Sat *-*-* 02:00:00 UTC
+RandomizedDelaySec=10m
+AccuracySec=1m
+Persistent=true
+Unit=mercato-backup@diff.service
+
+[Install]
+WantedBy=timers.target
