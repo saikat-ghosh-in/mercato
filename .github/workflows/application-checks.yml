@@ -5,6 +5,7 @@ on:
   pull_request:
     branches: [stg, main]
   workflow_dispatch:
+  workflow_call:
 permissions:
   contents: read
 jobs:
@@ -64,6 +65,7 @@ jobs:
           python-version: '3.12'
       - run: python3 -m unittest discover -s ops/tests -v
       - run: python3 -m py_compile ops/backup_agent.py scripts/assert-postgres-reports.py
+      - run: bash -n ops/redeploy.sh
       - name: Validate systemd unit syntax without starting services
         run: systemd-analyze verify ops/systemd/*.service ops/systemd/*.timer
   java-advisories:
