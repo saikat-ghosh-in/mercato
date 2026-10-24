@@ -122,10 +122,17 @@ public class Order {
 
     @Column(name = "shipment_email_sent_at")
     private Instant shipmentEmailSentAt;
+    private Instant shipmentEmailQueuedAt;
 
     @Column(name = "inventory_finalization_failed", nullable = false)
     @ColumnDefault("false")
     private boolean inventoryFinalizationFailed = false;
+
+    @Column(name="allocation_completed_at")
+    private Instant allocationCompletedAt;
+    @Column(name="automatic_full_refund",nullable=false)
+    @ColumnDefault("false")
+    private boolean automaticFullRefund;
 
 
     @Transient

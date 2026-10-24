@@ -23,14 +23,14 @@ public interface OrderLineRepository extends JpaRepository<OrderLine, Long> {
           - coalesce(round(l.sellerDeliveryCharge * l.shippedQty / l.orderedQty, 2),0)),0)
         from OrderLine l where l.sellerEmail = :email and l.commissionRatePercent is not null
           and l.order.paymentStatus = com.mercato.Entity.fulfillment.payment.PaymentStatus.SUCCESS
-          and l.order.inventoryFinalizationFailed = false and l.order.payment.refund is null
+          and l.order.inventoryFinalizationFailed = false and l.order.payment.refunds is empty and l.order.automaticFullRefund = false
         """)
     BigDecimal eligiblePromotionEarnings(@Param("email") String email);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
             SELECT ol FROM OrderLine ol
-            LEFT JOIN FETCH ol.order
+            JOIN FETCH ol.order
             WHERE ol.fulfillmentId = :fulfillmentId
             AND ol.orderLineNumber = :orderLineNumber
             """)

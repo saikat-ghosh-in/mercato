@@ -23,6 +23,8 @@ public class EmailVerificationServiceImpl implements EmailVerificationService {
     private final EmailVerificationTokenRepository tokenRepository;
     private final UserRepository userRepository;
     private final EmailService emailService;
+    private final com.mercato.Jobs.DurableJobs jobs;
+    @Value("${frontend.base.url}") private String frontendUrl;
 
     @Value("${mercato.email.verification.expiry-hours:24}")
     private int expiryHours;
@@ -40,7 +42,7 @@ public class EmailVerificationServiceImpl implements EmailVerificationService {
 
         tokenRepository.save(token);
 
-        emailService.sendVerificationEmail(user.getEmail(), user.getFirstName(), token.getToken());
+        jobs.enqueue("AUTH_EMAIL","verify-email:"+token.getToken(),java.util.Map.of("to",user.getEmail(),"subject","Verify your Mercato email","text","Confirm your email: "+frontendUrl+"/verify-email?token="+token.getToken()));
 
         log.info("Verification token created for user: {}", user.getUserId());
     }
@@ -66,7 +68,7 @@ public class EmailVerificationServiceImpl implements EmailVerificationService {
         user.setEmailVerified(true);
         userRepository.save(user);
 
-        emailService.sendWelcomeEmail(user.getEmail(), user.getFirstName());
+        jobs.enqueue("AUTH_EMAIL","welcome:"+user.getUserId(),java.util.Map.of("to",user.getEmail(),"subject","Welcome to Mercato","text","Your email is verified. You can now sign in and explore Mercato."));
 
         log.info("Email verified for user: {}", user.getUserId());
     }
@@ -74,11 +76,11 @@ public class EmailVerificationServiceImpl implements EmailVerificationService {
     @Transactional
     @Override
     public void resendVerificationEmail(String email) {
-        EcommUser user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("User", "email", email));
+        EcommUser user = userRepository.findByEmail(email).orElse(null);
+        if(user==null)return;
 
         if (user.isEmailVerified()) {
-            throw new CustomBadRequestException("Email is already verified");
+            return;
         }
 
         createAndSendVerificationToken(user);

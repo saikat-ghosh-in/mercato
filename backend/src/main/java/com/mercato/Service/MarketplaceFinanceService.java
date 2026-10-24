@@ -23,7 +23,8 @@ public class MarketplaceFinanceService {
     public static BigDecimal money(BigDecimal value) {return (value==null?BigDecimal.ZERO:value).setScale(2,RoundingMode.HALF_UP);}
     public static BigDecimal commission(BigDecimal gross, BigDecimal rate) { return money(gross.multiply(rate).divide(BigDecimal.valueOf(100))); }
     public static boolean paid(Order order) {
-        return order.getPayment()!=null && (order.getPayment().getCompletedAt()!=null || Set.of(PaymentStatus.SUCCESS,PaymentStatus.REFUNDED,PaymentStatus.PARTIALLY_REFUNDED,PaymentStatus.REFUND_INITIATED).contains(order.getPaymentStatus()));
+        return order.getPayment()!=null && ((order.getPayment().getCapturedAt()!=null&&order.getPayment().getCapturedAmount()!=null)
+            || Set.of(PaymentStatus.SUCCESS,PaymentStatus.REFUNDED,PaymentStatus.PARTIALLY_REFUNDED,PaymentStatus.REFUND_INITIATED).contains(order.getPaymentStatus()));
     }
     private static BigDecimal units(OrderLine l,int qty) {return money(l.getUnitPrice().multiply(BigDecimal.valueOf(qty)));}
     private static class Bucket {
@@ -47,21 +48,23 @@ public class MarketplaceFinanceService {
         if(start.isAfter(end) || ChronoUnit.DAYS.between(start,end)>365 || end.isAfter(today)) throw new IllegalArgumentException("Choose up to 366 days, ending no later than today (UTC)");
         Instant a=start.atStartOfDay(ZoneOffset.UTC).toInstant(), b=end.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant();
         Bucket total=new Bucket(); Map<String,Bucket> sellers=new LinkedHashMap<>();List<Map<String,Object>> ledger=new ArrayList<>();
-        BigDecimal captured=BigDecimal.ZERO,refunded=BigDecimal.ZERO,platform=BigDecimal.ZERO,shipping=BigDecimal.ZERO,unknownCharges=BigDecimal.ZERO,pendingRefunds=BigDecimal.ZERO;
+        BigDecimal captured=BigDecimal.ZERO,refunded=BigDecimal.ZERO,platform=BigDecimal.ZERO,shipping=BigDecimal.ZERO,unknownCharges=BigDecimal.ZERO,pendingRefunds=BigDecimal.ZERO,unverifiedLegacyCollections=BigDecimal.ZERO;
         for(var order:orders.financialOrders(a,b,admin?null:actor.getEmail())) {
             if(!paid(order)) continue;
             var refund=order.getPayment().getRefund();
-            BigDecimal refundAmount=refund!=null && refund.getStatus()==RefundStatus.SUCCESS?money(refund.getAmount()):BigDecimal.ZERO;
+            BigDecimal refundAmount=order.getPayment().getRefunds().stream().filter(r->r.getStatus()==RefundStatus.SUCCESS).map(Refund::getAmount).reduce(BigDecimal.ZERO,BigDecimal::add);
             BigDecimal cancelValue=order.getOrderLines().stream().map(l->units(l,l.getCancelledQty())).reduce(BigDecimal.ZERO,BigDecimal::add);
             boolean allCancelled=order.getOrderLines().stream().allMatch(l->l.getCancelledQty()==l.getOrderedQty());
-            boolean fullRefund=order.getTotalAmount().signum()>0 && refundAmount.compareTo(order.getTotalAmount())>=0;
+            boolean fullRefund=order.isAutomaticFullRefund() || (order.getTotalAmount().signum()>0 && refundAmount.compareTo(order.getTotalAmount())>=0);
             BigDecimal refundedCharges=allCancelled||fullRefund?refundAmount.subtract(cancelValue).max(BigDecimal.ZERO).min(money(order.getCharges())):BigDecimal.ZERO;
             // Out-of-band refunds have no reliable line attribution. Reserve the excess across shipped sales.
             BigDecimal unallocated=refundAmount.subtract(cancelValue).subtract(refundedCharges).max(BigDecimal.ZERO);
             BigDecimal shipped=order.getOrderLines().stream().map(l->units(l,l.getShippedQty())).reduce(BigDecimal.ZERO,BigDecimal::add);
             if(admin) {
-                captured=captured.add(order.getTotalAmount());refunded=refunded.add(refundAmount);
-                if(refund!=null && Set.of(RefundStatus.PENDING,RefundStatus.ONHOLD).contains(refund.getStatus())) pendingRefunds=pendingRefunds.add(refund.getAmount());
+                if(order.getPayment().getCapturedAt()!=null)captured=captured.add(order.getPayment().getCapturedAmount());
+                else unverifiedLegacyCollections=unverifiedLegacyCollections.add(order.getTotalAmount());
+                refunded=refunded.add(refundAmount);
+                pendingRefunds=pendingRefunds.add(order.getPayment().getRefunds().stream().filter(r->Set.of(RefundStatus.PENDING,RefundStatus.ONHOLD).contains(r.getStatus())).map(Refund::getAmount).reduce(BigDecimal.ZERO,BigDecimal::add));
                 BigDecimal remainingCharges=money(order.getCharges()).subtract(refundedCharges).max(BigDecimal.ZERO);
                 if(order.getPlatformFee()==null || order.getShippingCharge()==null) unknownCharges=unknownCharges.add(remainingCharges);
                 else {
@@ -106,6 +109,7 @@ public class MarketplaceFinanceService {
         }
         total.promotion=bookedPromotions.subtract(credits);
         Map<String,Object> result=new LinkedHashMap<>();result.put("from",start);result.put("through",end);result.put("totals",total.result());result.put("sellerBreakdown",sellers.values().stream().map(Bucket::result).toList());result.put("lines",ledger);result.put("capturedPayments",money(captured));result.put("successfulRefunds",money(refunded));result.put("pendingRefunds",money(pendingRefunds));result.put("platformFees",money(platform));result.put("shippingCollected",money(shipping));result.put("unclassifiedLegacyCharges",money(unknownCharges));result.put("promotionBookings",money(bookedPromotions));result.put("promotionCredits",money(credits));
+        result.put("unverifiedLegacyCollections",money(unverifiedLegacyCollections));
         result.put("platformAccrualBeforeCosts",money(total.commission.add(platform)));result.put("bankPayoutsAvailable",false);
         return result;
     }

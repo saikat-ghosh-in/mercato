@@ -46,7 +46,7 @@ public class OrderReservationServiceImpl implements OrderReservationService {
         boolean owned = true;
         boolean anyNeededCreation = false;
 
-        for (OrderLine orderLine : order.getOrderLines()) {
+        for (OrderLine orderLine : order.getOrderLines().stream().sorted(java.util.Comparator.comparing(OrderLine::getProductId)).toList()) {
             if (orderReservationRepository.findByOrderLine_Id(orderLine.getId()).isPresent()) {
                 releaseOrphanedCartHold(cart, orderLine);
                 continue;
@@ -63,24 +63,11 @@ public class OrderReservationServiceImpl implements OrderReservationService {
 
     private boolean createReservationForLine(Order order, OrderLine orderLine, Cart cart) {
         CartReservation cartReservation = findCartReservation(cart, orderLine);
-        try {
-            if (cartReservation != null) {
-                transferSingleReservation(order, orderLine, cartReservation);
-            } else {
-                reserveOrderLine(order, orderLine);
-            }
-            return true;
-        } catch (DataIntegrityViolationException ex) {
-            if (!isOrderLineReservationUniqueViolation(ex)) {
-                throw ex;
-            }
-            log.info("Order reservation already created concurrently for order line {}", orderLine.getId());
-            if (orderReservationRepository.findByOrderLine_Id(orderLine.getId()).isEmpty()) {
-                throw ex;
-            }
-            releaseOrphanedCartHold(cart, orderLine);
-            return false;
-        }
+        // The parent order is locked by the allocator. A constraint error must roll back the
+        // whole allocation; PostgreSQL cannot safely continue a transaction after one.
+        if (cartReservation != null) transferSingleReservation(order, orderLine, cartReservation);
+        else reserveOrderLine(order, orderLine);
+        return true;
     }
 
     private static boolean isOrderLineReservationUniqueViolation(DataIntegrityViolationException ex) {
@@ -200,6 +187,9 @@ public class OrderReservationServiceImpl implements OrderReservationService {
 
         switch (action) {
             case SHIP -> {
+                if(reservation==null || reservation.getReservedQty()<qty
+                    || !reservation.getOrder().getOrderId().equals(orderLine.getOrder().getOrderId()))
+                    throw new com.mercato.ExceptionHandler.CustomBadRequestException("A matching allocation is required before shipment");
                 product.adjustInventory(-qty);
                 if (reservation != null) {
                     product.adjustReservedQty(-qty);

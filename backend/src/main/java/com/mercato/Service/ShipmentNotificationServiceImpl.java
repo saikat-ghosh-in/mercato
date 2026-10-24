@@ -13,21 +13,17 @@ import java.time.Instant;
 public class ShipmentNotificationServiceImpl implements ShipmentNotificationService {
 
     private final OrderRepository orderRepository;
-    private final EmailService emailService;
+    private final com.mercato.Jobs.DurableJobs jobs;
 
     @Override
     @Transactional
     public boolean notifyShippedIfNeeded(Order order) {
-        if (order.getShipmentEmailSentAt() != null) {
+        if (order.getShipmentEmailSentAt() != null || order.getShipmentEmailQueuedAt()!=null) {
             return false;
         }
 
-        emailService.sendOrderShippedEmail(
-                order.getCustomerEmail(),
-                order.getCustomerName(),
-                order.getOrderId()
-        );
-        order.setShipmentEmailSentAt(Instant.now());
+        jobs.enqueue("SHIPMENT_EMAIL","shipment-email:"+order.getOrderId(),java.util.Map.of("orderId",order.getOrderId(),"to",order.getCustomerEmail()));
+        order.setShipmentEmailQueuedAt(Instant.now());
         orderRepository.save(order);
         return true;
     }

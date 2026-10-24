@@ -43,6 +43,7 @@ class OrderServicePlaceOrderTest {
     @Mock private ProductRepository productRepository;
     @Mock private OrderLineUpdateService orderLineUpdateService;
     @Mock private CommissionService commissions;
+    @Mock private org.springframework.transaction.PlatformTransactionManager transactions;
     @Mock private com.mercato.Repository.SellerApplicationRepository sellerApplications;
 
     @InjectMocks
@@ -120,14 +121,16 @@ class OrderServicePlaceOrderTest {
             order.attachPayment(payment);
             return null;
         }).when(cashfreeService).initiatePayment(any(Order.class), any(), any());
-        when(orderRepository.save(any(Order.class))).thenAnswer(inv -> inv.getArgument(0));
+        var saved=new java.util.concurrent.atomic.AtomicReference<Order>();
+        when(orderRepository.saveAndFlush(any(Order.class))).thenAnswer(inv -> {saved.set(inv.getArgument(0));return saved.get();});
+        when(orderRepository.lockByOrderId(anyString())).thenAnswer(inv -> Optional.of(saved.get()));
 
         when(commissions.currentRate()).thenReturn(new BigDecimal("0.50"));
         OrderPlacementResponseDTO response = orderService.placeOrder(request);
 
         assertNotNull(response.getPaymentSessionId());
         var captured = org.mockito.ArgumentCaptor.forClass(Order.class);
-        verify(orderRepository).save(captured.capture());
+        verify(orderRepository).saveAndFlush(captured.capture());
         org.junit.jupiter.api.Assertions.assertEquals(new BigDecimal("0.50"), captured.getValue().getOrderLines().get(0).getCommissionRatePercent());
         org.junit.jupiter.api.Assertions.assertEquals(new BigDecimal("500.00"), captured.getValue().getOrderLines().get(0).getCommissionCapPerItem());
         org.junit.jupiter.api.Assertions.assertEquals(new BigDecimal("250.00"), captured.getValue().getOrderLines().get(0).getSellerDeliveryCharge());

@@ -37,7 +37,7 @@ public class Refund {
     @Column(name = "refund_id", nullable = false, updatable = false)
     private String refundId;
 
-    @OneToOne(fetch = FetchType.LAZY, optional = false)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "payment_fk", referencedColumnName = "id", nullable = false)
     private Payment payment;
 

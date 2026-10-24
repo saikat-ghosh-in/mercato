@@ -213,7 +213,7 @@ class OrderReservationServiceImplTest {
     }
 
     @Test
-    void finalizeInventory_returnsFalseWhenUniqueConstraintRaceIsLost() {
+    void uniqueConstraintFailureRollsBackInsteadOfContinuingAnAbortedPostgresTransaction() {
         AtomicBoolean peerCommitted = new AtomicBoolean(false);
 
         when(orderReservationRepository.findByOrderLine_Id(LINE_ID))
@@ -233,9 +233,8 @@ class OrderReservationServiceImplTest {
                     );
                 });
 
-        boolean owned = orderReservationService.finalizeInventoryForPaidOrder(order, cart);
-
-        assertFalse(owned);
+        org.junit.jupiter.api.Assertions.assertThrows(DataIntegrityViolationException.class,
+            () -> orderReservationService.finalizeInventoryForPaidOrder(order, cart));
         verify(orderReservationRepository, times(1)).save(any(OrderReservation.class));
     }
 }
