@@ -22,18 +22,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @DirtiesContext
 class RichProductFlowTest {
-    @Autowired MockMvc mvc;
+    @Autowired MockMvc rawMvc; CookieBrowserHarness mvc;
+    @org.junit.jupiter.api.BeforeEach void cookieBrowser(){mvc=new CookieBrowserHarness(rawMvc,json);}
     @Autowired ObjectMapper json;
     @Autowired UserRepository users;
     @Autowired RoleRepository roles;
     @Autowired PasswordEncoder encoder;
 
-    String login(String name, String password) throws Exception {
-        var result = mvc.perform(post("/api/auth/signin").contentType(MediaType.APPLICATION_JSON)
-            .content(json.writeValueAsString(Map.of("username", name, "password", password))))
-            .andExpect(status().isOk()).andReturn();
-        return json.readTree(result.getResponse().getContentAsString()).get("token").asText();
-    }
+    String login(String name,String password)throws Exception {return mvc.login(name,password);}
 
     @Test
     void richDetailsPersistValidatePreserveLegacyFieldsAndEnforceOwnership() throws Exception {
@@ -55,7 +51,7 @@ class RichProductFlowTest {
         body.put("care", "Wash gently.");
         body.put("sellerPaysShipping", true);
         body.putAll(Map.of("weightKg", "6.125", "lengthCm", "30.25", "widthCm", "20", "heightCm", "15"));
-        mvc.perform(put("/api/seller/products/" + id).header("Authorization","Bearer " + token)
+        mvc.perform(put("/api/seller/products/" + id).with(mvc.as(token))
             .contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(body)))
             .andExpect(status().isOk());
         mvc.perform(get("/api/public/products/" + id)).andExpect(status().isOk())
@@ -71,7 +67,7 @@ class RichProductFlowTest {
         body.remove("physicalQty"); // Catalogue updates must not overwrite inventory.
         body.remove("sellerPaysShipping");
         body.remove("weightKg"); body.remove("lengthCm"); body.remove("widthCm"); body.remove("heightCm");
-        mvc.perform(put("/api/seller/products/" + id).header("Authorization","Bearer " + token)
+        mvc.perform(put("/api/seller/products/" + id).with(mvc.as(token))
             .contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(body)))
             .andExpect(status().isOk()).andExpect(jsonPath("$.brand").value("Review Brand"))
             .andExpect(jsonPath("$.highlights.length()").value(2))
@@ -79,23 +75,23 @@ class RichProductFlowTest {
             .andExpect(jsonPath("$.sellerPaysShipping").value(true))
             .andExpect(jsonPath("$.physicalQty").value(25));
         body.put("sellerPaysShipping", false);
-        mvc.perform(put("/api/seller/products/" + id).header("Authorization","Bearer " + token).contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(body)))
+        mvc.perform(put("/api/seller/products/" + id).with(mvc.as(token)).contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(body)))
             .andExpect(status().isOk()).andExpect(jsonPath("$.sellerPaysShipping").value(false));
         body.put("weightKg", -1);
-        mvc.perform(put("/api/seller/products/" + id).header("Authorization","Bearer " + token).contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(body))).andExpect(status().isBadRequest());
+        mvc.perform(put("/api/seller/products/" + id).with(mvc.as(token)).contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(body))).andExpect(status().isBadRequest());
         body.put("weightKg", 2);
-        mvc.perform(put("/api/seller/products/" + id).header("Authorization","Bearer " + token).contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(body))).andExpect(status().isBadRequest());
+        mvc.perform(put("/api/seller/products/" + id).with(mvc.as(token)).contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(body))).andExpect(status().isBadRequest());
         body.putAll(Map.of("lengthCm", 20, "widthCm", 10, "heightCm", 601));
-        mvc.perform(put("/api/seller/products/" + id).header("Authorization","Bearer " + token).contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(body))).andExpect(status().isBadRequest());
+        mvc.perform(put("/api/seller/products/" + id).with(mvc.as(token)).contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(body))).andExpect(status().isBadRequest());
         body.remove("weightKg"); body.remove("lengthCm"); body.remove("widthCm"); body.remove("heightCm");
         body.put("specifications", Arrays.asList((Object)null));
-        mvc.perform(put("/api/seller/products/" + id).header("Authorization","Bearer " + token)
+        mvc.perform(put("/api/seller/products/" + id).with(mvc.as(token))
             .contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(body))).andExpect(status().isBadRequest());
         body.put("specifications", List.of(Map.of("label","","value","Invalid")));
-        mvc.perform(put("/api/seller/products/" + id).header("Authorization","Bearer " + token)
+        mvc.perform(put("/api/seller/products/" + id).with(mvc.as(token))
             .contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(body))).andExpect(status().isBadRequest());
         body.put("specifications", List.of()); body.put("highlights", List.of()); body.put("care", "");
-        mvc.perform(put("/api/seller/products/" + id).header("Authorization","Bearer " + token)
+        mvc.perform(put("/api/seller/products/" + id).with(mvc.as(token))
             .contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(body)))
             .andExpect(status().isOk()).andExpect(jsonPath("$.highlights.length()").value(0))
             .andExpect(jsonPath("$.specifications.length()").value(0)).andExpect(jsonPath("$.care").value(""));
@@ -107,8 +103,8 @@ class RichProductFlowTest {
             .enabled(true).emailVerified(true).accountLocked(false)
             .roles(Set.of(roles.findByRoleName(AppRole.ROLE_SELLER).orElseThrow())).build());
         String other = login("otherSeller", "OtherReview!2026");
-        mvc.perform(put("/api/seller/products/" + id).header("Authorization","Bearer " + other)
+        mvc.perform(put("/api/seller/products/" + id).with(mvc.as(other))
             .contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(body))).andExpect(status().isForbidden());
-        mvc.perform(get("/api/admin/products").header("Authorization","Bearer " + other)).andExpect(status().isForbidden());
+        mvc.perform(get("/api/admin/products").with(mvc.as(other))).andExpect(status().isForbidden());
     }
 }

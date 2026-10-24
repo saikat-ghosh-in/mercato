@@ -9,12 +9,12 @@ import com.mercato.Mapper.EcommUserMapper;
 import com.mercato.Payloads.Response.EcommUserResponseDTO;
 import com.mercato.Repository.RoleRepository;
 import com.mercato.Repository.UserRepository;
-import com.mercato.Security.jwt.JwtUtils;
+
 import com.mercato.Security.payloads.LoginRequest;
 import com.mercato.Security.payloads.RegisterUserRequest;
-import com.mercato.Security.payloads.UserInfoResponse;
+
 import com.mercato.Service.CartService;
-import com.mercato.Service.EmailService;
+
 import com.mercato.Service.EmailVerificationService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -25,11 +25,11 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.DisabledException;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+
+
+
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
+
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -37,7 +37,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.HashSet;
-import java.util.List;
+
 import java.util.Set;
 
 @Service
@@ -45,13 +45,19 @@ import java.util.Set;
 @Slf4j
 public class AuthServiceImpl implements AuthService {
 
-    private final JwtUtils jwtUtils;
-    private final AuthenticationManager authenticationManager;
+
+    private final com.mercato.Session.SessionService sessions;
+    private final com.mercato.Auth.MfaService mfa;
+    private final com.mercato.Auth.AbuseCounters abuse;
+    private final org.springframework.core.env.Environment environment;
+    private final com.mercato.Jobs.DurableJobs jobs;
+    private final org.springframework.transaction.PlatformTransactionManager transactions;
+    private final com.mercato.Session.SessionRevocation revocation;
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder encoder;
     private final EmailVerificationService emailVerificationService;
-    private final EmailService emailService;
+
     private final com.mercato.Service.SellerOnboardingService sellerOnboardingService;
 
     private CartService cartService;
@@ -61,66 +67,61 @@ public class AuthServiceImpl implements AuthService {
         this.cartService = cartService;
     }
 
-    @Override
-    @Transactional
-    public ResponseEntity<UserInfoResponse> authenticateUser(LoginRequest loginRequest,
-                                                             HttpServletRequest request,
-                                                             HttpServletResponse httpServletResponse) {
-        EcommUser user = userRepository.findByUsernameForUpdate(loginRequest.getUsername())
-                .orElseThrow(() -> new ResourceNotFoundException("User", "username", loginRequest.getUsername()));
+    private String userNotFoundHash;
 
-        if (!user.isEmailVerified()) {
-            throw new DisabledException("Email not verified. Please check your email and verify your account.");
-        }
-
-        if (user.isAccountLocked()) {
-            throw new DisabledException("Account is locked. Please contact support.");
-        }
-
-        if (!user.isEnabled() && user.isSelfDeactivated() && encoder.matches(loginRequest.getPassword(), user.getPassword())) {
-            user.setEnabled(true);
-            user.setSelfDeactivated(false);
-            user.setDeactivatedAt(null);
-            userRepository.save(user);
-            log.info("User {} auto-reactivated on login", user.getUsername());
-            emailService.sendReactivationConfirmationEmail(user.getEmail(), user.getFirstName());
-        }
-
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        loginRequest.getUsername(),
-                        loginRequest.getPassword()
-                )
-        );
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
-
-        user.setLastLoginAt(Instant.now());
-        userRepository.save(user);
-
-        String guestToken = JwtUtils.extractGuestToken(request);
-        if (guestToken != null) {
-            cartService.mergeGuestCartOnLogin(userDetails.getUserId(), guestToken);
-        }
-
-        String jwt = jwtUtils.generateJwtToken(userDetails);
-
-        List<String> roles = userDetails.getAuthorities().stream()
-                .map(GrantedAuthority::getAuthority)
-                .toList();
-
-        UserInfoResponse response = UserInfoResponse.builder()
-                .userId(userDetails.getUserId())
-                .username(userDetails.getUsername())
-                .email(userDetails.getEmail())
-                .token(jwt)
-                .tokenExpirationTime(jwtUtils.getTokenExpirationTime(jwt))
-                .roles(roles)
-                .build();
-
-        return ResponseEntity.ok(response);
+    @jakarta.annotation.PostConstruct
+    void preparePasswordTiming() {
+        userNotFoundHash=encoder.encode(java.util.UUID.randomUUID().toString());
     }
 
+    @Override
+    public ResponseEntity<?> authenticateUser(LoginRequest loginRequest, HttpServletRequest request, HttpServletResponse response) {
+        String username=loginRequest.getUsername();
+        String client=request.getRemoteAddr();
+        int delay=abuse.consume("login-ip",client,1000,3600,false);
+        delay=Math.max(delay,abuse.retryAfter("login-client",username+":"+client));
+        delay=Math.max(delay,abuse.retryAfter("login-account-delay",username));
+        if(delay>0) return ResponseEntity.status(429).header("Retry-After",Integer.toString(delay))
+                .body(java.util.Map.of("code","AUTH_RETRY_LATER","message","Please wait before trying again."));
+        String guest=(String)request.getSession().getAttribute(com.mercato.Session.SessionService.GUEST);
+        SignIn proven=new org.springframework.transaction.support.TransactionTemplate(transactions).execute(status -> {
+            EcommUser user=userRepository.findByUsernameForUpdate(username).orElse(null);
+            boolean valid=encoder.matches(loginRequest.getPassword(),user==null?userNotFoundHash:user.getPassword());
+            if(!valid || user==null || !user.isEmailVerified() || user.isAccountLocked()
+                    || (!user.isEnabled()&&!user.isSelfDeactivated())) return null;
+            if(!user.isEnabled()) {
+                user.setEnabled(true);
+                user.setSelfDeactivated(false);
+                user.setDeactivatedAt(null);
+                user.setAccessVersion(user.getAccessVersion()+1);
+                revocation.revokeAll(user.getUserId());
+                jobs.enqueue("AUTH_EMAIL","reactivated:"+user.getUserId()+":"+java.util.UUID.randomUUID(),
+                        java.util.Map.of("to",user.getEmail(),"subject","Mercato account reactivated",
+                                "text","Your account has been reactivated."));
+            }
+            user.setLastLoginAt(Instant.now());
+            userRepository.save(user);
+            String state="NONE";
+            boolean demoBypass=java.util.Arrays.asList(environment.getActiveProfiles()).contains("demo")
+                    && environment.getProperty("mercato.auth.mfa-bypass",Boolean.class,false);
+            if(user.isAdmin()&&!demoBypass) state=mfa.enrolled(user.getUserId())?"CHALLENGE_REQUIRED":"ENROLL_REQUIRED";
+            else if(!user.isAdmin()&&abuse.requiresStepUp(username)) state="STEP_UP_REQUIRED";
+            if("NONE".equals(state)&&guest!=null) cartService.mergeGuestCartOnLogin(user.getUserId(),guest);
+            return new SignIn(user,state);
+        });
+        if(proven==null) {
+            abuse.failed(username);
+            abuse.consume("login-client",username+":"+client,5,3600,true);
+            abuse.consume("login-account-delay",username,10,3600,true);
+            throw new org.springframework.security.authentication.BadCredentialsException("Unable to sign in with those credentials");
+        }
+        // Authentication and cart state have committed before a privileged cookie is created.
+        sessions.establish(request,proven.user(),proven.state());
+        if("NONE".equals(proven.state())) request.getSession().removeAttribute(com.mercato.Session.SessionService.GUEST);
+        return ResponseEntity.ok(sessions.bootstrap(request));
+    }
+
+    private record SignIn(EcommUser user,String state) {}
     @Override
     @Transactional
     public String registerNewUser(RegisterUserRequest registerUserRequest) {

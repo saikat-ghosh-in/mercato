@@ -21,6 +21,7 @@ public class AccountAccessService {
     private final RoleRepository roles;
     private final AccountAccessEventRepository events;
     private final AuthUtil auth;
+    private final com.mercato.Session.SessionRevocation sessions;
     public enum Action { DEACTIVATE, REACTIVATE, SUSPEND_SELLING, RESTORE_SELLING }
     public record Change(@NotNull Action action, @NotBlank @Size(min=10,max=500) String reason, @NotNull @PositiveOrZero Long expectedVersion) {}
 
@@ -70,6 +71,7 @@ public class AccountAccessService {
         }
         user.getRoles().add(roles.findByRoleName(AppRole.ROLE_USER).orElseThrow());
         user.setAccessVersion(user.getAccessVersion()+1); // Revoke every existing session, including after restoration.
+        sessions.revokeAll(user.getUserId());
         events.save(new AccountAccessEvent(user,actor,request.action().name(),request.reason().strip(),before,state(user)));
         return EcommUserMapper.toDTO(users.saveAndFlush(user));
     }

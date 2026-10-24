@@ -27,7 +27,6 @@
     "react-loader-spinner": "^8.0.2",
     "react-redux": "^9.2.0",
     "react-router-dom": "^7.13.0",
-    "redux-persist": "^6.0.0",
     "swiper": "^12.1.0",
     "tailwindcss": "^4.1.18"
   },

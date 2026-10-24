@@ -27,7 +27,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @DirtiesContext
 class ApplicationFlowTest {
-    @Autowired MockMvc mvc;
+    @Autowired MockMvc rawMvc; CookieBrowserHarness mvc;
+    @org.junit.jupiter.api.BeforeEach void cookieBrowser(){mvc=new CookieBrowserHarness(rawMvc,json);}
     @Autowired ObjectMapper json;
     @Autowired CartReservationRepository reservations;
     @Autowired CartReservationService reservationService;
@@ -40,27 +41,24 @@ class ApplicationFlowTest {
             .andExpect(status().isOk()).andExpect(header().doesNotExist("X-Guest-Token"))
             .andExpect(jsonPath("$.totalElements").value(12)).andReturn();
         String product = json.readTree(catalog.getResponse().getContentAsString()).get("content").get(0).get("productId").asText();
-        String guest = jwt.generateGuestTokenValue();
-        String anotherGuest = jwt.generateGuestTokenValue();
-        assertNotEquals(guest, anotherGuest, "Different shoppers must never share a JWT/cart, even within one second");
-        mvc.perform(post("/api/cart/add").header("Authorization", "Bearer " + guest)
+        String guest = mvc.anonymous();
+        String anotherGuest = mvc.anonymous();
+        assertNotEquals(guest, anotherGuest, "Different shoppers must never share a session/cart, even within one second");
+        mvc.perform(post("/api/cart/add").with(mvc.as(guest))
             .contentType(MediaType.APPLICATION_JSON)
             .content(json.writeValueAsString(Map.of("cartItems", java.util.List.of(Map.of("productId", product, "quantity", 2))))))
             .andExpect(status().isOk()).andExpect(jsonPath("$.cartItems[0].quantity").value(2));
-        mvc.perform(get("/api/cart").header("Authorization", "Bearer " + anotherGuest))
+        mvc.perform(get("/api/cart").with(mvc.as(anotherGuest)))
             .andExpect(status().isOk()).andExpect(jsonPath("$.cartItems.length()").value(0));
 
-        var login = mvc.perform(post("/api/auth/signin").header("Authorization", "Bearer " + guest)
-            .contentType(MediaType.APPLICATION_JSON).content("{\"username\":\"reviewer\",\"password\":\"ReviewOnly!2026\"}"))
-            .andExpect(status().isOk()).andReturn();
-        String userToken = json.readTree(login.getResponse().getContentAsString()).get("token").asText();
-        mvc.perform(post("/api/user/addresses/add").header("Authorization", "Bearer " + userToken)
+        String userToken = mvc.login(guest,"reviewer","ReviewOnly!2026");
+        mvc.perform(post("/api/user/addresses/add").with(mvc.as(userToken))
             .contentType(MediaType.APPLICATION_JSON).content("{}"))
             .andExpect(status().isBadRequest());
-        mvc.perform(get("/api/cart").header("Authorization", "Bearer " + userToken))
+        mvc.perform(get("/api/cart").with(mvc.as(userToken)))
             .andExpect(status().isOk()).andExpect(jsonPath("$.cartItems.length()").value(1))
             .andExpect(jsonPath("$.cartItems[0].quantity").value(2));
-        mvc.perform(put("/api/cart").header("Authorization", "Bearer " + userToken)
+        mvc.perform(put("/api/cart").with(mvc.as(userToken))
             .contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(Map.of("productId", product, "quantity", 3))))
             .andExpect(status().isOk()).andExpect(jsonPath("$.cartItems[0].quantity").value(3));
 
@@ -73,8 +71,8 @@ class ApplicationFlowTest {
         });
         assertThrows(InsufficientInventoryException.class, () -> reservationService.validateHeld(expiredItem));
 
-        mvc.perform(delete("/api/cart/remove/" + product).header("Authorization", "Bearer " + userToken)).andExpect(status().isOk());
-        mvc.perform(get("/api/cart").header("Authorization", "Bearer " + userToken))
+        mvc.perform(delete("/api/cart/remove/" + product).with(mvc.as(userToken))).andExpect(status().isOk());
+        mvc.perform(get("/api/cart").with(mvc.as(userToken)))
             .andExpect(status().isOk()).andExpect(jsonPath("$.cartItems.length()").value(0));
         mvc.perform(get("/api/public/products").param("pageSize", "1000000")).andExpect(status().isBadRequest());
     }

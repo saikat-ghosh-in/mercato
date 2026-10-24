@@ -32,6 +32,7 @@ public class UserServiceImpl implements UserService {
     private final RoleRepository roleRepository;
     private final AuthUtil authUtil;
     private final EmailService emailService;
+    private final com.mercato.Session.SessionRevocation sessions;
     @jakarta.persistence.PersistenceContext
     private jakarta.persistence.EntityManager entityManager;
 
@@ -96,6 +97,7 @@ public class UserServiceImpl implements UserService {
         user.setEnabled(false);
         user.setSelfDeactivated(true);
         user.setAccessVersion(user.getAccessVersion()+1);
+        sessions.revokeAll(user.getUserId());
         user.setDeactivatedAt(Instant.now());
 
         userRepository.save(user);

@@ -24,15 +24,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest(properties="marketplace.notices.initial-delay-ms=3600000") @ActiveProfiles("demo") @AutoConfigureMockMvc @DirtiesContext
 class MarketplaceFinancePromotionTest {
-    @Autowired MockMvc mvc;@Autowired ObjectMapper json;@Autowired ProductRepository products;@Autowired SellerPromotionRepository campaigns;
+    @Autowired MockMvc rawMvc; CookieBrowserHarness mvc;
+    @org.junit.jupiter.api.BeforeEach void cookieBrowser(){mvc=new CookieBrowserHarness(rawMvc,json);}@Autowired ObjectMapper json;@Autowired ProductRepository products;@Autowired SellerPromotionRepository campaigns;
     @Autowired OrderRepository orders;@Autowired PlatformTransactionManager transactions;
     @Autowired UserRepository users; @Autowired RoleRepository roles;
     @Autowired org.springframework.jdbc.core.JdbcTemplate jdbc;
     @Autowired jakarta.persistence.EntityManager entities;
-    String login(String name,String password)throws Exception{return json.readTree(mvc.perform(post("/api/auth/signin").contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(Map.of("username",name,"password",password)))).andExpect(status().isOk()).andReturn().getResponse().getContentAsString()).get("token").asText();}
-    JsonNode getReport(String token)throws Exception{return json.readTree(mvc.perform(get("/api/admin/finance").header("Authorization","Bearer "+token)).andExpect(status().isOk()).andReturn().getResponse().getContentAsString());}
+    String login(String name,String password)throws Exception {return mvc.login(name,password);}
+    JsonNode getReport(String token)throws Exception{return json.readTree(mvc.perform(get("/api/admin/finance").with(mvc.as(token))).andExpect(status().isOk()).andReturn().getResponse().getContentAsString());}
     Map<String,Object> request(String product,String start){Map<String,Object> r=new HashMap<>();r.put("productId",product);r.put("tier","DISCOVERY");r.put("durationDays",3);r.put("startDate",start);r.put("expectedFee",147);r.put("requestId",UUID.randomUUID().toString());r.put("authorizeDeduction",true);return r;}
-    @BeforeEach void clearCampaigns(){campaigns.deleteAll();new TransactionTemplate(transactions).executeWithoutResult(t->{var o=orders.findByOrderId("DEMO-EARNINGS-001").orElseThrow();o.getPayment().setRefund(null);o.getPayment().setCompletedAt(Instant.now());o.getPayment().setStatus(PaymentStatus.SUCCESS);o.setPaymentStatus(PaymentStatus.SUCCESS);});jdbc.update("update order_lines_snapshot set commission_rate_percent=5 where fulfillment_id='DEMO-FULFILLMENT-001'");}
+    @BeforeEach void clearCampaigns(){campaigns.deleteAll();new TransactionTemplate(transactions).executeWithoutResult(t->{var o=orders.findByOrderId("DEMO-EARNINGS-001").orElseThrow();o.getPayment().setRefund(null);o.getPayment().setCapturedAt(Instant.now());o.getPayment().setCapturedAmount(o.getTotalAmount());o.getPayment().setCompletedAt(Instant.now());o.getPayment().setStatus(PaymentStatus.SUCCESS);o.setPaymentStatus(PaymentStatus.SUCCESS);});jdbc.update("update order_lines_snapshot set commission_rate_percent=5 where fulfillment_id='DEMO-FULFILLMENT-001'");}
     String approvedSeller()throws Exception {new TransactionTemplate(transactions).executeWithoutResult(t->{var seller=users.findByUsername("sellerreview").orElseThrow();seller.setSellerStatus(SellerStatus.APPROVED);seller.getRoles().add(roles.findByRoleName(AppRole.ROLE_SELLER).orElseThrow());});return login("sellerreview","SellerOnly!2026");}
     @Test void financeSeparatesFeesUsesCapturedRatesAndExcludesUnpaidSales()throws Exception {
         String admin=login("reviewer","ReviewOnly!2026");var baseline=getReport(admin);
@@ -40,52 +41,52 @@ class MarketplaceFinancePromotionTest {
         assertEquals(0,baseline.get("totals").get("commission").decimalValue().compareTo(MarketplaceFinanceService.commission(baseline.get("totals").get("fulfilledSales").decimalValue(),new BigDecimal("5"))));
         assertEquals(0,new BigDecimal("12").compareTo(baseline.get("platformFees").decimalValue()));
         assertEquals(0,baseline.get("platformAccrualBeforeCosts").decimalValue().compareTo(baseline.get("totals").get("commission").decimalValue().add(new BigDecimal("12"))));
-        mvc.perform(get("/api/admin/finance").param("from","2020-01-01").header("Authorization","Bearer "+admin)).andExpect(status().isBadRequest());
-        String shopper=login("shopperreview","ShopOnly!2026");mvc.perform(get("/api/seller/finance").header("Authorization","Bearer "+shopper)).andExpect(status().isForbidden());
-        mvc.perform(get("/api/admin/finance").header("Authorization","Bearer "+shopper)).andExpect(status().isForbidden());
-        new TransactionTemplate(transactions).executeWithoutResult(t->{var o=orders.findByOrderId("DEMO-EARNINGS-001").orElseThrow();o.getPayment().setCompletedAt(null);o.getPayment().setStatus(PaymentStatus.INITIATED);o.setPaymentStatus(PaymentStatus.INITIATED);});
+        mvc.perform(get("/api/admin/finance").param("from","2020-01-01").with(mvc.as(admin))).andExpect(status().isBadRequest());
+        String shopper=login("shopperreview","ShopOnly!2026");mvc.perform(get("/api/seller/finance").with(mvc.as(shopper))).andExpect(status().isForbidden());
+        mvc.perform(get("/api/admin/finance").with(mvc.as(shopper))).andExpect(status().isForbidden());
+        new TransactionTemplate(transactions).executeWithoutResult(t->{var o=orders.findByOrderId("DEMO-EARNINGS-001").orElseThrow();o.getPayment().setCapturedAt(null);o.getPayment().setCapturedAmount(null);o.getPayment().setCompletedAt(null);o.getPayment().setStatus(PaymentStatus.INITIATED);o.setPaymentStatus(PaymentStatus.INITIATED);});
         assertEquals(0,getReport(admin).get("totals").get("fulfilledSales").decimalValue().signum());
-        new TransactionTemplate(transactions).executeWithoutResult(t->{var o=orders.findByOrderId("DEMO-EARNINGS-001").orElseThrow();o.getPayment().setCompletedAt(Instant.now());o.getPayment().setStatus(PaymentStatus.SUCCESS);o.setPaymentStatus(PaymentStatus.SUCCESS);});
+        new TransactionTemplate(transactions).executeWithoutResult(t->{var o=orders.findByOrderId("DEMO-EARNINGS-001").orElseThrow();o.getPayment().setCapturedAt(Instant.now());o.getPayment().setCapturedAmount(o.getTotalAmount());o.getPayment().setCompletedAt(Instant.now());o.getPayment().setStatus(PaymentStatus.SUCCESS);o.setPaymentStatus(PaymentStatus.SUCCESS);});
     }
     @Test void quotesAreValidatedOwnedIdempotentAndCreditedWithoutFreePlacement()throws Exception {
         String admin=login("reviewer","ReviewOnly!2026");var product=products.findAll().get(0);String tomorrow=LocalDate.now(ZoneOffset.UTC).plusDays(1).toString();
         Map<String,Object> request=request(product.getProductId(),tomorrow);
-        mvc.perform(post("/api/seller/promotions").header("Authorization","Bearer "+admin).contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(request))).andExpect(status().isOk()).andExpect(jsonPath("$.fee").value(147));
-        mvc.perform(post("/api/seller/promotions").header("Authorization","Bearer "+admin).contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(request))).andExpect(status().isOk());assertEquals(1,campaigns.count());
+        mvc.perform(post("/api/seller/promotions").with(mvc.as(admin)).contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(request))).andExpect(status().isOk()).andExpect(jsonPath("$.fee").value(147));
+        mvc.perform(post("/api/seller/promotions").with(mvc.as(admin)).contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(request))).andExpect(status().isOk());assertEquals(1,campaigns.count());
         var id=campaigns.findAll().get(0).getId();
         mvc.perform(get("/api/public/promotions").param("placement","catalog")).andExpect(jsonPath("$.length()").value(0));
-        request.put("expectedFee",0);mvc.perform(post("/api/seller/promotions").header("Authorization","Bearer "+admin).contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(request))).andExpect(status().isBadRequest());
-        var overlap=request(product.getProductId(),tomorrow);mvc.perform(post("/api/seller/promotions").header("Authorization","Bearer "+admin).contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(overlap))).andExpect(status().isBadRequest());
+        request.put("expectedFee",0);mvc.perform(post("/api/seller/promotions").with(mvc.as(admin)).contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(request))).andExpect(status().isBadRequest());
+        var overlap=request(product.getProductId(),tomorrow);mvc.perform(post("/api/seller/promotions").with(mvc.as(admin)).contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(overlap))).andExpect(status().isBadRequest());
         var finance=getReport(admin);assertEquals(0,new BigDecimal("147").compareTo(finance.get("totals").get("promotionFees").decimalValue()));assertEquals(finance.get("totals").get("knownNetEarnings"),finance.get("sellerBreakdown").get(0).get("knownNetEarnings"));
-        mvc.perform(post("/api/seller/promotions/"+id+"/cancel").header("Authorization","Bearer "+admin)).andExpect(status().isOk()).andExpect(jsonPath("$.credited").value(147));
-        mvc.perform(post("/api/seller/promotions/"+id+"/cancel").header("Authorization","Bearer "+admin)).andExpect(status().isOk());assertEquals(0,getReport(admin).get("totals").get("promotionFees").decimalValue().signum());
+        mvc.perform(post("/api/seller/promotions/"+id+"/cancel").with(mvc.as(admin))).andExpect(status().isOk()).andExpect(jsonPath("$.credited").value(147));
+        mvc.perform(post("/api/seller/promotions/"+id+"/cancel").with(mvc.as(admin))).andExpect(status().isOk());assertEquals(0,getReport(admin).get("totals").get("promotionFees").decimalValue().signum());
     }
     @Test void sellerSubmissionCannotPublishOrBypassReviewViaStockOrClientStatus()throws Exception {
         String admin=login("reviewer","ReviewOnly!2026"), seller=approvedSeller();String category=new TransactionTemplate(transactions).execute(t->products.findAll().get(0).getCategory().getCategoryId());
         Map<String,Object> body=new HashMap<>(Map.of("productName","Submission test product","description","Useful product details for testing","retailPrice",100,"discountPercent",0,"active",true,"primaryImageUrl","https://images.unsplash.com/photo-1441986300917-64674bd600d8","listingStatus","APPROVED"));
-        mvc.perform(post("/api/seller/categories/"+category+"/product").header("Authorization","Bearer "+seller).contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(body))).andExpect(status().isBadRequest());
+        mvc.perform(post("/api/seller/categories/"+category+"/product").with(mvc.as(seller)).contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(body))).andExpect(status().isBadRequest());
         body.putAll(Map.of("weightKg",1,"lengthCm",20,"widthCm",15,"heightCm",10));
-        var created=json.readTree(mvc.perform(post("/api/seller/categories/"+category+"/product").header("Authorization","Bearer "+seller).contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(body))).andExpect(status().isCreated()).andExpect(jsonPath("$.listingStatus").value("PENDING")).andReturn().getResponse().getContentAsString());
+        var created=json.readTree(mvc.perform(post("/api/seller/categories/"+category+"/product").with(mvc.as(seller)).contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(body))).andExpect(status().isCreated()).andExpect(jsonPath("$.listingStatus").value("PENDING")).andReturn().getResponse().getContentAsString());
         String id=created.get("productId").asText();
-        mvc.perform(post("/api/admin/products/"+id+"/review").header("Authorization","Bearer "+seller).contentType(MediaType.APPLICATION_JSON).content("{\"approve\":true,\"note\":\"Cannot approve own submission\"}")).andExpect(status().isForbidden());
+        mvc.perform(post("/api/admin/products/"+id+"/review").with(mvc.as(seller)).contentType(MediaType.APPLICATION_JSON).content("{\"approve\":true,\"note\":\"Cannot approve own submission\"}")).andExpect(status().isForbidden());
         mvc.perform(get("/api/public/products/"+id)).andExpect(status().isNotFound());
         mvc.perform(post("/api/cart/add").contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(Map.of("cartItems",List.of(Map.of("productId",id,"quantity",1)))))).andExpect(status().isBadRequest());
-        mvc.perform(post("/api/admin/products/"+id+"/review").header("Authorization","Bearer "+admin).contentType(MediaType.APPLICATION_JSON).content("{\"approve\":true,\"note\":\"Verified synthetic test details\"}")).andExpect(status().isOk());
+        mvc.perform(post("/api/admin/products/"+id+"/review").with(mvc.as(admin)).contentType(MediaType.APPLICATION_JSON).content("{\"approve\":true,\"note\":\"Verified synthetic test details\"}")).andExpect(status().isOk());
         mvc.perform(get("/api/public/products/"+id)).andExpect(status().isOk());
-        mvc.perform(post("/api/admin/products/"+id+"/review").header("Authorization","Bearer "+admin).contentType(MediaType.APPLICATION_JSON).content("{\"approve\":false,\"note\":\"Duplicate review must be rejected\"}")).andExpect(status().isBadRequest());
-        mvc.perform(put("/api/seller/products/"+id).header("Authorization","Bearer "+seller).contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(body))).andExpect(status().isOk()).andExpect(jsonPath("$.listingStatus").value("PENDING"));
+        mvc.perform(post("/api/admin/products/"+id+"/review").with(mvc.as(admin)).contentType(MediaType.APPLICATION_JSON).content("{\"approve\":false,\"note\":\"Duplicate review must be rejected\"}")).andExpect(status().isBadRequest());
+        mvc.perform(put("/api/seller/products/"+id).with(mvc.as(seller)).contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(body))).andExpect(status().isOk()).andExpect(jsonPath("$.listingStatus").value("PENDING"));
         mvc.perform(get("/api/public/products/"+id)).andExpect(status().isNotFound());
-        mvc.perform(post("/api/seller/products/supplyUpdate").header("Authorization","Bearer "+seller).contentType(MediaType.APPLICATION_JSON).content("[{\"productId\":\""+id+"\",\"quantity\":5,\"supplyType\":\"ABSOLUTE\"}]")).andExpect(status().isOk());
+        mvc.perform(post("/api/seller/products/supplyUpdate").with(mvc.as(seller)).contentType(MediaType.APPLICATION_JSON).content("[{\"productId\":\""+id+"\",\"quantity\":5,\"supplyType\":\"ABSOLUTE\"}]")).andExpect(status().isOk());
         mvc.perform(get("/api/public/products/"+id)).andExpect(status().isNotFound());
     }
     @Test void promotionOwnershipBudgetAndCurrentEligibilityAreServerEnforced()throws Exception {
         String admin=login("reviewer","ReviewOnly!2026"), seller=approvedSeller();var p=products.findAll().get(0);
         var r=request(p.getProductId(),LocalDate.now(ZoneOffset.UTC).toString());
-        mvc.perform(post("/api/seller/promotions").header("Authorization","Bearer "+seller).contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(r))).andExpect(status().isForbidden());
-        mvc.perform(get("/api/seller/finance").header("Authorization","Bearer "+seller)).andExpect(jsonPath("$.totals.fulfilledSales").value(0));
-        r.put("authorizeDeduction",false);mvc.perform(post("/api/seller/promotions").header("Authorization","Bearer "+admin).contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(r))).andExpect(status().isBadRequest());r.put("authorizeDeduction",true);
-        var c=json.readTree(mvc.perform(post("/api/seller/promotions").header("Authorization","Bearer "+admin).contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(r))).andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
-        mvc.perform(post("/api/seller/promotions/"+c.get("id").asLong()+"/cancel").header("Authorization","Bearer "+seller)).andExpect(status().isNotFound());
+        mvc.perform(post("/api/seller/promotions").with(mvc.as(seller)).contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(r))).andExpect(status().isForbidden());
+        mvc.perform(get("/api/seller/finance").with(mvc.as(seller))).andExpect(jsonPath("$.totals.fulfilledSales").value(0));
+        r.put("authorizeDeduction",false);mvc.perform(post("/api/seller/promotions").with(mvc.as(admin)).contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(r))).andExpect(status().isBadRequest());r.put("authorizeDeduction",true);
+        var c=json.readTree(mvc.perform(post("/api/seller/promotions").with(mvc.as(admin)).contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(r))).andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
+        mvc.perform(post("/api/seller/promotions/"+c.get("id").asLong()+"/cancel").with(mvc.as(seller))).andExpect(status().isNotFound());
         mvc.perform(get("/api/public/promotions").param("placement","catalog")).andExpect(jsonPath("$.length()").value(1));
         mvc.perform(get("/api/public/promotions").param("placement","home")).andExpect(jsonPath("$.length()").value(0));
         new TransactionTemplate(transactions).executeWithoutResult(t->products.findByProductId(p.getProductId()).orElseThrow().setListingStatus("PENDING"));
@@ -93,7 +94,7 @@ class MarketplaceFinancePromotionTest {
         new TransactionTemplate(transactions).executeWithoutResult(t->products.findByProductId(p.getProductId()).orElseThrow().setListingStatus("APPROVED"));
         new TransactionTemplate(transactions).executeWithoutResult(t->{var campaign=campaigns.findById(c.get("id").asLong()).orElseThrow();campaign.setStartsAt(Instant.now().minusSeconds(4*86400));campaign.setEndsAt(Instant.now().minusSeconds(86400));});
         mvc.perform(get("/api/public/promotions").param("placement","catalog")).andExpect(jsonPath("$.length()").value(0));
-        mvc.perform(post("/api/seller/promotions/"+c.get("id").asLong()+"/cancel").header("Authorization","Bearer "+admin)).andExpect(status().isBadRequest());
+        mvc.perform(post("/api/seller/promotions/"+c.get("id").asLong()+"/cancel").with(mvc.as(admin))).andExpect(status().isBadRequest());
     }
     @Test void unknownHistoricalRatesAndUnallocatedRefundsNeverInflateKnownNet()throws Exception {
         String admin=login("reviewer","ReviewOnly!2026");
@@ -102,8 +103,8 @@ class MarketplaceFinancePromotionTest {
         jdbc.update("update order_lines_snapshot set commission_rate_percent=5 where fulfillment_id='DEMO-FULFILLMENT-001'");
         new TransactionTemplate(transactions).executeWithoutResult(t->{var o=orders.findByOrderId("DEMO-EARNINGS-001").orElseThrow();var refund=Refund.builder().refundId("TEST-REFUND-001").payment(o.getPayment()).amount(new BigDecimal("100")).currency("INR").status(RefundStatus.SUCCESS).build();o.getPayment().setRefund(refund);});
         var held=getReport(admin);assertEquals(0,new BigDecimal("100").compareTo(held.get("successfulRefunds").decimalValue()));assertEquals(0,new BigDecimal("100").compareTo(held.get("totals").get("refundHold").decimalValue()));
-        mvc.perform(get("/api/seller/promotions").header("Authorization","Bearer "+admin)).andExpect(jsonPath("$.availableBudget").value(0));
-        var r=request(products.findAll().get(0).getProductId(),LocalDate.now(ZoneOffset.UTC).toString());mvc.perform(post("/api/seller/promotions").header("Authorization","Bearer "+admin).contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(r))).andExpect(status().isBadRequest());
+        mvc.perform(get("/api/seller/promotions").with(mvc.as(admin))).andExpect(jsonPath("$.availableBudget").value(0));
+        var r=request(products.findAll().get(0).getProductId(),LocalDate.now(ZoneOffset.UTC).toString());mvc.perform(post("/api/seller/promotions").with(mvc.as(admin)).contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(r))).andExpect(status().isBadRequest());
     }
     @Test void fullSuccessfulRefundReversesCommissionAndBuyerFeesEvenAfterShipment()throws Exception {
         String admin=login("reviewer","ReviewOnly!2026");
@@ -125,15 +126,15 @@ class MarketplaceFinancePromotionTest {
         assertEquals(0,new BigDecimal("1000").compareTo(report.get("totals").get("commission").decimalValue()));
         assertEquals(0,new BigDecimal("398750").compareTo(report.get("totals").get("knownNetEarnings").decimalValue()));
         assertEquals(0,new BigDecimal("250").compareTo(report.get("totals").get("sellerPaidDelivery").decimalValue()));
-        mvc.perform(get("/api/seller/promotions").header("Authorization","Bearer "+admin)).andExpect(status().isOk()).andExpect(jsonPath("$.availableBudget").value(398750));
+        mvc.perform(get("/api/seller/promotions").with(mvc.as(admin))).andExpect(status().isOk()).andExpect(jsonPath("$.availableBudget").value(398750));
         jdbc.update("update order_lines_snapshot set shipped_qty=1 where fulfillment_id='DEMO-FULFILLMENT-001'"); entities.clear();
         assertEquals(0,new BigDecimal("125").compareTo(getReport(admin).get("totals").get("sellerPaidDelivery").decimalValue()));
-        mvc.perform(get("/api/seller/promotions").header("Authorization","Bearer "+admin)).andExpect(jsonPath("$.availableBudget").value(199375));
+        mvc.perform(get("/api/seller/promotions").with(mvc.as(admin))).andExpect(jsonPath("$.availableBudget").value(199375));
         var order=orders.findByOrderId("DEMO-EARNINGS-001").orElseThrow();
         order.getPayment().setRefund(Refund.builder().refundId("CAPPED-FULL-REFUND").payment(order.getPayment()).amount(order.getTotalAmount()).currency("INR").status(RefundStatus.SUCCESS).build());
         orders.flush();
         assertEquals(0,getReport(admin).get("totals").get("commission").decimalValue().signum());
         assertEquals(0,getReport(admin).get("totals").get("sellerPaidDelivery").decimalValue().signum());
-        mvc.perform(get("/api/seller/promotions").header("Authorization","Bearer "+admin)).andExpect(jsonPath("$.availableBudget").value(0));
+        mvc.perform(get("/api/seller/promotions").with(mvc.as(admin))).andExpect(jsonPath("$.availableBudget").value(0));
     }
 }

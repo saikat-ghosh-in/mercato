@@ -1,4 +1,4 @@
-import api from "../../backend/api";
+import api, { session } from "../../backend/api";
 import toast from "react-hot-toast";
 import { showWarningToast } from "../../utils/toastUtils";
 import { createSerialQueue } from "../../utils/cartState.js";
@@ -7,6 +7,10 @@ const requests = createSerialQueue();
 let epoch = 0;
 export const waitForCartRequests = () => requests.drain();
 export const invalidateCartRequests = () => { epoch += 1; };
+let sessionEpoch = session.getSnapshot().epoch;
+session.subscribe(snapshot => {
+  if (snapshot.epoch !== sessionEpoch) { sessionEpoch = snapshot.epoch; invalidateCartRequests(); }
+});
 
 const acceptCart = (dispatch, data) => {
   if (!data || !Array.isArray(data.cartItems)) throw new Error("The server returned an invalid bag. Please refresh.");

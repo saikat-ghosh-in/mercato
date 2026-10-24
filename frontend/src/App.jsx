@@ -14,7 +14,7 @@ import HomePage from './components/home/Home';
 import Header from './components/Header';
 const Cart = lazyPage(() => import("./components/cart/Cart"));
 
-import toast, { Toaster } from 'react-hot-toast';
+import { Toaster } from 'react-hot-toast';
 const LogIn = lazyPage(() => import("./components/auth/LogIn"));
 import PrivateRoute from "./components/PrivateRoute";
 const Register = lazyPage(() => import("./components/auth/Register"));
@@ -23,7 +23,7 @@ const PaymentConfirmation = lazyPage(() => import("./components/payment/PaymentC
 const Orders = lazyPage(() => import("./components/orders/Orders"));
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchCategories } from './reduxStore/actions/categoryActions';
-import { initializeAuth, logOutUser } from './reduxStore/actions/authActions';
+import { initializeAuth } from './reduxStore/actions/authActions';
 import { syncCartFromBackend } from './reduxStore/actions/cartActions';
 import { fetchWishlistIds } from './reduxStore/actions/wishlistActions';
 const Profile = lazyPage(() => import("./components/user/Profile"));
@@ -33,7 +33,7 @@ const ProductDetailsPage = lazyPage(() => import("./components/product/ProductDe
 const CashfreePayment = lazyPage(() => import("./components/payment/CashfreePayment"));
 const SellerDashboard = lazyPage(() => import("./components/seller/SellerDashboard"));
 const AdminDashboard = lazyPage(() => import("./components/admin/AdminDashboard"));
-import { isTokenExpired } from './utils/tokenManager';
+import SessionGate from './components/auth/SessionGate';
 const ProfileEdit = lazyPage(() => import("./components/user/ProfileEdit"));
 const Addresses = lazyPage(() => import("./components/user/Addresses"));
 const EmailVerificationPending = lazyPage(() => import("./components/auth/EmailVerificationPending"));
@@ -57,7 +57,7 @@ function StorefrontEntry() {
 
 function PageFrame({ children }) {
   const { pathname } = useLocation();
-  const kind = /^\/(login|register|forgot-password|reset-password|verify-email|account-deactivated)/.test(pathname) ? "auth" : /^\/(admin|seller)/.test(pathname) ? "management" : pathname.startsWith("/checkout") ? "checkout" : pathname.startsWith("/orders") ? "orders" : /^\/(profile|edit-profile|addresses|wishlist)/.test(pathname) ? "account" : "store";
+  const kind = /^\/(auth\/mfa|login|register|forgot-password|reset-password|verify-email|account-deactivated)/.test(pathname) ? "auth" : /^\/(admin|seller)/.test(pathname) ? "management" : pathname.startsWith("/checkout") ? "checkout" : pathname.startsWith("/orders") ? "orders" : /^\/(profile|edit-profile|addresses|wishlist)/.test(pathname) ? "account" : "store";
   useEffect(() => { const timer = window.setTimeout(warmRoutes, 1800); return () => window.clearTimeout(timer); }, []);
   return <main id="main-content" tabIndex={-1} className={"app-page " + kind + "-page"}>{children}</main>;
 }
@@ -70,34 +70,25 @@ function NavigationReset() {
 function App() {
   const dispatch = useDispatch();
   const user = useSelector((state) => state.auth?.user);
+  const { sessionStatus, sessionEpoch } = useSelector(state => state.auth);
 
   useEffect(() => {
     dispatch(initializeAuth());
   }, [dispatch]);
 
   useEffect(() => {
-    if (user && user.token) {
-      if (isTokenExpired(user.tokenExpirationTime)) {
-        console.warn("Token expired, logging out");
-        toast.error("Your session has expired. Please log in again.");
-        dispatch(logOutUser());
-      }
-    }
-  }, [user, dispatch]);
+    if (sessionStatus === "ready") dispatch(fetchCategories());
+  }, [dispatch, sessionStatus, sessionEpoch]);
 
   useEffect(() => {
-    dispatch(fetchCategories());
-  }, [dispatch]);
+    if (sessionStatus === "ready") dispatch(syncCartFromBackend());
+  }, [dispatch, sessionStatus, sessionEpoch]);
 
   useEffect(() => {
-    dispatch(syncCartFromBackend());
-  }, [dispatch]);
-
-  useEffect(() => {
-    if (user?.token) {
+    if (user && sessionStatus === "ready") {
       dispatch(fetchWishlistIds());
     }
-  }, [user?.token, dispatch]);
+  }, [user, sessionStatus, dispatch]);
 
 
   return (
@@ -108,7 +99,7 @@ function App() {
           <Header />
           <SubHeaderSlot />
           <PageFrame>
-          <ErrorBoundary>
+          <SessionGate><ErrorBoundary key={sessionEpoch}>
           <Suspense fallback={<div className="site-container route-loading" role="status" aria-label="Loading page"><div /><div /></div>}><Routes>
             <Route path='/help' element={<Help />} />
             <Route path='/' element={<StorefrontEntry />} />
@@ -149,7 +140,7 @@ function App() {
             </Route>
             <Route path='*' element={<div className="site-container home-section"><div className="state-panel"><p className="eyebrow">404 · PAGE NOT FOUND</p><h1>Let’s find something good.</h1><p>This page may have moved or the link may be incomplete.</p><Link to="/products" className="button button-dark">Explore the collection</Link></div></div>} />
           </Routes></Suspense>
-          </ErrorBoundary>
+          </ErrorBoundary></SessionGate>
           </PageFrame>
           <Footer />
 

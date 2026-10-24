@@ -19,6 +19,7 @@ public class SellerOnboardingService {
     private final AuthUtil auth;
     private final CommissionService commissions;
     private final AccountAccessEventRepository accessEvents;
+    private final com.mercato.Session.SessionRevocation sessions;
 
     @Transactional
     public void submit(EcommUser user, SellerApplicationRequest request) {
@@ -86,6 +87,8 @@ public class SellerOnboardingService {
             user.getRoles().add(roles.findByRoleName(AppRole.ROLE_USER).orElseThrow());
             user.getRoles().add(roles.findByRoleName(AppRole.ROLE_SELLER).orElseThrow());
         }
+        user.setAccessVersion(user.getAccessVersion()+1);
+        sessions.revokeAll(user.getUserId());
         user.setSellerStatus(approve ? SellerStatus.APPROVED : SellerStatus.REJECTED);
         application.setReviewedAt(Instant.now()); application.setReviewedBy(reviewer.getUserId()); application.setReviewNote(note);
         accessEvents.save(new AccountAccessEvent(user, reviewer, approve ? "SELLER_APPROVED" : "SELLER_REJECTED",

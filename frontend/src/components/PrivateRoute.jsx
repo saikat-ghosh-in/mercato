@@ -1,13 +1,15 @@
 import { useSelector } from 'react-redux'
 import { Navigate, Outlet, useLocation, Link } from 'react-router-dom';
-import { isTokenExpired } from '../utils/tokenManager';
 import { accountLanding } from '../utils/accountRouting';
 
 const PrivateRoute = ({ publicPage = false, roles = [], allowSellerApplicant = false }) => {
-    const { user } = useSelector((state) => state.auth);
+    const { user, mfa } = useSelector((state) => state.auth);
     const userDetails = useSelector((state) => state.auth?.userDetails);
     const location = useLocation();
-    const authenticated = Boolean(user?.token && !isTokenExpired(user.tokenExpirationTime));
+    const authenticated = Boolean(user);
+    if (["ENROLL_REQUIRED", "CHALLENGE_REQUIRED", "STEP_UP_REQUIRED"].includes(mfa?.state)) {
+        return <Navigate to={`/auth/mfa?redirect=${encodeURIComponent(location.pathname + location.search)}`} replace />;
+    }
 
     if (publicPage) {
         return authenticated ? <Navigate to={accountLanding(userDetails || user)} replace /> : <Outlet />;

@@ -11,7 +11,7 @@ import org.springframework.security.core.AuthenticationException;
 
 public interface AuthService {
 
-    ResponseEntity<UserInfoResponse> authenticateUser(LoginRequest loginRequest, HttpServletRequest request, HttpServletResponse httpServletResponse) throws AuthenticationException;
+    ResponseEntity<?> authenticateUser(LoginRequest loginRequest, HttpServletRequest request, HttpServletResponse httpServletResponse) throws AuthenticationException;
 
     String registerNewUser(RegisterUserRequest registerUserRequest);
 

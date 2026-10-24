@@ -6,10 +6,20 @@ const initialState = {
     orderResponse: null,
     paymentData: null,
     paymentStatus: "idle",
+    sessionStatus: "idle",
+    sessionEpoch: 0,
+    sessionError: null,
+    contextId: null,
+    mfa: { state: "NONE" },
 };
 
 export const authReducer = (state = initialState, action) => {
     switch (action.type) {
+        case "SESSION_STATE":
+            return { ...state, user: action.payload.user, userDetails: action.payload.user,
+                sessionStatus: action.payload.status, sessionEpoch: action.payload.epoch,
+                sessionError: action.payload.error, contextId: action.payload.contextId,
+                expiresAt: action.payload.expiresAt, mfa: action.payload.mfa };
         case "LOGIN":
             return { ...state, user: action.payload };
         case "SET_USER_DETAILS":

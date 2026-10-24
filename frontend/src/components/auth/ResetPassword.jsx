@@ -4,7 +4,7 @@ import { FiLock, FiEye, FiEyeOff, FiArrowLeft } from "react-icons/fi";
 import { useForm, useWatch } from "react-hook-form";
 import { useState } from "react";
 import toast from "react-hot-toast";
-import api from "../../backend/api";
+import api, { session } from "../../backend/api";
 import { passwordRules } from "../../utils/validationRules";
 
 const inputCls = "w-full text-sm text-gray-800 focus:outline-none bg-transparent placeholder-gray-300";
@@ -40,6 +40,7 @@ const ResetPassword = () => {
                 token,
                 password: data.password,
             });
+            await session.refresh({ broadcast: true });
             toast.success("Password updated. Please sign in.");
             navigate("/login");
         } catch (err) {

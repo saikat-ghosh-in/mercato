@@ -27,7 +27,7 @@ class AccountBoundaryTest {
     }
     @Test void duplicatePhoneIsRejectedInsteadOfPretendingTheProfileWasSaved() {
         var users=mock(UserRepository.class); var auth=mock(AuthUtil.class);
-        var service=new UserServiceImpl(users,mock(RoleRepository.class),auth,mock(EmailService.class));
+        var service=new UserServiceImpl(users,mock(RoleRepository.class),auth,mock(EmailService.class),mock(com.mercato.Session.SessionRevocation.class));
         var user=EcommUser.builder().phoneNumber("9999999999").build();
         when(auth.getLoggedInUser()).thenReturn(user);
         when(users.existsByPhoneNumber("8888888888")).thenReturn(true);
@@ -37,7 +37,7 @@ class AccountBoundaryTest {
     }
     @Test void nullOrEmptyRoleUpdatesAreBadRequestsBeforeAnyDatabaseMutation() {
         var users=mock(UserRepository.class); var roles=mock(RoleRepository.class);
-        var service=new UserServiceImpl(users,roles,mock(AuthUtil.class),mock(EmailService.class));
+        var service=new UserServiceImpl(users,roles,mock(AuthUtil.class),mock(EmailService.class),mock(com.mercato.Session.SessionRevocation.class));
         assertThrows(IllegalArgumentException.class, () -> service.updateUserRoles("USR-1",null));
         assertThrows(IllegalArgumentException.class, () -> service.updateUserRoles("USR-1",Set.of()));
         assertThrows(IllegalArgumentException.class, () -> service.updateUserRoles("USR-1",new HashSet<>(Arrays.asList((String)null))));
