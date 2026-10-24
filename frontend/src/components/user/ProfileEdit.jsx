@@ -1,12 +1,14 @@
+import { LoadingLayout } from "../shared/LoadingStates";
+import PageHeading from "../shared/PageHeading";
 import Field from "../shared/AuthField";
 import { useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import {
-  MdArrowBack, MdSave, MdPerson, MdPhone,
-  MdStorefront, MdImage, MdVerified,
+  MdArrowBack, MdPerson, MdPhone,
+  MdStorefront, MdVerified,
 } from "react-icons/md";
-import toast from "react-hot-toast";
+import toast from "../../utils/toastUtils.js";
 import api from "../../backend/api";
 import { fetchUserDetails } from "../../reduxStore/actions/authActions";
 import { profileDraft } from "../../utils/accountState.js";
@@ -16,11 +18,11 @@ const inputCls = "w-full text-sm text-gray-800 focus:outline-none bg-transparent
 
 const ReadOnlyField = ({ label, value, hint }) => (
   <div>
-    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1.5">{label}</label>
+    <label className="text-xs font-bold text-gray-400  block mb-1.5">{label}</label>
     <div className="flex items-center gap-2.5 border border-gray-100 rounded-xl px-3 py-2.5 bg-gray-50">
-      <span className="text-sm text-gray-400 select-none">{value ?? "—"}</span>
+      <span className="text-sm text-gray-600 select-none break-words min-w-0">{value ?? "—"}</span>
     </div>
-    {hint && <p className="text-[11px] text-gray-400 mt-1">{hint}</p>}
+    {hint && <p className="text-xs text-gray-400 mt-1">{hint}</p>}
   </div>
 );
 
@@ -36,7 +38,7 @@ const ProfileEdit = () => {
   const form = initializedDraft?.form;
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
-  if (!form) return <div className="site-container route-loading" role="status" aria-label="Loading your profile"><div /><div /></div>;
+  if (!form) return <div className="site-container skeleton-page"><LoadingLayout variant="profile" label="Loading your profile" /></div>;
 
   const set = (key, val) => {
     setDraft({ ...initializedDraft, dirty: true, form: { ...form, [key]: val } });
@@ -89,63 +91,15 @@ const ProfileEdit = () => {
       <div className="max-w-2xl mx-auto px-4 sm:px-6">
 
         {/* Header */}
-        <div className="flex items-center gap-3 mb-6">
-          <div className="p-2 bg-blue-50 rounded-xl">
-            <MdPerson size={20} className="text-blue-500" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-gray-900">Edit Profile</h1>
-            <p className="text-xs text-gray-500 mt-0.5">Update your personal information</p>
-          </div>
-          <button
-            onClick={() => navigate("/profile")}
-            className="control ml-auto flex items-center gap-1.5 text-xs font-semibold text-blue-500 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-xl transition-colors cursor-pointer"
-          >
-            <MdArrowBack size={13} /> Back
-          </button>
-        </div>
+        <PageHeading title="Edit profile" description="Update your personal information."><button type="button" className="button button-outline" onClick={() => navigate("/profile")}><MdArrowBack aria-hidden="true" /> Back to account</button></PageHeading>
 
         <div className="space-y-4">
-
-          {/* Avatar preview */}
-          {/* <div className="surface p-5">
-            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Profile Picture</h3>
-            <div className="flex items-center gap-5">
-              <div className="shrink-0">
-                {!previewError && form.profileImageUrl ? (
-                  <img
-                    src={form.profileImageUrl}
-                    alt="Preview"
-                    onError={() => setPreviewError(true)}
-                    className="w-16 h-16 rounded-full object-cover ring-2 ring-blue-100"
-                  />
-                ) : (
-                  <div className="w-16 h-16 rounded-full bg-linear-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xl font-bold ring-2 ring-blue-100">
-                    {initials}
-                  </div>
-                )}
-              </div>
-              <div className="flex-1">
-                <Field label="Image URL" icon={MdImage} error={errors.profileImageUrl}>
-                  <input
-                    type="text"
-                    value={form.profileImageUrl}
-                    onChange={e => { set("profileImageUrl", e.target.value); setPreviewError(false); }}
-                    placeholder="Photo URL"
-                    className={inputCls}
-                  />
-                </Field>
-                <p className="text-[11px] text-gray-400 mt-1">Paste a direct image URL. Leave empty to use your initials.</p>
-              </div>
-            </div>
-          </div> */}
-
           {/* Personal info */}
           <div className="surface p-5 space-y-4">
-            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Personal Information</h3>
+            <h3 className="text-xs font-bold text-gray-400 ">Personal information</h3>
 
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="First Name" icon={MdPerson} error={errors.firstName}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <Field label="First name" icon={MdPerson} error={errors.firstName}>
                 <input
                   type="text"
                   value={form.firstName}
@@ -154,7 +108,7 @@ const ProfileEdit = () => {
                   className={inputCls}
                 />
               </Field>
-              <Field label="Last Name" error={errors.lastName}>
+              <Field label="Last name" error={errors.lastName}>
                 <input
                   type="text"
                   value={form.lastName}
@@ -165,7 +119,7 @@ const ProfileEdit = () => {
               </Field>
             </div>
 
-            <Field label="Phone Number" icon={MdPhone} error={errors.phoneNumber} hint="10-digit valid mobile number">
+            <Field label="Phone number" icon={MdPhone} error={errors.phoneNumber} hint="10-digit valid mobile number">
               <span className="text-sm font-semibold text-gray-500 shrink-0 select-none">+91</span>
               <div className="w-px h-4 bg-gray-200 shrink-0" />
               <input
@@ -182,8 +136,8 @@ const ProfileEdit = () => {
           {/* Locked fields */}
           <div className="surface p-5 space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Account Details</h3>
-              <span className="text-[10px] font-semibold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">Read only</span>
+              <h3 className="text-xs font-bold text-gray-400 ">Account details</h3>
+              <span className="text-xs font-semibold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">Read only</span>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <ReadOnlyField label="Username" value={user?.username} hint="Cannot be changed" />
@@ -200,10 +154,10 @@ const ProfileEdit = () => {
           {/* Seller section */}
           {isSeller && (
             <div className="surface p-5 space-y-4">
-              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
-                <MdStorefront size={13} /> Seller Information
+              <h3 className="text-xs font-bold text-gray-400  flex items-center gap-1.5">
+                <MdStorefront size={13} /> Seller information
               </h3>
-              <Field label="Store Display Name" icon={MdStorefront} error={errors.sellerDisplayName} hint="This name appears on your products">
+              <Field label="Store display name" icon={MdStorefront} error={errors.sellerDisplayName} hint="This name appears on your products">
                 <input
                   type="text"
                   value={form.sellerDisplayName}
@@ -227,10 +181,10 @@ const ProfileEdit = () => {
             <button
               onClick={handleSave}
               disabled={saving}
-              className="control control-prominent flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm bg-gray-950 hover:bg-gray-800 text-white rounded-xl transition-[transform,opacity,background-color] cursor-pointer font-bold active:scale-[0.98] disabled:opacity-50"
+              className="control control-prominent flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm bg-gray-950 hover:bg-gray-800 text-white rounded-xl transition-[transform,opacity,background-color] cursor-pointer font-bold  disabled:opacity-50"
             >
-              <MdSave size={15} />
-              {saving ? "Saving..." : "Save Changes"}
+
+              {saving ? "Saving..." : "Save changes"}
             </button>
           </div>
         </div>

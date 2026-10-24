@@ -1,3 +1,4 @@
+import { LoadingLayout } from "./LoadingStates";
 import { useSelector } from "react-redux";
 import SelectControl from "./SelectControl";
 import ProductSubmissionModal from "./ProductSubmissionModal";
@@ -9,28 +10,18 @@ import {
   MdAdd, MdEdit, MdDelete, MdSearch, MdClose,
   MdWarning, MdInventory,
 } from "react-icons/md";
-import toast from "react-hot-toast";
+import toast from "../../utils/toastUtils.js";
 import api from "../../backend/api";
 import { formatCurrency } from "../../utils/formatCurrency";
 import SupplyUpdateModal from "./SupplyUpdateModal";
 
 
 const SUBTABS = [
-  { id: "pim", label: "Product Catalogue" },
-  { id: "inventory", label: "Perpetual Inventory" },
+  { id: "pim", label: "Catalogue" },
+  { id: "inventory", label: "Inventory" },
 ];
 
-const TableSkeleton = ({ cols = 5 }) => (
-  <div className="animate-pulse space-y-2">
-    {[1, 2, 3, 4].map(i => (
-      <div key={i} className="flex gap-4 px-4 py-3">
-        {Array.from({ length: cols }).map((_, j) => (
-          <div key={j} className="h-3 bg-gray-100 rounded flex-1" />
-        ))}
-      </div>
-    ))}
-  </div>
-);
+const TableSkeleton = ({ cols = 5 }) => <LoadingLayout variant="table" label="Loading products" cols={cols} />;
 
 const SectionCard = ({ children, className = "" }) => (
   <div className={`surface overflow-hidden ${className}`}>
@@ -55,7 +46,7 @@ const DeleteModal = ({ product, onClose, onConfirm, loading }) => (
           Cancel
         </button>
         <button onClick={onConfirm} disabled={loading}
-          className="control flex-1 px-3 py-2.5 text-sm bg-red-500 hover:bg-red-600 text-white rounded-xl cursor-pointer font-bold disabled:opacity-50 active:scale-[0.98]">
+          className="control flex-1 px-3 py-2.5 text-sm bg-red-500 hover:bg-red-600 text-white rounded-xl cursor-pointer font-bold disabled:opacity-50 ">
           {loading ? "Deleting..." : "Delete"}
         </button>
       </div>
@@ -85,7 +76,6 @@ const PIMTab = ({ products, categories, loading, onRefresh, showSeller = false }
     setDeleting(true);
     try {
       await api.delete(`/seller/products/${deleteProduct.productId}`);
-      toast.success("Product deleted");
       setDeleteProduct(null);
       onRefresh();
     } catch (err) {
@@ -130,21 +120,21 @@ const PIMTab = ({ products, categories, loading, onRefresh, showSeller = false }
             onClick={() => setShowAddModal(true)}
             disabled={sellingSuspended}
             title={sellingSuspended ? "Selling is suspended" : undefined}
-            className="control flex items-center gap-1.5 bg-gray-950 hover:bg-gray-800 text-white text-xs font-bold px-4 py-2 rounded-xl transition-[transform,opacity,background-color] cursor-pointer active:scale-[0.98]"
+            className="control flex items-center gap-1.5 bg-gray-950 hover:bg-gray-800 text-white text-xs font-bold px-4 py-2 rounded-xl transition-[transform,opacity,background-color] cursor-pointer "
           >
             <MdAdd size={14} /> {directCreation ? "Create product" : "Request listing"}
           </button>
         </div>
 
-        <p className="px-4 py-3 text-xs text-gray-500">{directCreation ? "Create products directly in the catalog. Manage stock separately in Perpetual Inventory. Seller submissions still require your approval." : "Listing requests are free. Approval is required before products appear in the marketplace. Seller edits require another review."}</p>
+        <p className="px-4 py-3 text-xs text-gray-500">{directCreation ? "Create products directly in the catalog. Manage stock separately in Inventory. Seller submissions still require your approval." : "Listing requests are free. Approval is required before products appear in the marketplace. Seller edits require another review."}</p>
         {/* Table */}
         {loading && !products.length ? <TableSkeleton cols={6} /> : (
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full management-table">
               <thead>
                 <tr className="border-b border-gray-50">
                   {["Product", "Category", ...(showSeller ? ["Seller"] : []), "Price", "Status", ""].map(h => (
-                    <th key={h} className="text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest px-4 py-3">{h}</th>
+                    <th key={h} className="text-left text-xs font-bold text-gray-400  px-4 py-3">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -162,8 +152,8 @@ const PIMTab = ({ products, categories, loading, onRefresh, showSeller = false }
                           }
                         </div>
                         <div>
-                          <p className="text-sm font-semibold text-gray-800 line-clamp-1">{p.productName}</p>
-                          <p className="text-[10px] text-gray-400">{p.productId}</p>
+                          <p className="text-sm font-semibold text-gray-800 product-table-name">{p.productName}</p>
+                          <p className="text-xs text-gray-400">{p.productId}</p>
                         </div>
                       </div>
                     </td>
@@ -172,18 +162,18 @@ const PIMTab = ({ products, categories, loading, onRefresh, showSeller = false }
                       <td className="px-4 py-3">
                         <p className="text-xs font-semibold text-gray-600">{p.sellerName ?? "—"}</p>
                         {p.sellerId && (
-                          <p className="text-[10px] text-gray-400">{p.sellerId}</p>
+                          <p className="text-xs text-gray-400">{p.sellerId}</p>
                         )}
                       </td>
                     )}
                     <td className="px-4 py-3">
                       <p className="text-sm font-bold text-gray-900">{formatCurrency(p.sellingPrice)}</p>
                       {p.discountPercent > 0 && (
-                        <p className="text-[10px] text-gray-400 line-through">{formatCurrency(p.retailPrice)}</p>
+                        <p className="text-xs text-gray-400 line-through">{formatCurrency(p.retailPrice)}</p>
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${p.active ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-500"
+                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${p.active ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-500"
                         }`}>
                         {p.listingStatus !== "APPROVED" ? p.listingStatus : p.active ? "Approved" : "Disabled"}
                       </span>
@@ -264,7 +254,7 @@ const InventoryTab = ({ products, loading, onRefresh, showSeller = false }) => {
           </div>
           <button
             onClick={() => setShowSupplyModal(true)}
-            className="control flex items-center gap-1.5 bg-gray-950 hover:bg-gray-800 text-white text-xs font-bold px-4 py-2 rounded-xl transition-[transform,opacity,background-color] cursor-pointer active:scale-[0.98]"
+            className="control flex items-center gap-1.5 bg-gray-950 hover:bg-gray-800 text-white text-xs font-bold px-4 py-2 rounded-xl transition-[transform,opacity,background-color] cursor-pointer "
           >
             <MdInventory size={14} /> Supply Update
           </button>
@@ -272,11 +262,11 @@ const InventoryTab = ({ products, loading, onRefresh, showSeller = false }) => {
 
         {loading && !products.length ? <TableSkeleton cols={5} /> : (
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full management-table">
               <thead>
                 <tr className="border-b border-gray-50">
                   {["Product", ...(showSeller ? ["Seller"] : []), "Physical", "Reserved", "Available", "Status"].map(h => (
-                    <th key={h} className="text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest px-4 py-3">{h}</th>
+                    <th key={h} className="text-left text-xs font-bold text-gray-400  px-4 py-3">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -297,8 +287,8 @@ const InventoryTab = ({ products, loading, onRefresh, showSeller = false }) => {
                             }
                           </div>
                           <div>
-                            <p className="text-sm font-semibold text-gray-800 line-clamp-1">{p.productName}</p>
-                            <p className="text-[10px] text-gray-400">{p.categoryName}</p>
+                            <p className="text-sm font-semibold text-gray-800 product-table-name">{p.productName}</p>
+                            <p className="text-xs text-gray-400">{p.categoryName}</p>
                           </div>
                         </div>
                       </td>
@@ -306,7 +296,7 @@ const InventoryTab = ({ products, loading, onRefresh, showSeller = false }) => {
                         <td className="px-4 py-3">
                           <p className="text-xs font-semibold text-gray-600">{p.sellerName ?? "—"}</p>
                           {p.sellerId && (
-                            <p className="text-[10px] text-gray-400">{p.sellerId}</p>
+                            <p className="text-xs text-gray-400">{p.sellerId}</p>
                           )}
                         </td>
                       )}
@@ -314,7 +304,7 @@ const InventoryTab = ({ products, loading, onRefresh, showSeller = false }) => {
                       <td className="px-4 py-3 text-sm font-semibold text-blue-500">{p.reservedQty}</td>
                       <td className="px-4 py-3 text-sm font-bold text-gray-900">{p.availableQty}</td>
                       <td className="px-4 py-3">
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${isOut ? "bg-red-100 text-red-600" :
+                        <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${isOut ? "bg-red-100 text-red-600" :
                           isLow ? "bg-amber-100 text-amber-700" :
                             "bg-blue-100 text-blue-700"
                           }`}>
@@ -370,10 +360,11 @@ const ProductsTab = ({ mode = 'seller' }) => {
   return (
     <div className="space-y-4">
       {/* Subtab switcher */}
-      <div className="flex gap-1 bg-white rounded-xl border border-gray-100 shadow-sm p-1 w-fit">
+      <div className="workspace-subtabs">
         {SUBTABS.map(({ id, label }) => (
           <button
             key={id}
+            aria-pressed={subtab === id}
             onClick={() => setSubtab(id)}
             className={`control px-4 py-2 rounded-lg text-xs font-semibold transition-[transform,opacity,background-color] cursor-pointer ${subtab === id
               ? "bg-gray-950 text-white"

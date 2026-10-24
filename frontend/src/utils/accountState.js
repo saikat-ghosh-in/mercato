@@ -23,3 +23,6 @@ export function recoveredPayment(data, orderId) {
   }
   return data;
 }
+
+// Cached payment details can render, but only a completed current verification can open the gateway.
+export const paymentHandoffAllowed = ({ isLoading, isFetching, error }) => !isLoading && !isFetching && !error;

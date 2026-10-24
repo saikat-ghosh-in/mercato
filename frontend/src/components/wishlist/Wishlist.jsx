@@ -1,6 +1,7 @@
+import PageHeading from "../shared/PageHeading";
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import { MdBookmarkBorder, MdShoppingBag } from "react-icons/md";
+import { MdShoppingBag } from "react-icons/md";
 import { useWishlistQuery } from "../../reduxStore/services/privateApi.js";
 import ProductCard, { CardSkeleton } from "../product/ProductCard";
 
@@ -14,15 +15,7 @@ const Wishlist = () => {
     return (
         <div className="bg-gray-50 min-h-screen py-6">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="flex items-center gap-3 mb-6">
-                    <div className="p-2 bg-gray-50 rounded-xl">
-                        <MdBookmarkBorder size={20} className="text-gray-600" />
-                    </div>
-                    <div>
-                        <h1 className="text-xl font-bold text-gray-900">Wishlist</h1>
-                        <p className="text-xs text-gray-500 mt-0.5">Items you&apos;ve saved for later</p>
-                    </div>
-                </div>
+                <PageHeading title="Saved items" description="Products saved for later." />
 
                 {loading && !products.length ? (
                     <div className="product-grid">
@@ -40,7 +33,7 @@ const Wishlist = () => {
                     </div>
                 ) : visibleProducts.length === 0 ? (
                     <div className="text-center py-20">
-                        <h2 className="text-lg font-bold text-gray-800 mb-1">Your wishlist is empty</h2>
+                        <h2 className="text-lg font-bold text-gray-800 mb-1">No saved items yet</h2>
                         <p className="text-sm text-gray-400 mb-6">Open a product and choose Save to wishlist to keep it here.</p>
                         <button
                             onClick={() => navigate("/products")}

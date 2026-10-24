@@ -29,7 +29,7 @@ const Pagination = ({ pageInfo, loading, onPageChange }) => {
                             onClick={() => onPageChange(i)}
                             className={`w-9 h-9 rounded-xl text-sm font-semibold transition-colors cursor-pointer ${
                                 i === pageNumber
-                                    ? "bg-blue-500 text-white shadow-sm"
+                                    ? "bg-blue-500 text-white "
                                     : "bg-white border border-gray-200 text-gray-600 hover:border-blue-300 hover:text-blue-500"
                             }`}
                         >

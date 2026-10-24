@@ -1,3 +1,4 @@
+import { Spinner } from "../shared/Spinner";
 import { useDispatch } from "react-redux";
 import { useForm, Controller } from "react-hook-form";
 import { MdLocationOn } from "react-icons/md";
@@ -33,7 +34,7 @@ const InputField = ({ field, placeholder, error, type = "text", prefix, maxLengt
 );
 
 const FieldError = ({ message }) =>
-  message ? <p className="mt-1 text-[11px] text-red-500">{message}</p> : null;
+  message ? <p className="mt-1 text-xs text-red-500">{message}</p> : null;
 
 
 const AddAddressForm = ({ address, setOpenAddressModal, setLoadingAddresses }) => {
@@ -195,14 +196,11 @@ const AddAddressForm = ({ address, setOpenAddressModal, setLoadingAddresses }) =
           <button
             type="submit"
             disabled={isLoading}
-            className="control control-prominent flex items-center gap-2 px-6 py-2.5 text-sm font-bold text-white bg-blue-500 hover:bg-blue-600 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed rounded-xl transition-[transform,opacity,background-color] shadow-sm"
+            className="control control-prominent flex items-center gap-2 px-6 py-2.5 text-sm font-bold text-white bg-blue-500 hover:bg-blue-600  disabled:opacity-50 disabled:cursor-not-allowed rounded-xl transition-[transform,opacity,background-color] "
           >
             {isLoading ? (
               <>
-                <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-                </svg>
+                <Spinner />
                 Saving...
               </>
             ) : isEditing ? "Update Address" : "Save Address"}

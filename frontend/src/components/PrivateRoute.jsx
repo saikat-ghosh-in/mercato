@@ -1,3 +1,4 @@
+import { LoadingLayout } from "./shared/LoadingStates";
 import { useSelector } from 'react-redux'
 import { Navigate, Outlet, useLocation, Link } from 'react-router-dom';
 import { accountLanding } from '../utils/accountRouting';
@@ -20,7 +21,7 @@ const PrivateRoute = ({ publicPage = false, roles = [], allowSellerApplicant = f
         return <Navigate to={`/login?redirect=${redirect}`} replace />;
     }
 
-    if (roles.length > 0 && !userDetails) return <div className="site-container route-loading" role="status" aria-label="Checking account permissions"><div /><div /></div>;
+    if (roles.length > 0 && !userDetails) return <div className="site-container skeleton-page"><LoadingLayout variant="form" label="Checking account permissions" /></div>;
     if (roles.length > 0) {
         const userRoles = userDetails?.roles ?? [];
         const hasRole = roles.some(r => userRoles.includes(r)) || (allowSellerApplicant && ["PENDING", "REJECTED"].includes(userDetails?.sellerStatus));

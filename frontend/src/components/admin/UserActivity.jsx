@@ -1,3 +1,4 @@
+import { LoadingLayout } from "../shared/LoadingStates";
 import { useEffect, useState } from "react";
 import api from "../../backend/api";
 import SelectControl from "../shared/SelectControl";
@@ -33,7 +34,7 @@ export default function UserActivity({ user }) {
     <h3>Account activity</h3>
     <nav className="user-activity-tabs" aria-label="User activity sections">{tabs.map(([id, label, count]) => <button key={id} type="button" aria-pressed={section === id} onClick={() => select(id)}>{label}{count != null && <span>{count}</span>}</button>)}</nav>
     {section === "requests" && <div className="user-activity-filter"><SelectControl aria-label="Filter listing requests" value={status} onChange={event => { if (event.target.value === status) return; begin(); setStatus(event.target.value); setPage(0); }}>{[["ALL", "All requests"], ["PENDING", "Open"], ["APPROVED", "Approved"], ["REJECTED", "Rejected"], ["SUPERSEDED", "Superseded"], ["WITHDRAWN", "Withdrawn"]].map(([value, label]) => <option key={value} value={value}>{label}</option>)}</SelectControl><span>{summary?.openRequestCount ?? 0} open</span></div>}
-    <p className="user-activity-status" role="status">{loading ? "Loading activity…" : ""}</p>
+    {loading && !data ? <LoadingLayout label="Loading account activity" rows={2} /> : <p className="user-activity-status" role="status">{loading ? "Updating activity…" : ""}</p>}
     {error?.key === key && <p className="inline-error" role="alert">{error.message}<button type="button" onClick={() => { begin(); setRetry(value => value + 1); }}>Retry</button></p>}
     {data && <>
       {section === "overview" && (data.cart ? <><div className="user-cart-summary"><strong>{data.cart.units} {data.cart.units === 1 ? "item" : "items"} · {money(data.cart.total)}</strong><span>{data.cart.cartId}</span><small>Updated {formatDate(data.cart.updatedAt)} · {statusLabel(data.cart.deliveryMethod)} delivery</small><dl><div><dt>Items</dt><dd>{money(data.cart.subtotal)}</dd></div><div><dt>Saved charges</dt><dd>{money(data.cart.charges)}</dd></div></dl><p>Saved bag snapshot. Prices, stock and delivery are checked again at checkout.</p></div></> : <p className="user-activity-empty">No active bag.</p>)}

@@ -23,9 +23,9 @@ export const ORDER_STATUS_MAP = {
   FULFILLMENT_PROCESSING: {
     label: "Being Prepared",
     sublabel: "Seller is picking and packing your order",
-    color: "bg-indigo-100 text-indigo-700",
-    bannerBg: "bg-indigo-50 border-indigo-100",
-    iconColor: "text-indigo-500",
+    color: "bg-blue-100 text-blue-700",
+    bannerBg: "bg-blue-50 border-blue-100",
+    iconColor: "text-blue-500",
     icon: MdAccessTime,
   },
   FULFILLMENT_COMPLETE: {
@@ -65,8 +65,8 @@ export const QUANTITY_CONFIG = [
 export const LINE_STATUS_MAP = {
   CREATED: { label: "Pending", color: "bg-yellow-100 text-yellow-700" },
   CONFIRMED: { label: "Confirmed", color: "bg-blue-100 text-blue-700" },
-  PROCESSING: { label: "Processing", color: "bg-indigo-100 text-indigo-700" },
-  PARTIALLY_PROCESSED: { label: "Part. Processed", color: "bg-indigo-50 text-indigo-500" },
+  PROCESSING: { label: "Processing", color: "bg-blue-100 text-blue-700" },
+  PARTIALLY_PROCESSED: { label: "Part. Processed", color: "bg-blue-50 text-blue-500" },
   FULFILLED: { label: "Fulfilled", color: "bg-blue-100 text-blue-700" },
   PARTIALLY_FULFILLED: { label: "Part. Fulfilled", color: "bg-blue-50 text-blue-600" },
   CANCELLED: { label: "Cancelled", color: "bg-gray-100 text-gray-500" },

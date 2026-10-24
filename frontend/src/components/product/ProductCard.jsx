@@ -1,3 +1,4 @@
+import { ProductSkeleton } from "../shared/LoadingStates";
 import { Link } from "react-router-dom";
 import { useState } from "react";
 import { FiImage } from "react-icons/fi";
@@ -18,4 +19,4 @@ export default function ProductCard({ product, showPurchase = false }) {
     </div>
   </article>;
 }
-export const CardSkeleton = () => <div className="card-skeleton" aria-hidden="true"><div /><span /><span /><span /></div>;
+export const CardSkeleton = ProductSkeleton;

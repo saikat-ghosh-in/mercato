@@ -1,5 +1,5 @@
 import api, { session } from "../../backend/api.js";
-import toast from "react-hot-toast";
+import toast from "../../utils/toastUtils.js";
 import { privateApi } from "../services/privateApi.js";
 
 export const getUserAddresses = (setLoadingAddresses, setAddressError = () => {}) => async (dispatch) => {
@@ -43,7 +43,6 @@ export const addUpdateUserAddress = (sendData, addressId, setOpenAddressModal, s
                     innerDispatch(setSelectedAddressForCheckout({ ...sendData, addressId }));
             });
         }
-        toast.success("Address saved successfully");
         dispatch({ type: "IS_SUCCESS" });
         setOpenAddressModal(false);
     } catch (error) {
@@ -63,8 +62,7 @@ export const deleteUserAddress = (addressId, isSelectedForCheckout, setOpenDelet
         dispatch({ type: "IS_SUCCESS" });
         dispatch(getUserAddresses(setLoadingAddresses));
         if (isSelectedForCheckout) dispatch(setSelectedAddressForCheckout(null));
-        toast.success("Address deleted successfully");
-    } catch (error) {
+        } catch (error) {
         if (epoch !== session.getSnapshot().epoch) return;
         console.error(error);
         dispatch({
@@ -89,6 +87,5 @@ export const makeAddressDefault = addressId => async dispatch => {
         dispatch(setSelectedAddressForCheckout(data));
         await dispatch(getUserAddresses(() => {}));
         if (epoch !== session.getSnapshot().epoch) return;
-        toast.success("Default address updated");
-    } catch (error) { toast.error(error?.response?.data?.message || "Couldn’t change the default address"); }
+        } catch (error) { toast.error(error?.response?.data?.message || "Couldn’t change the default address"); }
 };

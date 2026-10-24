@@ -1,5 +1,5 @@
 import api, { session } from "../backend/api.js";
-import toast from "react-hot-toast";
+import toast from "./toastUtils.js";
 import { setPaymentData } from "../reduxStore/actions/paymentActions";
 
 export const syncPayment = async ({ orderId, onSuccess, setLoading }) => {
@@ -8,7 +8,6 @@ export const syncPayment = async ({ orderId, onSuccess, setLoading }) => {
   try {
     await api.post(`/orders/${orderId}/sync-payment-refund`);
     session.assertCurrent({ sessionEpoch: epoch });
-    toast.success("Payment status synced");
     onSuccess?.();
   } catch (err) {
     toast.error(err?.response?.data?.message || "Failed to sync payment");

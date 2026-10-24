@@ -1,29 +1,13 @@
-import toast from "react-hot-toast";
+import { toast as sonner } from 'sonner';
 
-export const showWarningToast = (message) => {
-  toast(message, {
-    icon: "⚠️",
-    duration: 4000,
-    position: "bottom-center",
-    style: {
-      background: "#fef3c7",
-      color: "#92400e",
-      border: "1px solid #fcd34d",
-      borderRadius: "8px",
-      fontSize: "14px",
-      fontWeight: "500",
-    },
-  });
+// Repeated failures update one notification instead of stacking identical messages.
+const notify = (kind, message, options = {}) => sonner[kind](message, { id: `${kind}:${message}`, ...options });
+const toast = {
+  error: (message, options) => notify('error', message, { duration: 6000, ...options }),
+  success: (message, options) => notify('success', message, options),
+  warning: (message, options) => notify('warning', message, { duration: 6000, ...options }),
+  info: (message, options) => notify('info', message, options),
+  dismiss: sonner.dismiss,
 };
-
-export const showSuccessToast = (message) => {
-  toast.success(message);
-};
-
-export const showErrorToast = (message) => {
-  toast.error(message);
-};
-
-export const showLoadingToast = (message) => {
-  return toast.loading(message);
-};
+export default toast;
+export const showWarningToast = toast.warning;

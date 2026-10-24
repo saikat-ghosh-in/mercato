@@ -1,5 +1,5 @@
 import api, { session } from "../../backend/api";
-import toast from "react-hot-toast";
+import toast from "../../utils/toastUtils.js";
 import { showWarningToast } from "../../utils/toastUtils";
 import { createSerialQueue } from "../../utils/cartState.js";
 
@@ -24,7 +24,7 @@ export const syncCartFromBackend = () => dispatch => {
     catch (error) { if (current === epoch) dispatch({ type: "CART_ERROR", payload: error?.response?.data?.message || "Your bag couldn’t be refreshed. Please try again." }); }
   });
 };
-const mutate = (productId, execute, success) => dispatch => {
+const mutate = (productId, execute) => dispatch => {
   const current = epoch;
   dispatch({ type: "CART_PENDING", productId });
   return requests.run(async () => {
@@ -34,7 +34,6 @@ const mutate = (productId, execute, success) => dispatch => {
       if (current !== epoch) return;
       acceptCart(dispatch, data);
       if (data.warning) showWarningToast(data.warning);
-      if (success) toast.success(success);
       return true;
     } catch (error) {
       if (current === epoch) { dispatch({ type: "CART_ERROR", payload: error?.response?.data?.message || error.message || "Couldn’t update your bag. Please try again." }); toast.error(error?.response?.data?.message || "Couldn’t update your bag. Please try again."); }
@@ -44,7 +43,7 @@ const mutate = (productId, execute, success) => dispatch => {
 };
 export const addToCart = (productId, quantity = 1) => mutate(productId, async () => {
   const { data } = await api.post("/cart/add", { cartItems: [{ productId, quantity }] }); return data;
-}, "Added to your bag");
+});
 export const updateCartItemQuantity = (productId, newQuantity) => (dispatch, getState) => {
   if (!Number.isSafeInteger(newQuantity) || newQuantity < 1) return Promise.resolve(false);
   if (newQuantity === getState().cart.cartItems.find(i => i.productId === productId)?.quantity) return Promise.resolve(true);
@@ -52,7 +51,7 @@ export const updateCartItemQuantity = (productId, newQuantity) => (dispatch, get
 };
 export const removeFromCart = productId => mutate(productId, async () => {
   await api.delete("/cart/remove/" + productId); return (await api.get("/cart")).data;
-}, "Removed from your bag");
+});
 export const clearCart = () => mutate("*", async () => {
   await api.delete("/cart"); return (await api.get("/cart")).data;
 });

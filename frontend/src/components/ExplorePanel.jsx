@@ -18,7 +18,7 @@ export default function ExplorePanel({ open, onClose, categories, keyword, onKey
       <DialogBackdrop transition className="dialog-backdrop" />
       <DialogPanel transition className="explore-panel">
         <div className="explore-panel-heading">
-          <div><p className="eyebrow">MERCATO</p><DialogTitle>Search &amp; discover</DialogTitle></div>
+          <div><DialogTitle>Search &amp; discover</DialogTitle></div>
           <button className="icon-button" onClick={onClose} aria-label="Close search"><FiX /></button>
         </div>
         <div className="explore-panel-body">

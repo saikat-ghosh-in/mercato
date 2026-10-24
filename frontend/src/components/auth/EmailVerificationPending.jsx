@@ -1,8 +1,9 @@
+import { Spinner } from "../shared/Spinner";
 import ActionArrow from "../shared/ActionArrow";
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { MdEmail, MdRefresh, MdCheckCircle } from "react-icons/md";
-import toast from "react-hot-toast";
+import toast from "../../utils/toastUtils.js";
 import api from "../../backend/api";
 
 const RESEND_COOLDOWN = 30;
@@ -49,7 +50,7 @@ const EmailVerificationPending = () => {
                     <MdEmail size={30} className="text-blue-400" />
                 </div>
 
-                <h1 className="text-xl font-black text-gray-900 mb-2">Check your inbox</h1>
+                <h1 className="text-xl font-semibold text-gray-900 mb-2">Check your inbox</h1>
                 <p className="text-sm text-gray-500 leading-relaxed mb-1">
                     We sent a verification link to
                 </p>
@@ -65,10 +66,10 @@ const EmailVerificationPending = () => {
                 <button
                     onClick={handleResend}
                     disabled={!canResend}
-                    className="w-full flex items-center justify-center gap-2 py-3 text-sm font-bold rounded-xl transition-[transform,opacity,background-color] active:scale-[0.98] disabled:cursor-not-allowed
+                    className="w-full flex items-center justify-center gap-2 py-3 text-sm font-bold rounded-xl transition-[transform,opacity,background-color]  disabled:cursor-not-allowed
                         bg-gray-950 hover:bg-gray-800 text-white disabled:bg-gray-100 disabled:text-gray-400"
                 >
-                    <MdRefresh size={16} className={resending ? "animate-spin" : ""} />
+                    {resending ? <Spinner size={16} /> : <MdRefresh size={16} />}
                     {resending ? "Sending..." : cooldown > 0 ? `Resend in ${cooldown}s` : "Resend Verification Email"}
                 </button>
 
@@ -77,16 +78,16 @@ const EmailVerificationPending = () => {
                     <div className="mt-3 flex items-center justify-center gap-1.5">
                         <div className="h-1 bg-gray-100 rounded-full flex-1 overflow-hidden">
                             <div
-                                className="h-full bg-blue-400 rounded-full transition-[transform,opacity,background-color] duration-1000"
+                                className="h-full bg-blue-400 rounded-full "
                                 style={{ width: `${((RESEND_COOLDOWN - cooldown) / RESEND_COOLDOWN) * 100}%` }}
                             />
                         </div>
-                        <span className="text-[11px] text-gray-400 shrink-0 font-medium">{cooldown}s</span>
+                        <span className="text-xs text-gray-400 shrink-0 font-medium">{cooldown}s</span>
                     </div>
                 )}
 
                 {resendCount > 0 && (
-                    <p className="text-[11px] text-blue-700 font-medium mt-3 flex items-center justify-center gap-1">
+                    <p className="text-xs text-blue-700 font-medium mt-3 flex items-center justify-center gap-1">
                         <MdCheckCircle size={13} /> Email sent {resendCount} time{resendCount > 1 ? "s" : ""}
                     </p>
                 )}

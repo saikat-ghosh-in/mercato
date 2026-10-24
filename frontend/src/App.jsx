@@ -1,6 +1,8 @@
-import React, { useEffect, lazy, Suspense } from 'react';
+import React, { useEffect, useRef, lazy, Suspense } from 'react';
+import { useContentTransition } from './hooks/useContentTransition';
 import { Route, BrowserRouter, Routes, Link, useLocation, Navigate } from 'react-router-dom';
 import './App.css'
+import './components/shared/workspace.css';
 const routeLoaders = [];
 function lazyPage(loader) {
   let promise;
@@ -14,7 +16,9 @@ import HomePage from './components/home/Home';
 import Header from './components/Header';
 const Cart = lazyPage(() => import("./components/cart/Cart"));
 
-import { Toaster } from 'react-hot-toast';
+import Notifications from './components/shared/Notifications';
+import { RouteSkeleton } from './components/shared/LoadingStates';
+import './components/shared/feedback.css';
 const LogIn = lazyPage(() => import("./components/auth/LogIn"));
 import PrivateRoute from "./components/PrivateRoute";
 const Register = lazyPage(() => import("./components/auth/Register"));
@@ -51,16 +55,23 @@ const SellerPolicies = lazyPage(() => import("./components/seller/SellerPolicies
 
 function StorefrontEntry() {
   const { user, userDetails } = useSelector(s => s.auth);
-  if (user && !userDetails) return <div className="site-container route-loading" role="status" aria-label="Loading your workspace"><div /><div /></div>;
+  if (user && !userDetails) return <PageLoading />;
   const destination = accountLanding(userDetails);
   return destination === "/" ? <HomePage /> : <Navigate to={destination} replace />;
 }
 
+function PageLoading() {
+  const { pathname } = useLocation();
+  return <RouteSkeleton pathname={pathname} />;
+}
+
 function PageFrame({ children }) {
   const { pathname } = useLocation();
+  const page = useRef(null);
+  useContentTransition(page, pathname);
   const kind = /^\/(auth\/mfa|login|register|forgot-password|reset-password|verify-email|account-deactivated)/.test(pathname) ? "auth" : /^\/(admin|seller)/.test(pathname) ? "management" : pathname.startsWith("/checkout") ? "checkout" : pathname.startsWith("/orders") ? "orders" : /^\/(profile|edit-profile|addresses|wishlist)/.test(pathname) ? "account" : "store";
   useEffect(() => { const timer = window.setTimeout(warmRoutes, 1800); return () => window.clearTimeout(timer); }, []);
-  return <main id="main-content" tabIndex={-1} className={"app-page " + kind + "-page"}>{children}</main>;
+  return <main ref={page} id="main-content" tabIndex={-1} className={"app-page " + kind + "-page"}>{children}</main>;
 }
 function NavigationReset() {
   const { pathname } = useLocation();
@@ -101,7 +112,7 @@ function App() {
           <SubHeaderSlot />
           <PageFrame>
           <SessionGate><ErrorBoundary key={sessionEpoch}>
-          <Suspense fallback={<div className="site-container route-loading" role="status" aria-label="Loading page"><div /><div /></div>}><Routes>
+          <Suspense fallback={<PageLoading />}><Routes>
             <Route path='/help' element={<Help />} />
             <Route path='/auth/mfa' element={<Mfa />} />
             <Route path='/' element={<StorefrontEntry />} />
@@ -140,7 +151,7 @@ function App() {
             <Route path='/' element={<PrivateRoute roles={["ROLE_SELLER", "ROLE_ADMIN"]} allowSellerApplicant />}>
               <Route path='/seller/dashboard' element={<SellerDashboard />} />
             </Route>
-            <Route path='*' element={<div className="site-container home-section"><div className="state-panel"><p className="eyebrow">404 · PAGE NOT FOUND</p><h1>Let’s find something good.</h1><p>This page may have moved or the link may be incomplete.</p><Link to="/products" className="button button-dark">Explore the collection</Link></div></div>} />
+            <Route path='*' element={<div className="site-container home-section"><div className="state-panel"><h1>Page not found</h1><p>This page may have moved or the link may be incomplete.</p><Link to="/products" className="button button-dark">Browse products</Link></div></div>} />
           </Routes></Suspense>
           </ErrorBoundary></SessionGate>
           </PageFrame>
@@ -148,7 +159,7 @@ function App() {
 
         </SubHeaderProvider>
       </BrowserRouter>
-      <Toaster position='bottom-center' />
+      <Notifications />
     </React.Fragment>
   );
 }

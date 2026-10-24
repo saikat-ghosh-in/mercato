@@ -37,7 +37,7 @@ const Login = () => {
 
                 {/* Brand */}
                 <div className="text-center mb-8">
-                    <h1 className="text-2xl font-black text-gray-950 tracking-tight">Welcome back</h1>
+                    <h1 className="text-2xl font-semibold text-gray-950 tracking-tight">Welcome back</h1>
                     <p className="text-sm text-gray-400 mt-1">Sign in to your Mercato account</p>
                 </div>
 
@@ -88,7 +88,7 @@ const Login = () => {
                         <button
                             type="submit"
                             disabled={!isValid || isSubmitting}
-                            className="control control-prominent w-full flex items-center justify-center gap-2 bg-gray-950 hover:bg-gray-800 active:scale-[0.98] disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed text-white text-sm font-bold py-3 rounded-xl transition-[transform,opacity,background-color] cursor-pointer"
+                            className="control control-prominent w-full flex items-center justify-center gap-2 bg-gray-950 hover:bg-gray-800  disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed text-white text-sm font-bold py-3 rounded-xl transition-[transform,opacity,background-color] cursor-pointer"
                         >
                             <FiLogIn size={15} />
                             {isSubmitting ? "Signing in..." : "Sign In"}

@@ -1,3 +1,4 @@
+import { LoadingLayout } from "./LoadingStates";
 import {
     MdCheckCircle, MdCancel, MdHourglassEmpty,
     MdAccessTime, MdLocalShipping, MdWarning,
@@ -5,13 +6,7 @@ import {
 } from "react-icons/md";
 import { formatCurrency } from "../../utils/formatCurrency";
 
-export const StatSkeleton = () => (
-    <div className="surface p-5 animate-pulse">
-        <div className="h-3 bg-gray-100 rounded w-1/3 mb-3" />
-        <div className="h-7 bg-gray-100 rounded w-1/2 mb-1" />
-        <div className="h-2.5 bg-gray-100 rounded w-1/4" />
-    </div>
-);
+export const StatSkeleton = () => <LoadingLayout variant="form" label="Loading content" />;
 
 export const StatCard = ({ label, value, sub }) => (
     <div className="surface dashboard-stat">
@@ -42,7 +37,7 @@ export const RevenueCards = ({ revenue }) => (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <StatCard label="All-Time" value={formatCurrency(revenue.allTime)} icon={MdTrendingUp} iconBg="bg-blue-500" />
             <StatCard label="This Month" value={formatCurrency(revenue.thisMonth)} icon={MdTrendingUp} iconBg="bg-blue-500" />
-            <StatCard label="Today" value={formatCurrency(revenue.today)} icon={MdTrendingUp} iconBg="bg-indigo-500" />
+            <StatCard label="Today" value={formatCurrency(revenue.today)} icon={MdTrendingUp} iconBg="bg-blue-500" />
             <StatCard
                 label="Avg Revenue / Order"
                 value={formatCurrency(revenue.averagePerOrder)}
@@ -59,12 +54,12 @@ export const TopSellingProducts = ({ products }) => (
             <div className="space-y-2">
                 {products.map((p, i) => (
                     <div key={p.productId} className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0">
-                        <span className="text-xs font-black text-gray-300 w-5 shrink-0">#{i + 1}</span>
+                        <span className="text-xs font-semibold text-gray-300 w-5 shrink-0">#{i + 1}</span>
                         <div className="flex-1 min-w-0">
                             <p className="text-sm font-semibold text-gray-800 truncate">{p.productName}</p>
-                            <p className="text-[11px] text-gray-400">{p.totalShippedQty} units shipped</p>
+                            <p className="text-xs text-gray-400">{p.totalShippedQty} units shipped</p>
                         </div>
-                        <span className="text-sm font-black text-gray-950 shrink-0">
+                        <span className="text-sm font-semibold text-gray-950 shrink-0">
                             {formatCurrency(p.totalRevenue)}
                         </span>
                     </div>
@@ -85,7 +80,7 @@ export const InventoryAlerts = ({ alerts }) => (
                         <div className={`w-2 h-2 rounded-full shrink-0 ${p.availableQty === 0 ? "bg-red-500" : "bg-amber-400"}`} />
                         <div className="flex-1 min-w-0">
                             <p className="text-sm font-semibold text-gray-800 truncate">{p.productName}</p>
-                            <p className="text-[11px] text-gray-400">
+                            <p className="text-xs text-gray-400">
                                 {p.availableQty} available · {p.reservedQty} reserved · {p.physicalQty} physical
                             </p>
                         </div>
@@ -126,13 +121,13 @@ export const StatusBreakdownBars = ({ title, entries, statusMap, icon }) => {
                     const { label, color, icon: StatusIcon } = getConfig(status);
                     const pct = Math.round((count / total) * 100);
                     return (
-                        <div key={status} className="flex items-center gap-3">
-                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 w-40 text-center flex items-center justify-center gap-1 ${color}`}>
+                        <div key={status} className="dashboard-status-row">
+                            <span className={`text-xs font-bold px-2 py-0.5 rounded-full dashboard-status-label flex items-center justify-center gap-1 ${color}`}>
                                 <StatusIcon size={9} />{label}
                             </span>
                             <div className="flex-1 bg-gray-100 rounded-full h-1.5 overflow-hidden">
                                 <div
-                                    className="h-full bg-gray-800 rounded-full transition-[transform,opacity,background-color] duration-500"
+                                    className="h-full bg-gray-800 rounded-full "
                                     style={{ width: `${pct}%` }}
                                 />
                             </div>
@@ -145,24 +140,7 @@ export const StatusBreakdownBars = ({ title, entries, statusMap, icon }) => {
     );
 };
 
-export const DashboardSkeleton = () => (
-    <div className="space-y-6">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {[1, 2, 3, 4].map(i => <StatSkeleton key={i} />)}
-        </div>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {[1, 2, 3, 4].map(i => <StatSkeleton key={i} />)}
-        </div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {[1, 2].map(i => (
-                <div key={i} className="surface p-5 animate-pulse space-y-3">
-                    <div className="h-3 bg-gray-100 rounded w-1/3" />
-                    {[1, 2, 3].map(j => <div key={j} className="h-10 bg-gray-100 rounded" />)}
-                </div>
-            ))}
-        </div>
-    </div>
-);
+export const DashboardSkeleton = () => <LoadingLayout variant="dashboard" label="Loading content" />;
 
 export const DashboardError = ({ message, onRetry }) => (
     <div className="surface p-10 text-center">
@@ -172,7 +150,7 @@ export const DashboardError = ({ message, onRetry }) => (
         {onRetry && (
             <button
                 onClick={onRetry}
-                className="control inline-flex items-center gap-2 bg-gray-950 hover:bg-gray-800 text-white text-xs font-bold px-4 py-2 rounded-xl transition-[transform,opacity,background-color] cursor-pointer active:scale-[0.98]"
+                className="control inline-flex items-center gap-2 bg-gray-950 hover:bg-gray-800 text-white text-xs font-bold px-4 py-2 rounded-xl transition-[transform,opacity,background-color] cursor-pointer "
             >
                 Retry
             </button>

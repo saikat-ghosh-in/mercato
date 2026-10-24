@@ -1,9 +1,9 @@
 import ModalFrame from "./ModalFrame";
 import { useState } from "react";
 import { Combobox, ComboboxInput, ComboboxOptions, ComboboxOption, ComboboxButton } from "@headlessui/react";
-import { MdAdd, MdClose, MdSave, MdInventory } from "react-icons/md";
+import { MdAdd, MdClose, MdInventory } from "react-icons/md";
 import { FiMinus, FiPlus, FiChevronDown } from "react-icons/fi";
-import toast from "react-hot-toast";
+import toast from "../../utils/toastUtils.js";
 import api from "../../backend/api";
 
 const ProductCombobox = ({ products = [], value, onChange, placeholder = "Product name or ID", showAvailability = false }) => {
@@ -113,7 +113,7 @@ const SupplyUpdateModal = ({ products, onClose, onSave }) => {
             );
             const errors = data.filter(r => r.error);
             const success = data.filter(r => !r.error);
-            errors.forEach(e => toast.error(`${e.productId}: ${e.errorMessage}`));
+            if (errors.length) toast.error(`${errors.length} stock update${errors.length === 1 ? "" : "s"} failed. ${errors[0].productId}: ${errors[0].errorMessage}`);
             if (success.length > 0)
                 toast.success(`Updated ${success.length} product${success.length !== 1 ? "s" : ""}`);
             if (errors.length === 0) onSave();
@@ -136,7 +136,7 @@ const SupplyUpdateModal = ({ products, onClose, onSave }) => {
                         </div>
                         <div>
                             <h2 className="text-sm font-bold text-gray-800">Supply Update</h2>
-                            <p className="text-[11px] text-gray-400 mt-0.5">Adjust inventory levels</p>
+                            <p className="text-xs text-gray-400 mt-0.5">Adjust inventory levels</p>
                         </div>
                     </div>
                     <button aria-label="Close dialog" onClick={onClose} className="icon-action text-gray-400 hover:text-gray-600 cursor-pointer transition-colors">
@@ -146,18 +146,18 @@ const SupplyUpdateModal = ({ products, onClose, onSave }) => {
 
                 {/* Global type toggle */}
                 <div className="px-5 py-3.5 border-b border-gray-100 shrink-0">
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">
+                    <p className="text-xs font-bold text-gray-400  mb-2">
                         Update Mode — applies to all rows
                     </p>
                     <div className="flex gap-2">
                         {[
-                            { value: "DELTA", label: "Delta", desc: "Add or subtract from current stock" },
-                            { value: "ABSOLUTE", label: "Absolute", desc: "Set to an exact quantity" },
+                            { value: "DELTA", label: "Add or remove", desc: "Add or subtract from current stock" },
+                            { value: "ABSOLUTE", label: "Set quantity", desc: "Set to an exact quantity" },
                         ].map(t => (
                             <button
                                 key={t.value}
                                 onClick={() => handleTypeChange(t.value)}
-                                className={`control flex-1 px-4 py-2.5 rounded-xl border text-left transition-[transform,opacity,background-color] cursor-pointer ${supplyType === t.value
+                                className={`supply-mode-option flex-1 px-4 py-2.5 rounded-xl border text-left transition-[transform,opacity,background-color] cursor-pointer ${supplyType === t.value
                                     ? "bg-gray-950 border-gray-950 text-white"
                                     : "border-gray-200 text-gray-600 hover:bg-gray-50"
                                     }`}
@@ -165,23 +165,23 @@ const SupplyUpdateModal = ({ products, onClose, onSave }) => {
                                 <p className={`text-xs font-bold ${supplyType === t.value ? "text-white" : "text-gray-800"}`}>
                                     {t.label}
                                 </p>
-                                <p className={`text-[10px] mt-0.5 ${supplyType === t.value ? "text-gray-300" : "text-gray-400"}`}>
+                                <p className={`text-xs mt-0.5 ${supplyType === t.value ? "text-gray-300" : "text-gray-400"}`}>
                                     {t.desc}
                                 </p>
                             </button>
                         ))}
                     </div>
                     {isDelta && (
-                        <p className="text-[11px] text-blue-500 mt-2 font-medium">
-                            💡 Use negative values to reduce stock (e.g. -5 removes 5 units)
+                        <p className="text-xs text-blue-500 mt-2 font-medium">
+                            Use negative values to reduce stock (e.g. -5 removes 5 units).
                         </p>
                     )}
                 </div>
 
                 {/* Column headers */}
                 <div className="supply-column-headings px-5 pt-4 pb-1 shrink-0">
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Product</p>
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                    <p className="text-xs font-bold text-gray-400 ">Product</p>
+                    <p className="text-xs font-bold text-gray-400 ">
                         {isDelta ? "Qty (±)" : "Set Qty"}
                     </p>
                     <p />
@@ -235,10 +235,10 @@ const SupplyUpdateModal = ({ products, onClose, onSave }) => {
                     <button
                         onClick={handleSave}
                         disabled={saving}
-                        className="control flex-1 px-3 py-2.5 text-sm bg-gray-950 hover:bg-gray-800 text-white rounded-xl cursor-pointer font-bold disabled:opacity-50 active:scale-[0.98] flex items-center justify-center gap-2 transition-[transform,opacity,background-color]"
+                        className="control flex-1 px-3 py-2.5 text-sm bg-gray-950 hover:bg-gray-800 text-white rounded-xl cursor-pointer font-bold disabled:opacity-50  flex items-center justify-center gap-2 transition-[transform,opacity,background-color]"
                     >
-                        <MdSave size={14} />
-                        {saving ? "Updating..." : "Apply Updates"}
+
+                        {saving ? "Updating..." : "Apply updates"}
                     </button>
                 </div>
             </div>

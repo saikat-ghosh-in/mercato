@@ -55,7 +55,7 @@ const SellerOverviewTab = () => {
                         value={formatCurrency(fulfillment.averageOrderValue)}
                         sub="From line totals"
                         icon={MdTrendingUp}
-                        iconBg="bg-purple-500"
+                        iconBg="bg-blue-500"
                     />
                 </div>
             </div>

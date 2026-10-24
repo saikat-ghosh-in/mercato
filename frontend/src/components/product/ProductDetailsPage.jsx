@@ -1,3 +1,4 @@
+import { LoadingLayout } from "../shared/LoadingStates";
 import ActionArrow from "../shared/ActionArrow";
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
@@ -30,7 +31,7 @@ function ProductContent({ productId }) {
     return () => controller.abort();
   }, [productId, product?.categoryName]);
   const retry = () => { setError(""); setAttempt(a => a + 1); };
-  if (!product) return <div className="site-container">{error ? <div className="state-panel" role="alert"><h1>{error}</h1><button className="button button-dark" onClick={retry}>Try again</button><Link className="text-link" to="/products">Back to shopping</Link></div> : <div className="pdp-layout" role="status" aria-label="Loading product"><div className="card-skeleton"><div /></div><div className="route-loading"><div /><div /></div></div>}</div>;
+  if (!product) return <div className="site-container">{error ? <div className="state-panel" role="alert"><h1>{error}</h1><button className="button button-dark" onClick={retry}>Try again</button><Link className="text-link" to="/products">Back to shopping</Link></div> : <LoadingLayout variant="product" label="Loading product" />}</div>;
   const inStock = product.availableQty > 0 || (cartItem?.quantity > 0 && !cartItem?.outOfStock);
   const specs = [["Brand", product.brand], ["Product code", product.productCode || product.productId], ["Category", product.categoryName], ["Sold by", product.sellerName], ["Packed weight", product.weightKg ? `${product.weightKg} kg` : null], ["Package dimensions (L × W × H)", product.lengthCm && product.widthCm && product.heightCm ? `${product.lengthCm} × ${product.widthCm} × ${product.heightCm} cm` : null], ...(product.specifications ?? []).map(s => [s.label, s.value])].filter(([,value]) => value);
   return <div className="site-container">
@@ -38,7 +39,7 @@ function ProductContent({ productId }) {
     <div className="pdp-layout">
       <ImageGallery images={product.allImages?.length ? product.allImages : [product.primaryImageUrl].filter(Boolean)} productName={product.productName} />
       <section className="pdp-info" aria-label="Product information">
-        {product.brand && <p className="eyebrow">{product.brand}</p>}
+        {product.brand && <p className="product-brand">{product.brand}</p>}
         <h1>{product.productName}</h1><Link className="pdp-subtitle" to={"/products?category=" + encodeURIComponent(product.categoryName)}>{product.categoryName}</Link>
         <p className="product-price"><strong>{formatCurrency(product.sellingPrice)}</strong>{product.discountPercent > 0 && <><del>{formatCurrency(product.retailPrice)}</del><span>{product.discountPercent}% off</span></>}</p><p className="tax-note">Inclusive of applicable taxes</p>
         <p className="pdp-availability">{inStock ? "In stock" : "Currently sold out"}</p>

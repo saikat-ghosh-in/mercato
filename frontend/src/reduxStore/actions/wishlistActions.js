@@ -1,5 +1,5 @@
 import api, { session } from "../../backend/api";
-import toast from "react-hot-toast";
+import toast from "../../utils/toastUtils.js";
 import { privateApi } from "../services/privateApi.js";
 
 export const fetchWishlistIds = () => async (dispatch, getState) => {
@@ -25,13 +25,11 @@ export const toggleWishlist = (productId) => async (dispatch, getState) => {
             await api.delete(`/wishlist/${productId}`);
             if (epoch !== session.getSnapshot().epoch) return;
             dispatch({ type: "REMOVE_WISHLIST_ID", payload: productId });
-            toast.success("Removed from wishlist");
-        } else {
+            } else {
             await api.post(`/wishlist/${productId}`);
             if (epoch !== session.getSnapshot().epoch) return;
             dispatch({ type: "ADD_WISHLIST_ID", payload: productId });
-            toast.success("Saved to wishlist");
-        }
+            }
         dispatch(privateApi.util.invalidateTags(["Wishlist"]));
     } catch (err) {
         if (epoch !== session.getSnapshot().epoch) return;

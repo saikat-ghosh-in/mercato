@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { FiMail, FiArrowLeft } from "react-icons/fi";
 import { useForm } from "react-hook-form";
 import { useState } from "react";
-import toast from "react-hot-toast";
+import toast from "../../utils/toastUtils.js";
 import api from "../../backend/api";
 
 const inputCls = "w-full text-sm text-gray-800 focus:outline-none bg-transparent placeholder-gray-300";
@@ -20,7 +20,6 @@ const ForgotPassword = () => {
         try {
             await api.post("/auth/forgot-password", { email: data.email });
             setSubmitted(true);
-            toast.success("Check your inbox for a reset link");
         } catch (err) {
             toast.error(err?.response?.data?.message || "Failed to send reset email");
         }
@@ -60,7 +59,7 @@ const ForgotPassword = () => {
                                         },
                                     })}
                                     type="email"
-                                    placeholder="you@example.com"
+                                    placeholder="Your email address"
                                     autoComplete="email"
                                     className={inputCls}
                                 />
@@ -69,7 +68,7 @@ const ForgotPassword = () => {
                             <button
                                 type="submit"
                                 disabled={isSubmitting}
-                                className="control control-prominent w-full py-3 bg-gray-950 hover:bg-gray-800 disabled:opacity-50 text-white text-sm font-bold rounded-xl transition-[transform,opacity,background-color] active:scale-[0.98]"
+                                className="control control-prominent w-full py-3 bg-gray-950 hover:bg-gray-800 disabled:opacity-50 text-white text-sm font-bold rounded-xl transition-[transform,opacity,background-color] "
                             >
                                 {isSubmitting ? "Sending..." : "Send Reset Link"}
                             </button>

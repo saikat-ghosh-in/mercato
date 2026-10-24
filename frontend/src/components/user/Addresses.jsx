@@ -1,3 +1,5 @@
+import { LoadingLayout } from "../shared/LoadingStates";
+import PageHeading from "../shared/PageHeading";
 import SelectControl from "../shared/SelectControl";
 import ModalFrame from "../shared/ModalFrame";
 import Field from "../shared/AuthField";
@@ -5,10 +7,10 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   MdLocationOn, MdAdd, MdEdit, MdDelete,
-  MdClose, MdWarning, MdSave, MdPerson, MdPhone,
+  MdClose, MdWarning, MdPerson, MdPhone,
   MdArrowBack,
 } from "react-icons/md";
-import toast from "react-hot-toast";
+import toast from "../../utils/toastUtils.js";
 import api from "../../backend/api";
 import { useAddressesQuery } from "../../reduxStore/services/privateApi.js";
 
@@ -34,21 +36,14 @@ const EmptyState = ({ onAdd }) => (
     <p className="text-sm text-gray-400 mb-6">Add a delivery address to get started</p>
     <button
       onClick={onAdd}
-      className="control inline-flex items-center gap-2 bg-gray-950 hover:bg-gray-800 text-white text-sm font-bold px-5 py-2.5 rounded-xl transition-[transform,opacity,background-color] cursor-pointer active:scale-[0.98]"
+      className="control inline-flex items-center gap-2 bg-gray-950 hover:bg-gray-800 text-white text-sm font-bold px-5 py-2.5 rounded-xl transition-[transform,opacity,background-color] cursor-pointer "
     >
       <MdAdd size={15} /> Add Address
     </button>
   </div>
 );
 
-const AddressSkeleton = () => (
-  <div className="surface p-5 animate-pulse space-y-3">
-    <div className="h-4 bg-gray-100 rounded w-1/3" />
-    <div className="h-3 bg-gray-100 rounded w-full" />
-    <div className="h-3 bg-gray-100 rounded w-2/3" />
-    <div className="h-3 bg-gray-100 rounded w-1/4 mt-2" />
-  </div>
-);
+const AddressSkeleton = () => <LoadingLayout variant="address" label="Loading content" />;
 
 const DeleteModal = ({ address, onClose, onConfirm, loading }) => (
   <ModalFrame title="Delete Address" onClose={onClose}>
@@ -72,7 +67,7 @@ const DeleteModal = ({ address, onClose, onConfirm, loading }) => (
           Cancel
         </button>
         <button onClick={onConfirm} disabled={loading}
-          className="control flex-1 px-3 py-2.5 text-sm bg-red-500 hover:bg-red-600 text-white rounded-xl cursor-pointer font-bold disabled:opacity-50 active:scale-[0.98] transition-[transform,opacity,background-color]">
+          className="control flex-1 px-3 py-2.5 text-sm bg-red-500 hover:bg-red-600 text-white rounded-xl cursor-pointer font-bold disabled:opacity-50  transition-[transform,opacity,background-color]">
           {loading ? "Deleting..." : "Delete"}
         </button>
       </div>
@@ -120,11 +115,9 @@ const AddressFormModal = ({ address, onClose, onSave }) => {
     try {
       if (isEdit) {
         await api.put(`/user/addresses/${address.addressId}`, form);
-        toast.success("Address updated");
-      } else {
+        } else {
         await api.post("/user/addresses/add", form);
-        toast.success("Address added");
-      }
+        }
       onSave();
     } catch (err) {
       toast.error(err?.response?.data?.message || "Failed to save address");
@@ -162,7 +155,7 @@ const AddressFormModal = ({ address, onClose, onSave }) => {
                 className={inputCls}
               />
             </Field>
-            <Field label="Phone Number" required error={errors.recipientPhone}>
+            <Field label="Phone number" required error={errors.recipientPhone}>
               <MdPhone size={15} className="text-gray-400 shrink-0" />
               <span className="text-sm font-semibold text-gray-500 shrink-0 select-none">+91</span>
               <div className="w-px h-4 bg-gray-200 shrink-0" />
@@ -243,9 +236,9 @@ const AddressFormModal = ({ address, onClose, onSave }) => {
             Cancel
           </button>
           <button onClick={handleSave} disabled={saving}
-            className="control flex-1 flex items-center justify-center gap-2 px-3 py-2.5 text-sm bg-gray-950 hover:bg-gray-800 text-white rounded-xl cursor-pointer font-bold disabled:opacity-50 active:scale-[0.98] transition-[transform,opacity,background-color]">
-            <MdSave size={14} />
-            {saving ? "Saving..." : isEdit ? "Save Changes" : "Add Address"}
+            className="control flex-1 flex items-center justify-center gap-2 px-3 py-2.5 text-sm bg-gray-950 hover:bg-gray-800 text-white rounded-xl cursor-pointer font-bold disabled:opacity-50  transition-[transform,opacity,background-color]">
+
+            {saving ? "Saving..." : isEdit ? "Save changes" : "Add Address"}
           </button>
         </div>
       </div>
@@ -254,16 +247,13 @@ const AddressFormModal = ({ address, onClose, onSave }) => {
 };
 
 const AddressCard = ({ address, onEdit, onDelete, onDefault, defaulting }) => (
-  <div className="surface p-5 hover:shadow-md transition-shadow">
+  <div className="surface address-card">
     <div className="flex items-start justify-between gap-3">
       <div className="flex items-start gap-3 min-w-0">
-        <div className="p-2 bg-blue-50 rounded-xl shrink-0 mt-0.5">
-          <MdLocationOn size={16} className="text-blue-500" />
-        </div>
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap mb-1">
             <p className="text-sm font-bold text-gray-900">{address.recipientName}</p>
-            <span className="text-[11px] text-gray-400 flex items-center gap-1">
+            <span className="text-xs text-gray-400 flex items-center gap-1">
               <MdPhone size={10} /> +91 {address.recipientPhone}
             </span>
           </div>
@@ -283,15 +273,15 @@ const AddressCard = ({ address, onEdit, onDelete, onDefault, defaulting }) => (
       <div className="flex items-center gap-1 shrink-0">
         <button
           onClick={() => onEdit(address)}
-          className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-xl transition-colors cursor-pointer"
-          title="Edit"
+          className="icon-action p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-xl transition-colors cursor-pointer"
+          aria-label={"Edit address for " + address.recipientName} title="Edit"
         >
           <MdEdit size={16} />
         </button>
         <button
           onClick={() => onDelete(address)}
-          className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors cursor-pointer"
-          title="Delete"
+          className="icon-action p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors cursor-pointer"
+          aria-label={"Delete address for " + address.recipientName} title="Delete"
         >
           <MdDelete size={16} />
         </button>
@@ -312,7 +302,7 @@ const Addresses = () => {
 
   const handleDefault = async address => {
     setDefaulting(true);
-    try { await api.patch(`/user/addresses/${address.addressId}/default`); await fetchAddresses(); toast.success("Default address updated"); }
+    try { await api.patch(`/user/addresses/${address.addressId}/default`); await fetchAddresses(); }
     catch (error) { toast.error(error?.response?.data?.message || "Couldn’t change the default address"); }
     finally { setDefaulting(false); }
   };
@@ -321,7 +311,6 @@ const Addresses = () => {
     setDeleting(true);
     try {
       await api.delete(`/user/addresses/${deleteAddress.addressId}`);
-      toast.success("Address deleted");
       setDeleteAddress(null);
       fetchAddresses();
     } catch (err) {
@@ -336,35 +325,7 @@ const Addresses = () => {
       <div className="max-w-2xl mx-auto px-4 sm:px-6">
 
         {/* Header */}
-        <div className="flex items-center gap-3 mb-6">
-          <div className="p-2 bg-blue-50 rounded-xl">
-            <MdLocationOn size={20} className="text-blue-500" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-gray-900">My Addresses</h1>
-            {!loading && (
-              <p className="text-xs text-gray-500 mt-0.5">
-                {addresses.length} address{addresses.length !== 1 ? "es" : ""} saved
-              </p>
-            )}
-          </div>
-          <div className="ml-auto flex items-center gap-2">
-            <button
-              onClick={() => navigate("/profile")}
-              className="control flex items-center gap-1.5 text-xs font-semibold text-blue-500 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-xl transition-colors cursor-pointer"
-            >
-              <MdArrowBack size={13} /> Back
-            </button>
-            {addresses.length > 0 && (
-              <button
-                onClick={() => { setEditAddress(null); setShowForm(true); }}
-                className="control flex items-center gap-1.5 text-xs font-bold bg-gray-950 hover:bg-gray-800 text-white px-3 py-1.5 rounded-xl transition-[transform,opacity,background-color] cursor-pointer active:scale-[0.98]"
-              >
-                <MdAdd size={14} /> Add New
-              </button>
-            )}
-          </div>
-        </div>
+        <PageHeading title="Addresses" description={!loading ? `${addresses.length} saved ${addresses.length === 1 ? "address" : "addresses"}` : "Manage your delivery details."}><button type="button" className="button button-outline" onClick={() => navigate("/profile")}><MdArrowBack aria-hidden="true" /> Back</button>{addresses.length > 0 && <button type="button" className="button button-dark" onClick={() => { setEditAddress(null); setShowForm(true); }}><MdAdd aria-hidden="true" /> Add address</button>}</PageHeading>
 
         {/* Content */}
         {loading && !addresses.length ? (

@@ -1,9 +1,10 @@
+import { LoadingLayout } from "../shared/LoadingStates";
 import { useDispatch } from "react-redux";
 import { fetchCategories as refreshCategoryNavigation } from "../../reduxStore/actions/categoryActions";
 import ModalFrame from "../shared/ModalFrame";
 import { useCallback, useEffect, useState } from "react";
-import { MdAdd, MdEdit, MdDelete, MdClose, MdWarning, MdSave, MdCategory } from "react-icons/md";
-import toast from "react-hot-toast";
+import { MdAdd, MdEdit, MdDelete, MdClose, MdWarning, MdCategory } from "react-icons/md";
+import toast from "../../utils/toastUtils.js";
 import api from "../../backend/api";
 import { formatDate } from "../../utils/formatDate";
 
@@ -18,11 +19,9 @@ const CategoryFormModal = ({ category, onClose, onSave }) => {
         try {
             if (isEdit) {
                 await api.put(`/admin/categories/${category.categoryId}`, { categoryName: name.trim() });
-                toast.success("Category updated");
-            } else {
+                } else {
                 await api.post("/admin/categories/create", { categoryName: name.trim() });
-                toast.success("Category created");
-            }
+                }
             onSave();
         } catch (err) {
             toast.error(err?.response?.data?.message || "Failed to save category");
@@ -41,7 +40,7 @@ const CategoryFormModal = ({ category, onClose, onSave }) => {
                     </button>
                 </div>
                 <div className="p-5">
-                    <label htmlFor="category-name" className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1.5">
+                    <label htmlFor="category-name" className="text-xs font-bold text-gray-400  block mb-1.5">
                         Category Name <span className="text-red-400">*</span>
                     </label>
                     <input
@@ -57,9 +56,9 @@ const CategoryFormModal = ({ category, onClose, onSave }) => {
                 <div className="flex gap-3 p-5 border-t border-gray-100">
                     <button  onClick={onClose} className="control flex-1 px-3 py-2.5 text-sm border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 cursor-pointer font-medium">Cancel</button>
                     <button onClick={handleSave} disabled={saving || !name.trim()}
-                        className="control flex-1 px-3 py-2.5 text-sm bg-gray-950 hover:bg-gray-800 text-white rounded-xl cursor-pointer font-bold disabled:opacity-50 active:scale-[0.98] flex items-center justify-center gap-2">
-                        <MdSave size={14} />
-                        {saving ? "Saving..." : isEdit ? "Save Changes" : "Create"}
+                        className="control flex-1 px-3 py-2.5 text-sm bg-gray-950 hover:bg-gray-800 text-white rounded-xl cursor-pointer font-bold disabled:opacity-50  flex items-center justify-center gap-2">
+
+                        {saving ? "Saving..." : isEdit ? "Save changes" : "Create"}
                     </button>
                 </div>
             </div>
@@ -79,7 +78,7 @@ const DeleteModal = ({ category, onClose, onConfirm, loading }) => (
             <div className="flex gap-3">
                 <button  onClick={onClose} className="control flex-1 px-3 py-2.5 text-sm border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 cursor-pointer font-medium">Cancel</button>
                 <button onClick={onConfirm} disabled={loading}
-                    className="control flex-1 px-3 py-2.5 text-sm bg-red-500 hover:bg-red-600 text-white rounded-xl cursor-pointer font-bold disabled:opacity-50 active:scale-[0.98]">
+                    className="control flex-1 px-3 py-2.5 text-sm bg-red-500 hover:bg-red-600 text-white rounded-xl cursor-pointer font-bold disabled:opacity-50 ">
                     {loading ? "Deleting..." : "Delete"}
                 </button>
             </div>
@@ -115,7 +114,6 @@ const CategoriesTab = () => {
         setDeleting(true);
         try {
             await api.delete(`/admin/categories/${deleteCategory.categoryId}`);
-            toast.success("Category deleted");
             setDeleteCategory(null);
             fetchCategories();
         } catch (err) {
@@ -135,7 +133,7 @@ const CategoriesTab = () => {
                     </p>
                     <button
                         onClick={() => setShowAddModal(true)}
-                        className="control flex items-center gap-1.5 bg-gray-950 hover:bg-gray-800 text-white text-xs font-bold px-4 py-2 rounded-xl transition-[transform,opacity,background-color] cursor-pointer active:scale-[0.98]"
+                        className="control flex items-center gap-1.5 bg-gray-950 hover:bg-gray-800 text-white text-xs font-bold px-4 py-2 rounded-xl transition-[transform,opacity,background-color] cursor-pointer "
                     >
                         <MdAdd size={14} /> New Category
                     </button>
@@ -143,37 +141,30 @@ const CategoriesTab = () => {
 
                 {/* Grid */}
                 {loading && !categories.length ? (
-                    <div className="p-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 animate-pulse">
-                        {[1, 2, 3, 4, 5, 6].map(i => (
-                            <div key={i} className="h-20 bg-gray-100 rounded-xl" />
-                        ))}
-                    </div>
+                    <LoadingLayout variant="table" cols={2} label="Loading categories" />
                 ) : categories.length === 0 ? (
                     <div className="py-16 text-center">
                         <MdCategory size={32} className="text-gray-200 mx-auto mb-3" />
                         <p className="text-sm text-gray-400">No categories yet</p>
                     </div>
                 ) : (
-                    <div className="p-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                    <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-3">
                         {categories.map(c => (
-                            <div key={c.categoryId} className="group relative bg-gray-50 hover:bg-blue-50 border border-gray-100 hover:border-blue-200 rounded-xl p-4 transition-[transform,opacity,background-color]">
-                                <div className="w-8 h-8 rounded-lg bg-white border border-gray-100 flex items-center justify-center mb-2.5 shadow-sm">
-                                    <MdCategory size={16} className="text-gray-400" />
-                                </div>
-                                <p className="text-sm font-bold text-gray-800 line-clamp-1">{c.categoryName}</p>
-                                <p className="text-[10px] text-gray-400 mt-0.5">{formatDate(c.createdAt)}</p>
+                            <div key={c.categoryId} className="category-row">
+                                <p className="category-row-name">{c.categoryName}</p>
+                                <p className="text-xs text-gray-400 mt-0.5">{formatDate(c.createdAt)}</p>
 
                                 {/* Actions */}
-                                <div className="absolute top-3 right-3 flex gap-1 opacity-100">
+                                <div className="category-row-actions">
                                     <button
                                         aria-label={"Edit " + c.categoryName} onClick={() => setEditCategory(c)}
-                                        className="icon-action p-1 text-gray-400 hover:text-blue-500 hover:bg-white rounded-lg transition-colors cursor-pointer shadow-sm"
+                                        className="icon-action p-1 text-gray-400 hover:text-blue-500 hover:bg-white rounded-lg transition-colors cursor-pointer "
                                     >
                                         <MdEdit size={13} />
                                     </button>
                                     <button
                                         aria-label={"Delete " + c.categoryName} onClick={() => setDeleteCategory(c)}
-                                        className="icon-action p-1 text-gray-400 hover:text-red-500 hover:bg-white rounded-lg transition-colors cursor-pointer shadow-sm"
+                                        className="icon-action p-1 text-gray-400 hover:text-red-500 hover:bg-white rounded-lg transition-colors cursor-pointer "
                                     >
                                         <MdDelete size={13} />
                                     </button>

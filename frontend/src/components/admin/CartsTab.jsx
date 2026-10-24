@@ -1,38 +1,23 @@
+import { LoadingLayout } from "../shared/LoadingStates";
 import ActionArrow from "../shared/ActionArrow";
 import { useEffect, useState } from "react";
 import {
     MdSearch, MdClose, MdShoppingCart,
     MdArrowBack, MdPerson,
 } from "react-icons/md";
-import toast from "react-hot-toast";
+import toast from "../../utils/toastUtils.js";
 import api from "../../backend/api";
 import { formatCurrency } from "../../utils/formatCurrency";
+import { useCartProducts } from "../../hooks/useCartProducts";
 
-const TableSkeleton = () => (
-    <div className="animate-pulse space-y-2 p-4">
-        {[1, 2, 3, 4].map(i => (
-            <div key={i} className="flex gap-4 py-3">
-                {[1, 2, 3, 4].map(j => <div key={j} className="h-3 bg-gray-100 rounded flex-1" />)}
-            </div>
-        ))}
-    </div>
-);
+const TableSkeleton = ({ cols = 5 }) => <LoadingLayout variant="table" label="Loading products" cols={cols} />;
 
-const DetailSkeleton = () => (
-    <div className="animate-pulse space-y-4">
-        {[1, 2].map(i => (
-            <div key={i} className="surface p-5 space-y-3">
-                <div className="h-3 bg-gray-100 rounded w-1/3" />
-                <div className="h-4 bg-gray-100 rounded w-full" />
-                <div className="h-4 bg-gray-100 rounded w-2/3" />
-            </div>
-        ))}
-    </div>
-);
+const DetailSkeleton = () => <LoadingLayout variant="list" label="Loading content" />;
 
 const CartDetail = ({ cartId, onBack }) => {
     const [cart, setCart] = useState(null);
     const [loading, setLoading] = useState(true);
+    const { items: cartItems, loading: loadingProducts } = useCartProducts(cart?.cartItems ?? []);
 
     useEffect(() => {
         const fetch = async () => {
@@ -62,7 +47,7 @@ const CartDetail = ({ cartId, onBack }) => {
                 <div>
                     <p className="text-sm font-bold text-gray-900">Cart #{cart.cartId}</p>
                     {cart.customer && (
-                        <p className="text-[11px] text-gray-400">{cart.customer.name} · {cart.customer.email}</p>
+                        <p className="text-xs text-gray-400">{cart.customer.name} · {cart.customer.email}</p>
                     )}
                 </div>
             </div>
@@ -71,15 +56,15 @@ const CartDetail = ({ cartId, onBack }) => {
                 {/* Items */}
                 <div className="lg:col-span-2 surface overflow-hidden">
                     <div className="px-5 py-4 border-b border-gray-50">
-                        <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+                        <h3 className="text-xs font-bold text-gray-400 ">
                             Cart Items ({cart.cartItems?.length ?? 0})
                         </h3>
                     </div>
                     <div className="divide-y divide-gray-50">
                         {cart.cartItems?.length === 0 ? (
                             <p className="text-sm text-gray-400 text-center py-8">Empty cart</p>
-                        ) : cart.cartItems?.map((item, i) => (
-                            <div key={i} className="flex items-center gap-3 px-5 py-4">
+                        ) : cartItems.map((item, i) => (
+                            <div key={i} className="admin-cart-line px-5 py-4">
                                 <div className="w-12 h-12 rounded-xl bg-gray-50 border border-gray-100 overflow-hidden shrink-0">
                                     {item.product?.primaryImageUrl
                                         ? <img src={item.product.primaryImageUrl} alt="" className="w-full h-full object-cover" />
@@ -87,10 +72,10 @@ const CartDetail = ({ cartId, onBack }) => {
                                     }
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-semibold text-gray-900 line-clamp-1">
-                                        {item.product?.productName ?? "Product"}
+                                    <p className="text-sm font-semibold text-gray-900 break-words">
+                                        {item.product?.productName ?? (loadingProducts ? "Loading product…" : item.productId)}
                                     </p>
-                                    <div className="flex items-center gap-2 mt-0.5 text-[11px] text-gray-400">
+                                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-0.5 text-xs text-gray-500">
                                         <span>Qty: {item.quantity}</span>
                                         <span>·</span>
                                         <span>{formatCurrency(item.itemPrice ?? item.product?.sellingPrice)} each</span>
@@ -99,7 +84,7 @@ const CartDetail = ({ cartId, onBack }) => {
                                         )}
                                     </div>
                                 </div>
-                                <span className="text-sm font-black text-gray-900 shrink-0">
+                                <span className="text-sm font-semibold text-gray-900 shrink-0">
                                     {formatCurrency(item.lineTotal)}
                                 </span>
                             </div>
@@ -112,7 +97,7 @@ const CartDetail = ({ cartId, onBack }) => {
                     {/* Customer */}
                     {cart.customer && (
                         <div className="surface p-5">
-                            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                            <h3 className="text-xs font-bold text-gray-400  mb-3 flex items-center gap-1.5">
                                 <MdPerson size={13} /> Customer
                             </h3>
                             <p className="text-sm font-bold text-gray-900">{cart.customer.name}</p>
@@ -122,7 +107,7 @@ const CartDetail = ({ cartId, onBack }) => {
 
                     {/* Totals */}
                     <div className="surface p-5">
-                        <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Summary</h3>
+                        <h3 className="text-xs font-bold text-gray-400  mb-3">Summary</h3>
                         <div className="space-y-1 pb-3 border-b border-gray-100">
                             <div className="flex justify-between text-xs">
                                 <span className="text-gray-500">Subtotal</span>
@@ -130,14 +115,14 @@ const CartDetail = ({ cartId, onBack }) => {
                             </div>
                             {cart.charges?.map((c, i) => (
                                 <div key={i} className="flex justify-between text-xs">
-                                    <span className="text-gray-500">{c.type ?? "Charge"}</span>
+                                    <span className="text-gray-500">{{ SHIPPING: "Delivery", PLATFORM_FEE: "Platform fee", PROCESSING_AND_HANDLING: "Processing & handling" }[c.type] ?? c.type?.replaceAll("_", " ").toLowerCase() ?? "Charge"}</span>
                                     <span className="font-semibold">{formatCurrency(c.amount)}</span>
                                 </div>
                             ))}
                         </div>
                         <div className="flex justify-between items-center pt-3">
                             <span className="text-sm font-bold text-gray-900">Total</span>
-                            <span className="text-2xl font-black text-gray-950">{formatCurrency(cart.total)}</span>
+                            <span className="text-2xl font-semibold text-gray-950">{formatCurrency(cart.total)}</span>
                         </div>
                     </div>
                 </div>
@@ -207,7 +192,7 @@ const CartsTab = () => {
                         <thead>
                             <tr className="border-b border-gray-50">
                                 {["Cart ID", "Customer", "Items", "Total", ""].map(h => (
-                                    <th key={h} className="text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest px-4 py-3">{h}</th>
+                                    <th key={h} className="text-left text-xs font-bold text-gray-400  px-4 py-3">{h}</th>
                                 ))}
                             </tr>
                         </thead>
@@ -219,7 +204,7 @@ const CartsTab = () => {
                                         {c.customer ? (
                                             <>
                                                 <p className="text-sm font-semibold text-gray-800">{c.customer.name}</p>
-                                                <p className="text-[10px] text-gray-400">{c.customer.email}</p>
+                                                <p className="text-xs text-gray-400">{c.customer.email}</p>
                                             </>
                                         ) : (
                                             <span className="text-xs text-gray-400 italic">Guest</span>
@@ -228,7 +213,7 @@ const CartsTab = () => {
                                     <td className="px-4 py-3 text-sm font-semibold text-gray-700">
                                         {c.cartItems?.length ?? 0} item{(c.cartItems?.length ?? 0) !== 1 ? "s" : ""}
                                     </td>
-                                    <td className="px-4 py-3 text-sm font-black text-gray-900">{formatCurrency(c.total)}</td>
+                                    <td className="px-4 py-3 text-sm font-semibold text-gray-900">{formatCurrency(c.total)}</td>
                                     <td className="px-4 py-3"><ActionArrow size={14} className="text-gray-300" /></td>
                                 </tr>
                             ))}

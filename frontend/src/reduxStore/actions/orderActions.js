@@ -1,5 +1,5 @@
 import api, { session } from "../../backend/api.js";
-import toast from "react-hot-toast";
+import toast from "../../utils/toastUtils.js";
 
 export const placeOrder = (orderPayload) => async (dispatch) => {
     const epoch = session.getSnapshot().epoch;

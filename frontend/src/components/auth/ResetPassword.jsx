@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { FiLock, FiEye, FiEyeOff, FiArrowLeft } from "react-icons/fi";
 import { useForm, useWatch } from "react-hook-form";
 import { useState } from "react";
-import toast from "react-hot-toast";
+import toast from "../../utils/toastUtils.js";
 import api, { session } from "../../backend/api";
 import { passwordRules } from "../../utils/validationRules";
 
@@ -138,7 +138,7 @@ const ResetPassword = () => {
                         <button
                             type="submit"
                             disabled={isSubmitting}
-                            className="control control-prominent w-full py-3 bg-gray-950 hover:bg-gray-800 disabled:opacity-50 text-white text-sm font-bold rounded-xl transition-[transform,opacity,background-color] active:scale-[0.98]"
+                            className="control control-prominent w-full py-3 bg-gray-950 hover:bg-gray-800 disabled:opacity-50 text-white text-sm font-bold rounded-xl transition-[transform,opacity,background-color] "
                         >
                             {isSubmitting ? "Updating..." : "Update Password"}
                         </button>

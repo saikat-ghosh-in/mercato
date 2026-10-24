@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
+import { useContentTransition } from "../../hooks/useContentTransition";
 import { useDispatch, useSelector } from "react-redux";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
-import toast from "react-hot-toast";
+import toast from "../../utils/toastUtils.js";
 import { FiArrowLeft } from "react-icons/fi";
 import { checkoutIssue, currentDeliveryAddress, paymentHandoff } from "../../utils/checkout";
 import { useCartProducts } from "../../hooks/useCartProducts";
@@ -56,6 +57,7 @@ const Checkout = () => {
   const checkoutPanel = useRef(null);
   const selectedAddress = currentDeliveryAddress(addresses, selectedAddressForCheckout);
   const visibleStep = selectedAddress ? step : 1;
+  useContentTransition(checkoutPanel, visibleStep);
   const bagIssue = checkoutIssue({ cartLoaded, cartLoading, cartError, loadingProducts, productsUnavailable, cartQty });
 
   const isChildRoute = location.pathname !== "/checkout";

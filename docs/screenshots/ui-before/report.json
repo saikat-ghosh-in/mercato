@@ -1,0 +1,1783 @@
+{
+ "url": "http://127.0.0.1:5173",
+ "at": "2026-10-20T16:53:27.976Z",
+ "allow": [],
+ "viewports": [
+  {
+   "width": 1440,
+   "height": 900,
+   "load": "load",
+   "screens": 3,
+   "filled": [
+    0.7,
+    0.13,
+    0.16
+   ],
+   "motion": {
+    "elements": 6,
+    "css": 0,
+    "transitions": 6,
+    "scripted": 0,
+    "videos": 0,
+    "playingVideos": 0
+   },
+   "metrics": {
+    "viewport": {
+     "w": 1440,
+     "h": 900
+    },
+    "page": {
+     "height": 1960,
+     "screens": 2.2,
+     "words": 127,
+     "img": 1,
+     "video": 0,
+     "canvas": 0,
+     "svg": 11,
+     "sections": 3,
+     "horizontalOverflow": 0,
+     "overflowCulprits": [],
+     "uiFragments": 0,
+     "uiAbuse": false,
+     "realPictures": 1,
+     "videoCount": 0,
+     "uiPictures": 0,
+     "pictureSamples": [
+      "marketplace-campaign.webp"
+     ],
+     "blendText": 0,
+     "sideScrollers": 0,
+     "brokenImages": [],
+     "emoji": [],
+     "videosNoPoster": 0
+    },
+    "hero": {
+     "text": "A WORLD OF GOOD FINDS.",
+     "words": 5,
+     "chars": 22,
+     "lines": 3,
+     "size": 91,
+     "vw": 6.3,
+     "font": "Barlow Condensed",
+     "weight": 800,
+     "tracking": -0.02,
+     "leading": 0.93,
+     "top": 179,
+     "tag": "h1",
+     "kind": "heading",
+     "align": "left",
+     "position": "left"
+    },
+    "h1": {
+     "text": "A WORLD OF GOOD FINDS.",
+     "words": 5,
+     "lines": 3,
+     "size": 90.7,
+     "font": "Barlow Condensed"
+    },
+    "headings": [
+     {
+      "text": "mercato",
+      "words": 1,
+      "chars": 7,
+      "lines": 1,
+      "size": 28,
+      "vw": 1.9,
+      "font": "DM Sans",
+      "weight": 700,
+      "tracking": -0.054,
+      "leading": 1.5,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.11,
+      "top": 15,
+      "tag": "a",
+      "kind": "heading"
+     },
+     {
+      "text": "A WORLD OF GOOD FINDS.",
+      "words": 5,
+      "chars": 22,
+      "lines": 3,
+      "size": 90.7,
+      "vw": 6.3,
+      "font": "Barlow Condensed",
+      "weight": 800,
+      "tracking": -0.02,
+      "leading": 0.93,
+      "upper": true,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.36,
+      "top": 179,
+      "tag": "h1",
+      "kind": "heading"
+     },
+     {
+      "text": "Find your next favourite.",
+      "words": 4,
+      "chars": 25,
+      "lines": 1,
+      "size": 30,
+      "vw": 2.1,
+      "font": "DM Sans",
+      "weight": 550,
+      "tracking": -0.027,
+      "leading": 1.5,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.23,
+      "top": 749,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "YOUR WORLD. MORE POSSIBILITIES.",
+      "words": 4,
+      "chars": 31,
+      "lines": 2,
+      "size": 86.4,
+      "vw": 6,
+      "font": "Barlow Condensed",
+      "weight": 800,
+      "tracking": 0,
+      "leading": 1,
+      "upper": true,
+      "italic": false,
+      "mono": false,
+      "align": "center",
+      "position": "center",
+      "widthRatio": 0.92,
+      "top": 1163,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "mercato",
+      "words": 1,
+      "chars": 7,
+      "lines": 1,
+      "size": 28,
+      "vw": 1.9,
+      "font": "DM Sans",
+      "weight": 700,
+      "tracking": -0.054,
+      "leading": 1.5,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.11,
+      "top": 1609,
+      "tag": "a",
+      "kind": "heading"
+     }
+    ],
+    "headingSummary": {
+     "count": 5,
+     "maxLines": 3,
+     "over2Lines": 1,
+     "statements": 0,
+     "centered": 1,
+     "medianWords": 4,
+     "mixedFontHeadings": 0
+    },
+    "type": {
+     "families": [
+      {
+       "family": "DM Sans",
+       "share": 0.94,
+       "mono": false
+      },
+      {
+       "family": "Barlow Condensed",
+       "share": 0.06,
+       "mono": false
+      }
+     ],
+     "familyCount": 2,
+     "sizes": [
+      10,
+      12,
+      13,
+      14,
+      15,
+      16,
+      28,
+      30,
+      86,
+      91
+     ],
+     "sizeCount": 10,
+     "notLoaded": [],
+     "body": {
+      "font": "DM Sans",
+      "size": 15,
+      "leading": 1.8,
+      "weight": 400,
+      "tracking": 0,
+      "contrast": 5.2
+     },
+     "measureChars": 51,
+     "max": {
+      "size": 90.7,
+      "vw": 6.3,
+      "font": "Barlow Condensed",
+      "text": "A WORLDOF GOOD"
+     },
+     "monoShare": 0,
+     "monoProseShare": 0,
+     "monoFamilies": [],
+     "monoSamples": [],
+     "microLabels": 1,
+     "microLabelShare": 0.041,
+     "microSamples": [
+      "MANY SELLERS. ENDLESS DISCOVERY."
+     ],
+     "upperShare": 0.14,
+     "centerShare": 0.29,
+     "smallText": 3
+    },
+    "eyebrows": [
+     {
+      "text": "MANY SELLERS. ENDLESS DISCOVERY.",
+      "above": "A WORLD OF GOOD FINDS.",
+      "upper": true,
+      "tracked": true,
+      "mono": false,
+      "pill": false,
+      "size": 10,
+      "top": 140
+     },
+     {
+      "text": "THE MERCATO MARKETPLACE",
+      "above": "YOUR WORLD. MORE POSSIBILITIES.",
+      "upper": true,
+      "tracked": true,
+      "mono": false,
+      "pill": false,
+      "size": 16,
+      "top": 1115
+     }
+    ],
+    "numbered": [],
+    "color": {
+     "bodyBg": "#ffffff",
+     "bodyBgHsl": {
+      "h": 0,
+      "s": 0,
+      "l": 1
+     },
+     "dark": false,
+     "sectionBgs": [
+      {
+       "color": "#eff4fa",
+       "top": 72,
+       "hsl": {
+        "h": 213,
+        "s": 0.52,
+        "l": 0.96
+       }
+      },
+      {
+       "color": "#bcd2e5",
+       "top": 72,
+       "hsl": {
+        "h": 208,
+        "s": 0.44,
+        "l": 0.82
+       }
+      },
+      {
+       "color": "#ffffff",
+       "top": 1544,
+       "hsl": {
+        "h": 0,
+        "s": 0,
+        "l": 1
+       }
+      }
+     ],
+     "textColors": [
+      {
+       "color": "#111111",
+       "share": 0.33
+      },
+      {
+       "color": "#707070",
+       "share": 0.29
+      },
+      {
+       "color": "#5c6774",
+       "share": 0.15
+      },
+      {
+       "color": "#892c20",
+       "share": 0.06
+      },
+      {
+       "color": "#ffffff",
+       "share": 0.05
+      }
+     ],
+     "button": {
+      "bg": "#111111",
+      "hsl": {
+       "h": 0,
+       "s": 0,
+       "l": 0.07
+      },
+      "fg": "#ffffff"
+     },
+     "lowContrast": []
+    },
+    "buttons": {
+     "count": 3,
+     "inHero": 2,
+     "radius": 8,
+     "height": 52,
+     "withShadow": 0,
+     "withGradient": 0,
+     "mono": 0,
+     "upper": 0,
+     "heroLabels": [
+      "Skip to content",
+      "Explore the marketplace"
+     ]
+    },
+    "surfaces": {
+     "shadowStatic": 0,
+     "shadowOverlay": 0,
+     "shadowSamples": [],
+     "gradients": 0,
+     "scrims": 0,
+     "gradientSamples": [],
+     "gradientText": 0,
+     "hairlines": 3,
+     "hairlineSamples": [
+      "header.site-header 1440px",
+      "footer.site-footer 1440px",
+      "div.footer-bottom 1328px"
+     ],
+     "outlinedBoxes": 0,
+     "dashed": 0,
+     "blurred": 0,
+     "roundedBoxes": 0,
+     "boxRadius": 0,
+     "squareMedia": 1,
+     "roundedMedia": 0,
+     "mediaRadius": 0,
+     "textShadow": 0,
+     "cardRows": []
+    },
+    "heroMedia": [
+     {
+      "type": "img",
+      "ratio": 0.38
+     }
+    ],
+    "nav": {
+     "links": 4,
+     "fixed": true,
+     "height": 72,
+     "floatingPill": false,
+     "blur": false
+    },
+    "fontsLoaded": [
+     "barlow condensed",
+     "dm sans"
+    ]
+   },
+   "layout": {
+    "viewport": {
+     "w": 1440,
+     "h": 900
+    },
+    "pageH": 1960,
+    "margins": {
+     "left": 56,
+     "right": 82
+    },
+    "sections": [
+     {
+      "sel": "main#main-content.app-page.store-page",
+      "tag": "main",
+      "top": 72,
+      "height": 1472,
+      "words": 79,
+      "media": 1,
+      "middle": 0,
+      "heading": {
+       "text": "A WORLD",
+       "size": 91,
+       "tag": "h1"
+      },
+      "left": 56,
+      "right": 0,
+      "textLeft": 56,
+      "textRight": 82,
+      "fullBleed": false,
+      "footer": false,
+      "hero": true,
+      "continues": false,
+      "pinned": false
+     },
+     {
+      "sel": "footer.site-footer",
+      "tag": "footer",
+      "top": 1544,
+      "height": 416,
+      "words": 45,
+      "media": 0,
+      "middle": 431,
+      "heading": {
+       "text": "mercato",
+       "size": 28,
+       "tag": "span"
+      },
+      "left": 56,
+      "right": 237,
+      "textLeft": 56,
+      "textRight": 237,
+      "fullBleed": false,
+      "footer": true,
+      "hero": false,
+      "continues": false,
+      "pinned": false
+     }
+    ],
+    "gaps": [],
+    "h1s": [
+     {
+      "text": "A WORLD OF GOOD FINDS.",
+      "size": 91,
+      "top": 179,
+      "firstScreen": true
+     }
+    ],
+    "edgeText": [],
+    "edges": [
+     {
+      "x": 56,
+      "n": 5
+     }
+    ],
+    "leftBlocks": 5,
+    "bodySize": 15,
+    "stage": false,
+    "explains": false,
+    "slivers": [],
+    "voidShare": 0.11,
+    "voidBox": {
+     "x": 420,
+     "y": 120,
+     "w": 180,
+     "h": 780
+    }
+   },
+   "app": {
+    "viewport": {
+     "w": 1440,
+     "h": 900
+    },
+    "dark": false,
+    "ground": "#ffffff",
+    "sidebar": null,
+    "topbar": {
+     "h": 72
+    },
+    "canvas": {
+     "left": 56,
+     "right": 56
+    },
+    "hero": {
+     "text": "A WORLD OF GOOD FINDS.",
+     "words": 5,
+     "chars": 22,
+     "lines": 3,
+     "size": 91,
+     "vw": 6.3,
+     "font": "Barlow Condensed",
+     "weight": 800,
+     "tracking": -0.02,
+     "leading": 0.93,
+     "top": 179,
+     "tag": "h1",
+     "kind": "heading",
+     "align": "left",
+     "position": "left"
+    },
+    "charts": 0,
+    "layout": {
+     "panels": 1,
+     "firstScreen": 1,
+     "ragged": [],
+     "voids": []
+    },
+    "tiles": 0,
+    "panels": {
+     "count": 1,
+     "radii": [
+      [
+       0,
+       1
+      ]
+     ],
+     "heavyBorders": 0,
+     "borderSamples": [],
+     "heavyShadows": 0,
+     "softShadows": 0,
+     "shadowSamples": [],
+     "glass": 0
+    },
+    "chips": {
+     "count": 0,
+     "hues": 0,
+     "samples": []
+    },
+    "numbers": {
+     "cells": 0,
+     "leftAligned": 0,
+     "figures": 0,
+     "tabularShare": null,
+     "kpiMax": null
+    },
+    "rows": null,
+    "chartHues": 0,
+    "placeholders": [],
+    "type": {
+     "under13": 0.14,
+     "tiny": 2,
+     "tinySamples": [
+      "MANY SELLERS. ENDLESS DI 10px",
+      "Different sellers. One p 10px"
+     ],
+     "sizes": [
+      10,
+      12,
+      13,
+      14,
+      15,
+      16,
+      28,
+      30,
+      86,
+      91
+     ]
+    },
+    "title": {
+     "text": "A WORLD\nOF GOOD\nFINDS.",
+     "size": 91,
+     "top": 179
+    },
+    "colourShare": 0.046
+   },
+   "consoleErrors": []
+  },
+  {
+   "width": 768,
+   "height": 1024,
+   "load": "load",
+   "screens": 2,
+   "filled": [
+    0.62,
+    0.15
+   ],
+   "motion": {
+    "elements": 6,
+    "css": 0,
+    "transitions": 6,
+    "scripted": 0,
+    "videos": 0,
+    "playingVideos": 0
+   },
+   "metrics": {
+    "viewport": {
+     "w": 768,
+     "h": 1024
+    },
+    "page": {
+     "height": 1756,
+     "screens": 1.7,
+     "words": 125,
+     "img": 1,
+     "video": 0,
+     "canvas": 0,
+     "svg": 11,
+     "sections": 3,
+     "horizontalOverflow": 0,
+     "overflowCulprits": [],
+     "uiFragments": 0,
+     "uiAbuse": false,
+     "realPictures": 1,
+     "videoCount": 0,
+     "uiPictures": 0,
+     "pictureSamples": [
+      "marketplace-campaign.webp"
+     ],
+     "blendText": 0,
+     "sideScrollers": 0,
+     "brokenImages": [],
+     "emoji": [],
+     "videosNoPoster": 0
+    },
+    "hero": {
+     "text": "A WORLD OF GOOD FINDS.",
+     "words": 5,
+     "chars": 22,
+     "lines": 3,
+     "size": 70,
+     "vw": 9.1,
+     "font": "Barlow Condensed",
+     "weight": 800,
+     "tracking": -0.02,
+     "leading": 0.93,
+     "top": 135,
+     "tag": "h1",
+     "kind": "heading",
+     "align": "left",
+     "position": "left"
+    },
+    "h1": {
+     "text": "A WORLD OF GOOD FINDS.",
+     "words": 5,
+     "lines": 3,
+     "size": 70,
+     "font": "Barlow Condensed"
+    },
+    "headings": [
+     {
+      "text": "A WORLD OF GOOD FINDS.",
+      "words": 5,
+      "chars": 22,
+      "lines": 3,
+      "size": 70,
+      "vw": 9.1,
+      "font": "Barlow Condensed",
+      "weight": 800,
+      "tracking": -0.02,
+      "leading": 0.93,
+      "upper": true,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.37,
+      "top": 135,
+      "tag": "h1",
+      "kind": "heading"
+     },
+     {
+      "text": "Find your next favourite.",
+      "words": 4,
+      "chars": 25,
+      "lines": 1,
+      "size": 30,
+      "vw": 3.9,
+      "font": "DM Sans",
+      "weight": 550,
+      "tracking": -0.027,
+      "leading": 1.5,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.42,
+      "top": 606,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "YOUR WORLD. MORE POSSIBILITIES.",
+      "words": 4,
+      "chars": 31,
+      "lines": 2,
+      "size": 52,
+      "vw": 6.8,
+      "font": "Barlow Condensed",
+      "weight": 800,
+      "tracking": 0,
+      "leading": 1,
+      "upper": true,
+      "italic": false,
+      "mono": false,
+      "align": "center",
+      "position": "center",
+      "widthRatio": 0.92,
+      "top": 1020,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "mercato",
+      "words": 1,
+      "chars": 7,
+      "lines": 1,
+      "size": 28,
+      "vw": 3.6,
+      "font": "DM Sans",
+      "weight": 700,
+      "tracking": -0.054,
+      "leading": 1.5,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.2,
+      "top": 1405,
+      "tag": "a",
+      "kind": "heading"
+     }
+    ],
+    "headingSummary": {
+     "count": 4,
+     "maxLines": 3,
+     "over2Lines": 1,
+     "statements": 0,
+     "centered": 1,
+     "medianWords": 4,
+     "mixedFontHeadings": 0
+    },
+    "type": {
+     "families": [
+      {
+       "family": "DM Sans",
+       "share": 0.93,
+       "mono": false
+      },
+      {
+       "family": "Barlow Condensed",
+       "share": 0.07,
+       "mono": false
+      }
+     ],
+     "familyCount": 2,
+     "sizes": [
+      10,
+      12,
+      13,
+      14,
+      15,
+      16,
+      22,
+      28,
+      30,
+      52,
+      70
+     ],
+     "sizeCount": 11,
+     "notLoaded": [],
+     "body": {
+      "font": "DM Sans",
+      "size": 14,
+      "leading": 1.8,
+      "weight": 400,
+      "tracking": 0,
+      "contrast": 5.2
+     },
+     "measureChars": 40,
+     "max": {
+      "size": 70,
+      "vw": 9.1,
+      "font": "Barlow Condensed",
+      "text": "A WORLDOF GOOD"
+     },
+     "monoShare": 0,
+     "monoProseShare": 0,
+     "monoFamilies": [],
+     "monoSamples": [],
+     "microLabels": 1,
+     "microLabelShare": 0.042,
+     "microSamples": [
+      "MANY SELLERS. ENDLESS DISCOVERY."
+     ],
+     "upperShare": 0.14,
+     "centerShare": 0.28,
+     "smallText": 3
+    },
+    "eyebrows": [
+     {
+      "text": "MANY SELLERS. ENDLESS DISCOVERY.",
+      "above": "A WORLD OF GOOD FINDS.",
+      "upper": true,
+      "tracked": true,
+      "mono": false,
+      "pill": false,
+      "size": 10,
+      "top": 96
+     },
+     {
+      "text": "THE MERCATO MARKETPLACE",
+      "above": "YOUR WORLD. MORE POSSIBILITIES.",
+      "upper": true,
+      "tracked": true,
+      "mono": false,
+      "pill": false,
+      "size": 16,
+      "top": 972
+     }
+    ],
+    "numbered": [],
+    "color": {
+     "bodyBg": "#ffffff",
+     "bodyBgHsl": {
+      "h": 0,
+      "s": 0,
+      "l": 1
+     },
+     "dark": false,
+     "sectionBgs": [
+      {
+       "color": "#eff4fa",
+       "top": 64,
+       "hsl": {
+        "h": 213,
+        "s": 0.52,
+        "l": 0.96
+       }
+      },
+      {
+       "color": "#ffffff",
+       "top": 1340,
+       "hsl": {
+        "h": 0,
+        "s": 0,
+        "l": 1
+       }
+      }
+     ],
+     "textColors": [
+      {
+       "color": "#111111",
+       "share": 0.32
+      },
+      {
+       "color": "#707070",
+       "share": 0.29
+      },
+      {
+       "color": "#5c6774",
+       "share": 0.16
+      },
+      {
+       "color": "#892c20",
+       "share": 0.06
+      },
+      {
+       "color": "#ffffff",
+       "share": 0.06
+      }
+     ],
+     "button": {
+      "bg": "#111111",
+      "hsl": {
+       "h": 0,
+       "s": 0,
+       "l": 0.07
+      },
+      "fg": "#ffffff"
+     },
+     "lowContrast": []
+    },
+    "buttons": {
+     "count": 3,
+     "inHero": 2,
+     "radius": 8,
+     "height": 44,
+     "withShadow": 0,
+     "withGradient": 0,
+     "mono": 0,
+     "upper": 0,
+     "heroLabels": [
+      "Skip to content",
+      "Explore the marketplace"
+     ]
+    },
+    "surfaces": {
+     "shadowStatic": 0,
+     "shadowOverlay": 0,
+     "shadowSamples": [],
+     "gradients": 0,
+     "scrims": 0,
+     "gradientSamples": [],
+     "gradientText": 0,
+     "hairlines": 3,
+     "hairlineSamples": [
+      "header.site-header 768px",
+      "footer.site-footer 768px",
+      "div.footer-bottom 704px"
+     ],
+     "outlinedBoxes": 0,
+     "dashed": 0,
+     "blurred": 0,
+     "roundedBoxes": 0,
+     "boxRadius": 0,
+     "squareMedia": 1,
+     "roundedMedia": 0,
+     "mediaRadius": 0,
+     "textShadow": 0,
+     "cardRows": []
+    },
+    "heroMedia": [
+     {
+      "type": "img",
+      "ratio": 0.25
+     }
+    ],
+    "nav": {
+     "links": 4,
+     "fixed": true,
+     "height": 64,
+     "floatingPill": false,
+     "blur": false
+    },
+    "fontsLoaded": [
+     "barlow condensed",
+     "dm sans"
+    ]
+   },
+   "layout": {
+    "viewport": {
+     "w": 768,
+     "h": 1024
+    },
+    "pageH": 1756,
+    "margins": {
+     "left": 32,
+     "right": 56
+    },
+    "sections": [
+     {
+      "sel": "main#main-content.app-page.store-page",
+      "tag": "main",
+      "top": 64,
+      "height": 1276,
+      "words": 79,
+      "media": 1,
+      "middle": 0,
+      "heading": {
+       "text": "A WORLD",
+       "size": 70,
+       "tag": "h1"
+      },
+      "left": 32,
+      "right": 0,
+      "textLeft": 32,
+      "textRight": 58,
+      "fullBleed": false,
+      "footer": false,
+      "hero": true,
+      "continues": false,
+      "pinned": false
+     },
+     {
+      "sel": "footer.site-footer",
+      "tag": "footer",
+      "top": 1340,
+      "height": 416,
+      "words": 45,
+      "media": 0,
+      "middle": 119,
+      "heading": {
+       "text": "mercato",
+       "size": 28,
+       "tag": "span"
+      },
+      "left": 32,
+      "right": 57,
+      "textLeft": 32,
+      "textRight": 57,
+      "fullBleed": false,
+      "footer": true,
+      "hero": false,
+      "continues": false,
+      "pinned": false
+     }
+    ],
+    "gaps": [],
+    "h1s": [
+     {
+      "text": "A WORLD OF GOOD FINDS.",
+      "size": 70,
+      "top": 135,
+      "firstScreen": true
+     }
+    ],
+    "edgeText": [],
+    "edges": [
+     {
+      "x": 32,
+      "n": 5
+     }
+    ],
+    "leftBlocks": 5,
+    "bodySize": 14,
+    "stage": false,
+    "explains": false,
+    "slivers": [],
+    "voidShare": 0,
+    "voidBox": null
+   },
+   "app": {
+    "viewport": {
+     "w": 768,
+     "h": 1024
+    },
+    "dark": false,
+    "ground": "#ffffff",
+    "sidebar": null,
+    "topbar": {
+     "h": 64
+    },
+    "canvas": {
+     "left": 30,
+     "right": 26
+    },
+    "hero": {
+     "text": "A WORLD OF GOOD FINDS.",
+     "words": 5,
+     "chars": 22,
+     "lines": 3,
+     "size": 70,
+     "vw": 9.1,
+     "font": "Barlow Condensed",
+     "weight": 800,
+     "tracking": -0.02,
+     "leading": 0.93,
+     "top": 135,
+     "tag": "h1",
+     "kind": "heading",
+     "align": "left",
+     "position": "left"
+    },
+    "charts": 0,
+    "layout": {
+     "panels": 1,
+     "firstScreen": 1,
+     "ragged": [],
+     "voids": []
+    },
+    "tiles": 0,
+    "panels": {
+     "count": 1,
+     "radii": [
+      [
+       0,
+       1
+      ]
+     ],
+     "heavyBorders": 0,
+     "borderSamples": [],
+     "heavyShadows": 0,
+     "softShadows": 0,
+     "shadowSamples": [],
+     "glass": 0
+    },
+    "chips": {
+     "count": 0,
+     "hues": 0,
+     "samples": []
+    },
+    "numbers": {
+     "cells": 0,
+     "leftAligned": 0,
+     "figures": 0,
+     "tabularShare": null,
+     "kpiMax": null
+    },
+    "rows": null,
+    "chartHues": 0,
+    "placeholders": [],
+    "type": {
+     "under13": 0.14,
+     "tiny": 2,
+     "tinySamples": [
+      "MANY SELLERS. ENDLESS DI 10px",
+      "Different sellers. One p 10px"
+     ],
+     "sizes": [
+      10,
+      12,
+      13,
+      14,
+      15,
+      16,
+      22,
+      28,
+      30,
+      52,
+      70
+     ]
+    },
+    "title": {
+     "text": "A WORLD\nOF GOOD\nFINDS.",
+     "size": 70,
+     "top": 135
+    },
+    "colourShare": 0.039
+   },
+   "consoleErrors": []
+  },
+  {
+   "width": 320,
+   "height": 200,
+   "load": "load",
+   "screens": 11,
+   "filled": [
+    0.73,
+    0.87,
+    0.77,
+    0.43,
+    0.46,
+    0.24,
+    0.74,
+    0.29,
+    0.31,
+    0.36,
+    0.32
+   ],
+   "motion": {
+    "elements": 7,
+    "css": 0,
+    "transitions": 7,
+    "scripted": 0,
+    "videos": 0,
+    "playingVideos": 0
+   },
+   "metrics": {
+    "viewport": {
+     "w": 320,
+     "h": 200
+    },
+    "page": {
+     "height": 2095,
+     "screens": 10.5,
+     "words": 123,
+     "img": 1,
+     "video": 0,
+     "canvas": 0,
+     "svg": 11,
+     "sections": 3,
+     "horizontalOverflow": 0,
+     "overflowCulprits": [],
+     "uiFragments": 0,
+     "uiAbuse": false,
+     "realPictures": 1,
+     "videoCount": 0,
+     "uiPictures": 0,
+     "pictureSamples": [
+      "marketplace-campaign.webp"
+     ],
+     "blendText": 0,
+     "sideScrollers": 0,
+     "brokenImages": [],
+     "emoji": [],
+     "videosNoPoster": 0
+    },
+    "hero": {
+     "text": "A WORLD OF GOOD FINDS.",
+     "words": 5,
+     "chars": 22,
+     "lines": 3,
+     "size": 64,
+     "vw": 20,
+     "font": "Barlow Condensed",
+     "weight": 800,
+     "tracking": -0.02,
+     "leading": 0.95,
+     "top": 128,
+     "tag": "h1",
+     "kind": "heading",
+     "align": "left",
+     "position": "left"
+    },
+    "h1": {
+     "text": "A WORLD OF GOODFINDS.",
+     "words": 4,
+     "lines": 3,
+     "size": 64,
+     "font": "Barlow Condensed"
+    },
+    "headings": [
+     {
+      "text": "A WORLD OF GOODFINDS.",
+      "words": 4,
+      "chars": 21,
+      "lines": 3,
+      "size": 64,
+      "vw": 20,
+      "font": "Barlow Condensed",
+      "weight": 800,
+      "tracking": -0.02,
+      "leading": 0.95,
+      "upper": true,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.85,
+      "top": 128,
+      "tag": "h1",
+      "kind": "heading"
+     },
+     {
+      "text": "Find your next favourite.",
+      "words": 4,
+      "chars": 25,
+      "lines": 2,
+      "size": 26,
+      "vw": 8.1,
+      "font": "DM Sans",
+      "weight": 550,
+      "tracking": -0.031,
+      "leading": 1.5,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.56,
+      "top": 785,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "YOUR WORLD. MORE POSSIBILITIES.",
+      "words": 4,
+      "chars": 31,
+      "lines": 3,
+      "size": 52,
+      "vw": 16.3,
+      "font": "Barlow Condensed",
+      "weight": 800,
+      "tracking": 0,
+      "leading": 1,
+      "upper": true,
+      "italic": false,
+      "mono": false,
+      "align": "center",
+      "position": "center",
+      "widthRatio": 0.9,
+      "top": 1216,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "mercato",
+      "words": 1,
+      "chars": 7,
+      "lines": 1,
+      "size": 24,
+      "vw": 7.5,
+      "font": "DM Sans",
+      "weight": 700,
+      "tracking": -0.062,
+      "leading": 1.5,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.4,
+      "top": 1617,
+      "tag": "a",
+      "kind": "heading"
+     }
+    ],
+    "headingSummary": {
+     "count": 4,
+     "maxLines": 3,
+     "over2Lines": 2,
+     "statements": 0,
+     "centered": 1,
+     "medianWords": 4,
+     "mixedFontHeadings": 0
+    },
+    "type": {
+     "families": [
+      {
+       "family": "DM Sans",
+       "share": 0.93,
+       "mono": false
+      },
+      {
+       "family": "Barlow Condensed",
+       "share": 0.07,
+       "mono": false
+      }
+     ],
+     "familyCount": 2,
+     "sizes": [
+      9,
+      12,
+      13,
+      14,
+      15,
+      16,
+      24,
+      26,
+      52,
+      64
+     ],
+     "sizeCount": 10,
+     "notLoaded": [],
+     "body": {
+      "font": "DM Sans",
+      "size": 14,
+      "leading": 1.8,
+      "weight": 400,
+      "tracking": 0,
+      "contrast": 5.2
+     },
+     "measureChars": 39,
+     "max": {
+      "size": 64,
+      "vw": 20,
+      "font": "Barlow Condensed",
+      "text": "A WORLDOF GOOD"
+     },
+     "monoShare": 0,
+     "monoProseShare": 0,
+     "monoFamilies": [],
+     "monoSamples": [],
+     "microLabels": 1,
+     "microLabelShare": 0.042,
+     "microSamples": [
+      "MANY SELLERS. ENDLESS DISCOVERY."
+     ],
+     "upperShare": 0.14,
+     "centerShare": 0.28,
+     "smallText": 4
+    },
+    "eyebrows": [
+     {
+      "text": "MANY SELLERS. ENDLESS DISCOVERY.",
+      "above": "A WORLD OF GOODFINDS.",
+      "upper": true,
+      "tracked": true,
+      "mono": false,
+      "pill": false,
+      "size": 9,
+      "top": 96
+     },
+     {
+      "text": "Different sellers. One place to discover.",
+      "above": "Find your next favourite.",
+      "upper": false,
+      "tracked": true,
+      "mono": false,
+      "pill": false,
+      "size": 9,
+      "top": 712
+     },
+     {
+      "text": "THE MERCATO MARKETPLACE",
+      "above": "YOUR WORLD. MORE POSSIBILITIES.",
+      "upper": true,
+      "tracked": true,
+      "mono": false,
+      "pill": false,
+      "size": 16,
+      "top": 1168
+     }
+    ],
+    "numbered": [],
+    "color": {
+     "bodyBg": "#ffffff",
+     "bodyBgHsl": {
+      "h": 0,
+      "s": 0,
+      "l": 1
+     },
+     "dark": false,
+     "sectionBgs": [
+      {
+       "color": "#ffffff",
+       "top": 0,
+       "hsl": {
+        "h": 0,
+        "s": 0,
+        "l": 1
+       }
+      },
+      {
+       "color": "#eff4fa",
+       "top": 64,
+       "hsl": {
+        "h": 213,
+        "s": 0.52,
+        "l": 0.96
+       }
+      },
+      {
+       "color": "#bcd2e5",
+       "top": 497,
+       "hsl": {
+        "h": 208,
+        "s": 0.44,
+        "l": 0.82
+       }
+      },
+      {
+       "color": "#fff5f3",
+       "top": 966,
+       "hsl": {
+        "h": 10,
+        "s": 1,
+        "l": 0.98
+       }
+      }
+     ],
+     "textColors": [
+      {
+       "color": "#111111",
+       "share": 0.32
+      },
+      {
+       "color": "#707070",
+       "share": 0.29
+      },
+      {
+       "color": "#5c6774",
+       "share": 0.16
+      },
+      {
+       "color": "#892c20",
+       "share": 0.06
+      },
+      {
+       "color": "#ffffff",
+       "share": 0.06
+      }
+     ],
+     "button": {
+      "bg": "#111111",
+      "hsl": {
+       "h": 0,
+       "s": 0,
+       "l": 0.07
+      },
+      "fg": "#ffffff"
+     },
+     "lowContrast": []
+    },
+    "buttons": {
+     "count": 3,
+     "inHero": 1,
+     "radius": 8,
+     "height": 44,
+     "withShadow": 0,
+     "withGradient": 0,
+     "mono": 0,
+     "upper": 0,
+     "heroLabels": [
+      "Skip to content"
+     ]
+    },
+    "surfaces": {
+     "shadowStatic": 0,
+     "shadowOverlay": 0,
+     "shadowSamples": [],
+     "gradients": 0,
+     "scrims": 0,
+     "gradientSamples": [],
+     "gradientText": 0,
+     "hairlines": 3,
+     "hairlineSamples": [
+      "header.site-header 320px",
+      "footer.site-footer 320px",
+      "div.footer-bottom 288px"
+     ],
+     "outlinedBoxes": 0,
+     "dashed": 0,
+     "blurred": 0,
+     "roundedBoxes": 0,
+     "boxRadius": 0,
+     "squareMedia": 1,
+     "roundedMedia": 0,
+     "mediaRadius": 0,
+     "textShadow": 0,
+     "cardRows": []
+    },
+    "heroMedia": [],
+    "nav": {
+     "links": 4,
+     "fixed": true,
+     "height": 64,
+     "floatingPill": false,
+     "blur": false
+    },
+    "fontsLoaded": [
+     "barlow condensed",
+     "dm sans"
+    ]
+   },
+   "layout": {
+    "viewport": {
+     "w": 320,
+     "h": 200
+    },
+    "pageH": 2095,
+    "margins": {
+     "left": 16,
+     "right": 24
+    },
+    "sections": [
+     {
+      "sel": "main#main-content.app-page.store-page",
+      "tag": "main",
+      "top": 64,
+      "height": 1512,
+      "words": 79,
+      "media": 1,
+      "middle": 0,
+      "heading": {
+       "text": "A WORLD",
+       "size": 64,
+       "tag": "h1"
+      },
+      "left": 16,
+      "right": 21,
+      "textLeft": 16,
+      "textRight": 21,
+      "fullBleed": true,
+      "footer": false,
+      "hero": true,
+      "continues": false,
+      "pinned": false
+     },
+     {
+      "sel": "footer.site-footer",
+      "tag": "footer",
+      "top": 1576,
+      "height": 519,
+      "words": 45,
+      "media": 0,
+      "middle": 0,
+      "heading": {
+       "text": "mercato",
+       "size": 24,
+       "tag": "span"
+      },
+      "left": 16,
+      "right": 29,
+      "textLeft": 16,
+      "textRight": 29,
+      "fullBleed": false,
+      "footer": true,
+      "hero": false,
+      "continues": false,
+      "pinned": false
+     }
+    ],
+    "gaps": [],
+    "h1s": [
+     {
+      "text": "A WORLD OF GOODFINDS.",
+      "size": 64,
+      "top": 128,
+      "firstScreen": true
+     }
+    ],
+    "edgeText": [],
+    "edges": [
+     {
+      "x": 16,
+      "n": 5
+     }
+    ],
+    "leftBlocks": 5,
+    "bodySize": 14,
+    "stage": false,
+    "explains": false,
+    "slivers": [],
+    "voidShare": 0,
+    "voidBox": null
+   },
+   "app": {
+    "viewport": {
+     "w": 320,
+     "h": 200
+    },
+    "dark": false,
+    "ground": "#ffffff",
+    "sidebar": null,
+    "topbar": {
+     "h": 64
+    },
+    "canvas": {
+     "left": 8,
+     "right": 16
+    },
+    "hero": {
+     "text": "A WORLD OF GOOD FINDS.",
+     "words": 5,
+     "chars": 22,
+     "lines": 3,
+     "size": 64,
+     "vw": 20,
+     "font": "Barlow Condensed",
+     "weight": 800,
+     "tracking": -0.02,
+     "leading": 0.95,
+     "top": 128,
+     "tag": "h1",
+     "kind": "heading",
+     "align": "left",
+     "position": "left"
+    },
+    "charts": 0,
+    "layout": {
+     "panels": 1,
+     "firstScreen": 0,
+     "ragged": [],
+     "voids": []
+    },
+    "tiles": 0,
+    "panels": {
+     "count": 1,
+     "radii": [
+      [
+       0,
+       1
+      ]
+     ],
+     "heavyBorders": 0,
+     "borderSamples": [],
+     "heavyShadows": 0,
+     "softShadows": 0,
+     "shadowSamples": [],
+     "glass": 0
+    },
+    "chips": {
+     "count": 0,
+     "hues": 0,
+     "samples": []
+    },
+    "numbers": {
+     "cells": 0,
+     "leftAligned": 0,
+     "figures": 0,
+     "tabularShare": null,
+     "kpiMax": null
+    },
+    "rows": null,
+    "chartHues": 0,
+    "placeholders": [],
+    "type": {
+     "under13": 0.16,
+     "tiny": 2,
+     "tinySamples": [
+      "MANY SELLERS. ENDLESS DI 9px",
+      "Different sellers. One p 9px"
+     ],
+     "sizes": [
+      9,
+      12,
+      13,
+      14,
+      15,
+      16,
+      24,
+      26,
+      52,
+      64
+     ]
+    },
+    "title": {
+     "text": "A WORLD\nOF GOODFINDS.",
+     "size": 64,
+     "top": 128
+    },
+    "colourShare": 0
+   },
+   "consoleErrors": []
+  }
+ ],
+ "findings": [
+  {
+   "level": "FAIL",
+   "id": "headline-lines",
+   "width": 1440,
+   "message": "1 headline(s) wrap past two lines at 1440px: \"A WORLD OF GOOD FINDS.\" → 3 lines (5 words, 90.7px)",
+   "fix": "Cut words first (a headline is a title, not a sentence). Then give it a wider measure. Lower the size only as a last resort and never below the scale you chose. A real statement paragraph belongs in a <p> or <blockquote> at 36px or less."
+  },
+  {
+   "level": "WARN",
+   "id": "micro-label",
+   "width": 1440,
+   "message": "1 tiny uppercase letter-spaced label(s): \"MANY SELLERS. ENDLESS DISCOVERY.\"",
+   "fix": "Prefer sentence case at body size.",
+   "alsoAt": [
+    768,
+    320
+   ]
+  },
+  {
+   "level": "WARN",
+   "id": "app-title-size",
+   "width": 1440,
+   "message": "The h1 is 91px (\"A WORLD\nOF GOOD\nFINDS.\").",
+   "fix": "An app screen is not a landing page: the title is 18-32px (20-24px on a phone).",
+   "alsoAt": [
+    768,
+    320
+   ]
+  },
+  {
+   "level": "FAIL",
+   "id": "headline-lines",
+   "width": 768,
+   "message": "1 headline(s) wrap past two lines at 768px: \"A WORLD OF GOOD FINDS.\" → 3 lines (5 words, 70px)",
+   "fix": "Cut words first (a headline is a title, not a sentence). Then give it a wider measure. Lower the size only as a last resort and never below the scale you chose. A real statement paragraph belongs in a <p> or <blockquote> at 32px or less."
+  },
+  {
+   "level": "FAIL",
+   "id": "headline-lines",
+   "width": 320,
+   "message": "2 headline(s) wrap past two lines at 320px: \"A WORLD OF GOODFINDS.\" → 3 lines (4 words, 64px); \"YOUR WORLD. MORE POSSIBILITIES.\" → 3 lines (4 words, 52px)",
+   "fix": "Cut words first (a headline is a title, not a sentence). Then give it a wider measure. Lower the size only as a last resort and never below the scale you chose. A real statement paragraph belongs in a <p> or <blockquote> at 24px or less."
+  }
+ ],
+ "images": [
+  {
+   "viewport": "desktop",
+   "width": 1440,
+   "fold": "C:\\Projects\\mercato\\mercato-backend\\docs\\screenshots\\ui-before\\desktop-fold.jpg",
+   "pages": [
+    "C:\\Projects\\mercato\\mercato-backend\\docs\\screenshots\\ui-before\\desktop-page-01.jpg"
+   ],
+   "film": []
+  },
+  {
+   "viewport": "tablet",
+   "width": 768,
+   "fold": "C:\\Projects\\mercato\\mercato-backend\\docs\\screenshots\\ui-before\\tablet-fold.jpg",
+   "pages": [
+    "C:\\Projects\\mercato\\mercato-backend\\docs\\screenshots\\ui-before\\tablet-page-01.jpg"
+   ],
+   "film": []
+  },
+  {
+   "viewport": "mobile",
+   "width": 320,
+   "fold": "C:\\Projects\\mercato\\mercato-backend\\docs\\screenshots\\ui-before\\mobile-fold.jpg",
+   "pages": [
+    "C:\\Projects\\mercato\\mercato-backend\\docs\\screenshots\\ui-before\\mobile-page-01.jpg",
+    "C:\\Projects\\mercato\\mercato-backend\\docs\\screenshots\\ui-before\\mobile-page-02.jpg"
+   ],
+   "film": []
+  }
+ ]
+}

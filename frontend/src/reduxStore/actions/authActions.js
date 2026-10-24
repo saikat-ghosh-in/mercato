@@ -1,5 +1,5 @@
 import api, { session } from "../../backend/api.js";
-import toast from "react-hot-toast";
+import toast from "../../utils/toastUtils.js";
 import { syncCartFromBackend, waitForCartRequests } from "./cartActions";
 import { loginDestination } from "../../utils/accountRouting";
 import { privateApi } from "../services/privateApi.js";
@@ -25,21 +25,14 @@ export const authenticateUser = (loginRequest, navigate, resetForm, redirect = "
     }
 };
 export const registerNewUser = (signUpRequest, resetForm, navigate) => async () => {
-    try {
-        await api.post("/auth/register", signUpRequest);
-        resetForm();
-        toast.success("User Registered Successfully");
-        navigate("/verify-email-pending", { state: { email: signUpRequest.email } });
-    } catch (error) {
-        toast.error(error?.response?.data?.message || "Oops! Something went wrong!");
-        throw error;
-    }
+    await api.post("/auth/register", signUpRequest);
+    resetForm();
+    navigate("/verify-email-pending", { state: { email: signUpRequest.email } });
 };
 export const logOutUser = navigate => async () => {
     try {
         await api.post("/auth/signout");
         await session.refresh({ broadcast: true });
-        toast.success("Logged out successfully");
         if (navigate) navigate("/login");
     } catch (error) {
         toast.error(error?.response?.data?.message || "Sign out couldn’t complete. Please try again.");

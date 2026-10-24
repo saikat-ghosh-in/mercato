@@ -1,0 +1,1242 @@
+[
+  {
+    "width": 320,
+    "variant": "catalog",
+    "overflow": false,
+    "status": [
+      {
+        "busy": null,
+        "text": "Loading 12"
+      },
+      {
+        "busy": null,
+        "text": "Loading 16"
+      },
+      {
+        "busy": null,
+        "text": "Loading 20"
+      },
+      {
+        "busy": null,
+        "text": "Loading 24"
+      },
+      {
+        "busy": null,
+        "text": "Loading 32"
+      },
+      {
+        "busy": null,
+        "text": "Loading catalog"
+      }
+    ]
+  },
+  {
+    "width": 320,
+    "variant": "product",
+    "overflow": false,
+    "status": [
+      {
+        "busy": null,
+        "text": "Loading 12"
+      },
+      {
+        "busy": null,
+        "text": "Loading 16"
+      },
+      {
+        "busy": null,
+        "text": "Loading 20"
+      },
+      {
+        "busy": null,
+        "text": "Loading 24"
+      },
+      {
+        "busy": null,
+        "text": "Loading 32"
+      },
+      {
+        "busy": null,
+        "text": "Loading product"
+      }
+    ]
+  },
+  {
+    "width": 320,
+    "variant": "bag",
+    "overflow": false,
+    "status": [
+      {
+        "busy": null,
+        "text": "Loading 12"
+      },
+      {
+        "busy": null,
+        "text": "Loading 16"
+      },
+      {
+        "busy": null,
+        "text": "Loading 20"
+      },
+      {
+        "busy": null,
+        "text": "Loading 24"
+      },
+      {
+        "busy": null,
+        "text": "Loading 32"
+      },
+      {
+        "busy": null,
+        "text": "Loading bag"
+      }
+    ]
+  },
+  {
+    "width": 320,
+    "variant": "checkout",
+    "overflow": false,
+    "status": [
+      {
+        "busy": null,
+        "text": "Loading 12"
+      },
+      {
+        "busy": null,
+        "text": "Loading 16"
+      },
+      {
+        "busy": null,
+        "text": "Loading 20"
+      },
+      {
+        "busy": null,
+        "text": "Loading 24"
+      },
+      {
+        "busy": null,
+        "text": "Loading 32"
+      },
+      {
+        "busy": null,
+        "text": "Loading checkout"
+      }
+    ]
+  },
+  {
+    "width": 320,
+    "variant": "profile",
+    "overflow": false,
+    "status": [
+      {
+        "busy": null,
+        "text": "Loading 12"
+      },
+      {
+        "busy": null,
+        "text": "Loading 16"
+      },
+      {
+        "busy": null,
+        "text": "Loading 20"
+      },
+      {
+        "busy": null,
+        "text": "Loading 24"
+      },
+      {
+        "busy": null,
+        "text": "Loading 32"
+      },
+      {
+        "busy": null,
+        "text": "Loading profile"
+      }
+    ]
+  },
+  {
+    "width": 320,
+    "variant": "form",
+    "overflow": false,
+    "status": [
+      {
+        "busy": null,
+        "text": "Loading 12"
+      },
+      {
+        "busy": null,
+        "text": "Loading 16"
+      },
+      {
+        "busy": null,
+        "text": "Loading 20"
+      },
+      {
+        "busy": null,
+        "text": "Loading 24"
+      },
+      {
+        "busy": null,
+        "text": "Loading 32"
+      },
+      {
+        "busy": null,
+        "text": "Loading form"
+      }
+    ]
+  },
+  {
+    "width": 320,
+    "variant": "dashboard",
+    "overflow": false,
+    "status": [
+      {
+        "busy": null,
+        "text": "Loading 12"
+      },
+      {
+        "busy": null,
+        "text": "Loading 16"
+      },
+      {
+        "busy": null,
+        "text": "Loading 20"
+      },
+      {
+        "busy": null,
+        "text": "Loading 24"
+      },
+      {
+        "busy": null,
+        "text": "Loading 32"
+      },
+      {
+        "busy": null,
+        "text": "Loading dashboard"
+      }
+    ]
+  },
+  {
+    "width": 320,
+    "variant": "table",
+    "overflow": false,
+    "status": [
+      {
+        "busy": null,
+        "text": "Loading 12"
+      },
+      {
+        "busy": null,
+        "text": "Loading 16"
+      },
+      {
+        "busy": null,
+        "text": "Loading 20"
+      },
+      {
+        "busy": null,
+        "text": "Loading 24"
+      },
+      {
+        "busy": null,
+        "text": "Loading 32"
+      },
+      {
+        "busy": null,
+        "text": "Loading table"
+      }
+    ]
+  },
+  {
+    "width": 320,
+    "variant": "address",
+    "overflow": false,
+    "status": [
+      {
+        "busy": null,
+        "text": "Loading 12"
+      },
+      {
+        "busy": null,
+        "text": "Loading 16"
+      },
+      {
+        "busy": null,
+        "text": "Loading 20"
+      },
+      {
+        "busy": null,
+        "text": "Loading 24"
+      },
+      {
+        "busy": null,
+        "text": "Loading 32"
+      },
+      {
+        "busy": null,
+        "text": "Loading address"
+      }
+    ]
+  },
+  {
+    "width": 320,
+    "variant": "payment",
+    "overflow": false,
+    "status": [
+      {
+        "busy": null,
+        "text": "Loading 12"
+      },
+      {
+        "busy": null,
+        "text": "Loading 16"
+      },
+      {
+        "busy": null,
+        "text": "Loading 20"
+      },
+      {
+        "busy": null,
+        "text": "Loading 24"
+      },
+      {
+        "busy": null,
+        "text": "Loading 32"
+      },
+      {
+        "busy": null,
+        "text": "Loading payment"
+      }
+    ]
+  },
+  {
+    "width": 390,
+    "variant": "catalog",
+    "overflow": false,
+    "status": [
+      {
+        "busy": null,
+        "text": "Loading 12"
+      },
+      {
+        "busy": null,
+        "text": "Loading 16"
+      },
+      {
+        "busy": null,
+        "text": "Loading 20"
+      },
+      {
+        "busy": null,
+        "text": "Loading 24"
+      },
+      {
+        "busy": null,
+        "text": "Loading 32"
+      },
+      {
+        "busy": null,
+        "text": "Loading catalog"
+      }
+    ]
+  },
+  {
+    "width": 390,
+    "variant": "product",
+    "overflow": false,
+    "status": [
+      {
+        "busy": null,
+        "text": "Loading 12"
+      },
+      {
+        "busy": null,
+        "text": "Loading 16"
+      },
+      {
+        "busy": null,
+        "text": "Loading 20"
+      },
+      {
+        "busy": null,
+        "text": "Loading 24"
+      },
+      {
+        "busy": null,
+        "text": "Loading 32"
+      },
+      {
+        "busy": null,
+        "text": "Loading product"
+      }
+    ]
+  },
+  {
+    "width": 390,
+    "variant": "bag",
+    "overflow": false,
+    "status": [
+      {
+        "busy": null,
+        "text": "Loading 12"
+      },
+      {
+        "busy": null,
+        "text": "Loading 16"
+      },
+      {
+        "busy": null,
+        "text": "Loading 20"
+      },
+      {
+        "busy": null,
+        "text": "Loading 24"
+      },
+      {
+        "busy": null,
+        "text": "Loading 32"
+      },
+      {
+        "busy": null,
+        "text": "Loading bag"
+      }
+    ]
+  },
+  {
+    "width": 390,
+    "variant": "checkout",
+    "overflow": false,
+    "status": [
+      {
+        "busy": null,
+        "text": "Loading 12"
+      },
+      {
+        "busy": null,
+        "text": "Loading 16"
+      },
+      {
+        "busy": null,
+        "text": "Loading 20"
+      },
+      {
+        "busy": null,
+        "text": "Loading 24"
+      },
+      {
+        "busy": null,
+        "text": "Loading 32"
+      },
+      {
+        "busy": null,
+        "text": "Loading checkout"
+      }
+    ]
+  },
+  {
+    "width": 390,
+    "variant": "profile",
+    "overflow": false,
+    "status": [
+      {
+        "busy": null,
+        "text": "Loading 12"
+      },
+      {
+        "busy": null,
+        "text": "Loading 16"
+      },
+      {
+        "busy": null,
+        "text": "Loading 20"
+      },
+      {
+        "busy": null,
+        "text": "Loading 24"
+      },
+      {
+        "busy": null,
+        "text": "Loading 32"
+      },
+      {
+        "busy": null,
+        "text": "Loading profile"
+      }
+    ]
+  },
+  {
+    "width": 390,
+    "variant": "form",
+    "overflow": false,
+    "status": [
+      {
+        "busy": null,
+        "text": "Loading 12"
+      },
+      {
+        "busy": null,
+        "text": "Loading 16"
+      },
+      {
+        "busy": null,
+        "text": "Loading 20"
+      },
+      {
+        "busy": null,
+        "text": "Loading 24"
+      },
+      {
+        "busy": null,
+        "text": "Loading 32"
+      },
+      {
+        "busy": null,
+        "text": "Loading form"
+      }
+    ]
+  },
+  {
+    "width": 390,
+    "variant": "dashboard",
+    "overflow": false,
+    "status": [
+      {
+        "busy": null,
+        "text": "Loading 12"
+      },
+      {
+        "busy": null,
+        "text": "Loading 16"
+      },
+      {
+        "busy": null,
+        "text": "Loading 20"
+      },
+      {
+        "busy": null,
+        "text": "Loading 24"
+      },
+      {
+        "busy": null,
+        "text": "Loading 32"
+      },
+      {
+        "busy": null,
+        "text": "Loading dashboard"
+      }
+    ]
+  },
+  {
+    "width": 390,
+    "variant": "table",
+    "overflow": false,
+    "status": [
+      {
+        "busy": null,
+        "text": "Loading 12"
+      },
+      {
+        "busy": null,
+        "text": "Loading 16"
+      },
+      {
+        "busy": null,
+        "text": "Loading 20"
+      },
+      {
+        "busy": null,
+        "text": "Loading 24"
+      },
+      {
+        "busy": null,
+        "text": "Loading 32"
+      },
+      {
+        "busy": null,
+        "text": "Loading table"
+      }
+    ]
+  },
+  {
+    "width": 390,
+    "variant": "address",
+    "overflow": false,
+    "status": [
+      {
+        "busy": null,
+        "text": "Loading 12"
+      },
+      {
+        "busy": null,
+        "text": "Loading 16"
+      },
+      {
+        "busy": null,
+        "text": "Loading 20"
+      },
+      {
+        "busy": null,
+        "text": "Loading 24"
+      },
+      {
+        "busy": null,
+        "text": "Loading 32"
+      },
+      {
+        "busy": null,
+        "text": "Loading address"
+      }
+    ]
+  },
+  {
+    "width": 390,
+    "variant": "payment",
+    "overflow": false,
+    "status": [
+      {
+        "busy": null,
+        "text": "Loading 12"
+      },
+      {
+        "busy": null,
+        "text": "Loading 16"
+      },
+      {
+        "busy": null,
+        "text": "Loading 20"
+      },
+      {
+        "busy": null,
+        "text": "Loading 24"
+      },
+      {
+        "busy": null,
+        "text": "Loading 32"
+      },
+      {
+        "busy": null,
+        "text": "Loading payment"
+      }
+    ]
+  },
+  {
+    "width": 768,
+    "variant": "catalog",
+    "overflow": false,
+    "status": [
+      {
+        "busy": null,
+        "text": "Loading 12"
+      },
+      {
+        "busy": null,
+        "text": "Loading 16"
+      },
+      {
+        "busy": null,
+        "text": "Loading 20"
+      },
+      {
+        "busy": null,
+        "text": "Loading 24"
+      },
+      {
+        "busy": null,
+        "text": "Loading 32"
+      },
+      {
+        "busy": null,
+        "text": "Loading catalog"
+      }
+    ]
+  },
+  {
+    "width": 768,
+    "variant": "product",
+    "overflow": false,
+    "status": [
+      {
+        "busy": null,
+        "text": "Loading 12"
+      },
+      {
+        "busy": null,
+        "text": "Loading 16"
+      },
+      {
+        "busy": null,
+        "text": "Loading 20"
+      },
+      {
+        "busy": null,
+        "text": "Loading 24"
+      },
+      {
+        "busy": null,
+        "text": "Loading 32"
+      },
+      {
+        "busy": null,
+        "text": "Loading product"
+      }
+    ]
+  },
+  {
+    "width": 768,
+    "variant": "bag",
+    "overflow": false,
+    "status": [
+      {
+        "busy": null,
+        "text": "Loading 12"
+      },
+      {
+        "busy": null,
+        "text": "Loading 16"
+      },
+      {
+        "busy": null,
+        "text": "Loading 20"
+      },
+      {
+        "busy": null,
+        "text": "Loading 24"
+      },
+      {
+        "busy": null,
+        "text": "Loading 32"
+      },
+      {
+        "busy": null,
+        "text": "Loading bag"
+      }
+    ]
+  },
+  {
+    "width": 768,
+    "variant": "checkout",
+    "overflow": false,
+    "status": [
+      {
+        "busy": null,
+        "text": "Loading 12"
+      },
+      {
+        "busy": null,
+        "text": "Loading 16"
+      },
+      {
+        "busy": null,
+        "text": "Loading 20"
+      },
+      {
+        "busy": null,
+        "text": "Loading 24"
+      },
+      {
+        "busy": null,
+        "text": "Loading 32"
+      },
+      {
+        "busy": null,
+        "text": "Loading checkout"
+      }
+    ]
+  },
+  {
+    "width": 768,
+    "variant": "profile",
+    "overflow": false,
+    "status": [
+      {
+        "busy": null,
+        "text": "Loading 12"
+      },
+      {
+        "busy": null,
+        "text": "Loading 16"
+      },
+      {
+        "busy": null,
+        "text": "Loading 20"
+      },
+      {
+        "busy": null,
+        "text": "Loading 24"
+      },
+      {
+        "busy": null,
+        "text": "Loading 32"
+      },
+      {
+        "busy": null,
+        "text": "Loading profile"
+      }
+    ]
+  },
+  {
+    "width": 768,
+    "variant": "form",
+    "overflow": false,
+    "status": [
+      {
+        "busy": null,
+        "text": "Loading 12"
+      },
+      {
+        "busy": null,
+        "text": "Loading 16"
+      },
+      {
+        "busy": null,
+        "text": "Loading 20"
+      },
+      {
+        "busy": null,
+        "text": "Loading 24"
+      },
+      {
+        "busy": null,
+        "text": "Loading 32"
+      },
+      {
+        "busy": null,
+        "text": "Loading form"
+      }
+    ]
+  },
+  {
+    "width": 768,
+    "variant": "dashboard",
+    "overflow": false,
+    "status": [
+      {
+        "busy": null,
+        "text": "Loading 12"
+      },
+      {
+        "busy": null,
+        "text": "Loading 16"
+      },
+      {
+        "busy": null,
+        "text": "Loading 20"
+      },
+      {
+        "busy": null,
+        "text": "Loading 24"
+      },
+      {
+        "busy": null,
+        "text": "Loading 32"
+      },
+      {
+        "busy": null,
+        "text": "Loading dashboard"
+      }
+    ]
+  },
+  {
+    "width": 768,
+    "variant": "table",
+    "overflow": false,
+    "status": [
+      {
+        "busy": null,
+        "text": "Loading 12"
+      },
+      {
+        "busy": null,
+        "text": "Loading 16"
+      },
+      {
+        "busy": null,
+        "text": "Loading 20"
+      },
+      {
+        "busy": null,
+        "text": "Loading 24"
+      },
+      {
+        "busy": null,
+        "text": "Loading 32"
+      },
+      {
+        "busy": null,
+        "text": "Loading table"
+      }
+    ]
+  },
+  {
+    "width": 768,
+    "variant": "address",
+    "overflow": false,
+    "status": [
+      {
+        "busy": null,
+        "text": "Loading 12"
+      },
+      {
+        "busy": null,
+        "text": "Loading 16"
+      },
+      {
+        "busy": null,
+        "text": "Loading 20"
+      },
+      {
+        "busy": null,
+        "text": "Loading 24"
+      },
+      {
+        "busy": null,
+        "text": "Loading 32"
+      },
+      {
+        "busy": null,
+        "text": "Loading address"
+      }
+    ]
+  },
+  {
+    "width": 768,
+    "variant": "payment",
+    "overflow": false,
+    "status": [
+      {
+        "busy": null,
+        "text": "Loading 12"
+      },
+      {
+        "busy": null,
+        "text": "Loading 16"
+      },
+      {
+        "busy": null,
+        "text": "Loading 20"
+      },
+      {
+        "busy": null,
+        "text": "Loading 24"
+      },
+      {
+        "busy": null,
+        "text": "Loading 32"
+      },
+      {
+        "busy": null,
+        "text": "Loading payment"
+      }
+    ]
+  },
+  {
+    "width": 1440,
+    "variant": "catalog",
+    "overflow": false,
+    "status": [
+      {
+        "busy": null,
+        "text": "Loading 12"
+      },
+      {
+        "busy": null,
+        "text": "Loading 16"
+      },
+      {
+        "busy": null,
+        "text": "Loading 20"
+      },
+      {
+        "busy": null,
+        "text": "Loading 24"
+      },
+      {
+        "busy": null,
+        "text": "Loading 32"
+      },
+      {
+        "busy": null,
+        "text": "Loading catalog"
+      }
+    ]
+  },
+  {
+    "width": 1440,
+    "variant": "product",
+    "overflow": false,
+    "status": [
+      {
+        "busy": null,
+        "text": "Loading 12"
+      },
+      {
+        "busy": null,
+        "text": "Loading 16"
+      },
+      {
+        "busy": null,
+        "text": "Loading 20"
+      },
+      {
+        "busy": null,
+        "text": "Loading 24"
+      },
+      {
+        "busy": null,
+        "text": "Loading 32"
+      },
+      {
+        "busy": null,
+        "text": "Loading product"
+      }
+    ]
+  },
+  {
+    "width": 1440,
+    "variant": "bag",
+    "overflow": false,
+    "status": [
+      {
+        "busy": null,
+        "text": "Loading 12"
+      },
+      {
+        "busy": null,
+        "text": "Loading 16"
+      },
+      {
+        "busy": null,
+        "text": "Loading 20"
+      },
+      {
+        "busy": null,
+        "text": "Loading 24"
+      },
+      {
+        "busy": null,
+        "text": "Loading 32"
+      },
+      {
+        "busy": null,
+        "text": "Loading bag"
+      }
+    ]
+  },
+  {
+    "width": 1440,
+    "variant": "checkout",
+    "overflow": false,
+    "status": [
+      {
+        "busy": null,
+        "text": "Loading 12"
+      },
+      {
+        "busy": null,
+        "text": "Loading 16"
+      },
+      {
+        "busy": null,
+        "text": "Loading 20"
+      },
+      {
+        "busy": null,
+        "text": "Loading 24"
+      },
+      {
+        "busy": null,
+        "text": "Loading 32"
+      },
+      {
+        "busy": null,
+        "text": "Loading checkout"
+      }
+    ]
+  },
+  {
+    "width": 1440,
+    "variant": "profile",
+    "overflow": false,
+    "status": [
+      {
+        "busy": null,
+        "text": "Loading 12"
+      },
+      {
+        "busy": null,
+        "text": "Loading 16"
+      },
+      {
+        "busy": null,
+        "text": "Loading 20"
+      },
+      {
+        "busy": null,
+        "text": "Loading 24"
+      },
+      {
+        "busy": null,
+        "text": "Loading 32"
+      },
+      {
+        "busy": null,
+        "text": "Loading profile"
+      }
+    ]
+  },
+  {
+    "width": 1440,
+    "variant": "form",
+    "overflow": false,
+    "status": [
+      {
+        "busy": null,
+        "text": "Loading 12"
+      },
+      {
+        "busy": null,
+        "text": "Loading 16"
+      },
+      {
+        "busy": null,
+        "text": "Loading 20"
+      },
+      {
+        "busy": null,
+        "text": "Loading 24"
+      },
+      {
+        "busy": null,
+        "text": "Loading 32"
+      },
+      {
+        "busy": null,
+        "text": "Loading form"
+      }
+    ]
+  },
+  {
+    "width": 1440,
+    "variant": "dashboard",
+    "overflow": false,
+    "status": [
+      {
+        "busy": null,
+        "text": "Loading 12"
+      },
+      {
+        "busy": null,
+        "text": "Loading 16"
+      },
+      {
+        "busy": null,
+        "text": "Loading 20"
+      },
+      {
+        "busy": null,
+        "text": "Loading 24"
+      },
+      {
+        "busy": null,
+        "text": "Loading 32"
+      },
+      {
+        "busy": null,
+        "text": "Loading dashboard"
+      }
+    ]
+  },
+  {
+    "width": 1440,
+    "variant": "table",
+    "overflow": false,
+    "status": [
+      {
+        "busy": null,
+        "text": "Loading 12"
+      },
+      {
+        "busy": null,
+        "text": "Loading 16"
+      },
+      {
+        "busy": null,
+        "text": "Loading 20"
+      },
+      {
+        "busy": null,
+        "text": "Loading 24"
+      },
+      {
+        "busy": null,
+        "text": "Loading 32"
+      },
+      {
+        "busy": null,
+        "text": "Loading table"
+      }
+    ]
+  },
+  {
+    "width": 1440,
+    "variant": "address",
+    "overflow": false,
+    "status": [
+      {
+        "busy": null,
+        "text": "Loading 12"
+      },
+      {
+        "busy": null,
+        "text": "Loading 16"
+      },
+      {
+        "busy": null,
+        "text": "Loading 20"
+      },
+      {
+        "busy": null,
+        "text": "Loading 24"
+      },
+      {
+        "busy": null,
+        "text": "Loading 32"
+      },
+      {
+        "busy": null,
+        "text": "Loading address"
+      }
+    ]
+  },
+  {
+    "width": 1440,
+    "variant": "payment",
+    "overflow": false,
+    "status": [
+      {
+        "busy": null,
+        "text": "Loading 12"
+      },
+      {
+        "busy": null,
+        "text": "Loading 16"
+      },
+      {
+        "busy": null,
+        "text": "Loading 20"
+      },
+      {
+        "busy": null,
+        "text": "Loading 24"
+      },
+      {
+        "busy": null,
+        "text": "Loading 32"
+      },
+      {
+        "busy": null,
+        "text": "Loading payment"
+      }
+    ]
+  }
+]

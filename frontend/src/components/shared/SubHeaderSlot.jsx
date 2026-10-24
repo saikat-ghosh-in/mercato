@@ -5,7 +5,7 @@ const SubHeaderSlot = () => {
     if (!subHeader) return null;
 
     return (
-        <div className="sticky top-[136px] md:top-[140px] z-30 bg-white border-b border-slate-200 shadow-sm">
+        <div className="sticky top-[136px] md:top-[140px] z-30 bg-white border-b border-slate-200 ">
             {subHeader}
         </div>
     );
