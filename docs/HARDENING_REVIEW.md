@@ -39,10 +39,12 @@ Rollback must remain schema-compatible and cookie-compatible; never restore brow
 
 ## Local review commits
 
-- 1: `a9160596cd52` — feat(db): baseline actual OCI schemas and add durable PostgreSQL jobs
-- 2: `74720b972d5a` — fix(commerce): persist captures and reconcile allocation refunds safely
-- 3: `96c8e46a5188` — feat(ingress): prepare signed fail-closed Netlify and private HTTPS origin
-- 4a: `65541bee4a5a` — feat(auth): adopt cookie sessions revocation and server proof enforcement
-- 4b: `c518bcd05b8e` — feat(auth-ui): add MFA enrollment challenge recovery and replacement
-- 5: `1a5c7c04c70f` — refactor(state): fence private requests and migrate account reads to RTK Query
+- 1: `a9160596cd52` - feat(db): baseline actual OCI schemas and add durable PostgreSQL jobs
+- 2: `74720b972d5a` - fix(commerce): persist captures and reconcile allocation refunds safely
+- 3: `96c8e46a5188` - feat(ingress): prepare signed fail-closed Netlify and private HTTPS origin
+- 4a: `65541bee4a5a` - feat(auth): adopt cookie sessions revocation and server proof enforcement
+- 4b: `c518bcd05b8e` - feat(auth-ui): add MFA enrollment challenge recovery and replacement
+- 5: `1a5c7c04c70f` - refactor(state): fence private requests and migrate account reads to RTK Query
 - Operations, CI and final evidence are the following local commit. These are ordered review units; production authentication requires both the server/session and MFA UI units.
+
+Final reporting follow-up: the admin finance view explicitly displays nonzero legacy collections awaiting verification, separately from verified captured payments. The API never fabricates capture evidence. Final frontend tests/lint/build and the isolated frontend build were rerun. Operations/evidence commit: `5b74708af2cf`.
