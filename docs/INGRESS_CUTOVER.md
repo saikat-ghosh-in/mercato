@@ -16,6 +16,7 @@ The backend verifies HS256, expiry, issuer, site ID, site URL and deploy context
 
 Netlify environment values must be supplied through its secret/environment interface, never client-prefixed variables or committed files:
 
+- `MERCATO_COOKIE_CUTOVER_READY=yes`: non-secret Builds acknowledgment, set only when the matching schema, cookie backend, Caddy origin and signing configuration are ready. Leave unset while the old OCI release is running: merges then cannot automatically publish the incompatible frontend. This is a cutover acknowledgment, not proof of deployed acceptance checks.
 - `MERCATO_ORIGIN`: the matching dedicated Caddy HTTPS hostname, Builds scope.
 - `NETLIFY_PROXY_SIGNING_KEY`: a random secret of at least32bytes, Runtime **and Builds** scopes (the build validates presence); separate production/beta values. Keep it secret, including build logs.
 - `MERCATO_CSP_MODE=report-only` for initial beta observation; set `enforce` after evidence. The default is enforce. Scripts permit only self and the Cashfree SDK; no wildcard, inline script or eval is allowed. Fonts/images/frame/connect origins are explicit. Style attributes remain allowed for existing React components.

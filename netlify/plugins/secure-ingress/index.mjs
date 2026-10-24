@@ -1,6 +1,7 @@
 import { proxyPaths } from '../../proxy-paths.mjs';
 
 export function configureIngress(env) {
+  if (env.MERCATO_COOKIE_CUTOVER_READY !== 'yes') throw new Error('Cookie authentication cutover is not ready. Complete DEPLOY.md and set MERCATO_COOKIE_CUTOVER_READY=yes in the target Netlify build environment.');
   const origin = new URL(env.MERCATO_ORIGIN || 'invalid:');
   if (origin.protocol !== 'https:' || !origin.hostname || origin.username || origin.password || origin.port || origin.pathname !== '/' || origin.search || origin.hash || /^[0-9.]+$/.test(origin.hostname) || origin.hostname.includes(':') || origin.hostname.endsWith('.netlify.app')) throw new Error('MERCATO_ORIGIN must be the dedicated HTTPS Caddy hostname');
   if (!env.NETLIFY_PROXY_SIGNING_KEY || env.NETLIFY_PROXY_SIGNING_KEY.length < 32) throw new Error('A runtime-scoped signed-proxy key is required');

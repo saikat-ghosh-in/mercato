@@ -4,8 +4,15 @@ import ingress, { config } from '../../netlify/edge-functions/trusted-ingress.js
 import { proxyPaths } from '../../netlify/proxy-paths.mjs';
 import { configureIngress } from '../../netlify/plugins/secure-ingress/index.mjs';
 
+test('a main-branch build cannot publish cookie authentication before the coordinated origin cutover', () => {
+  const env = { MERCATO_ORIGIN: 'https://review.example.test', NETLIFY_PROXY_SIGNING_KEY: 'a'.repeat(40) };
+  for (const value of [undefined, '', 'no', 'YES', true, 'yes ']) {
+    assert.throws(() => configureIngress({ ...env, MERCATO_COOKIE_CUTOVER_READY: value }), /cutover/i);
+  }
+});
+
 test('every signed proxy path is covered by a fail-closed edge function', () => {
-  const value = configureIngress({ MERCATO_ORIGIN: 'https://review.example.test', NETLIFY_PROXY_SIGNING_KEY: 'a'.repeat(40), CONTEXT: 'production' });
+  const value = configureIngress({ MERCATO_COOKIE_CUTOVER_READY: 'yes', MERCATO_ORIGIN: 'https://review.example.test', NETLIFY_PROXY_SIGNING_KEY: 'a'.repeat(40), CONTEXT: 'production' });
   assert.deepEqual(value.redirects.slice(0,-1).map(r => r.from), proxyPaths);
   assert.deepEqual(config.path, proxyPaths);
   assert.equal(config.onError,'fail');
@@ -13,8 +20,8 @@ test('every signed proxy path is covered by a fail-closed edge function', () => 
   assert.equal(value.redirects.at(-1).to,'/index.html');
 });
 test('ingress refuses absent/invalid upstream configuration and insecure CSP relaxation', () => {
-  for(const env of [{}, {MERCATO_ORIGIN:'http://origin.test'}, {MERCATO_ORIGIN:'https://origin.test/path'}, {MERCATO_ORIGIN:'https://127.0.0.1'}]) assert.throws(()=>configureIngress(env));
-  const c = configureIngress({ MERCATO_ORIGIN:'https://review.example.test', NETLIFY_PROXY_SIGNING_KEY:'a'.repeat(40),CONTEXT:'production',MERCATO_CSP_MODE:'enforce' });
+  for(const env of [{}, {MERCATO_ORIGIN:'http://origin.test'}, {MERCATO_ORIGIN:'https://origin.test/path'}, {MERCATO_ORIGIN:'https://127.0.0.1'}]) assert.throws(()=>configureIngress({ MERCATO_COOKIE_CUTOVER_READY:'yes', ...env }));
+  const c = configureIngress({ MERCATO_COOKIE_CUTOVER_READY:'yes', MERCATO_ORIGIN:'https://review.example.test', NETLIFY_PROXY_SIGNING_KEY:'a'.repeat(40),CONTEXT:'production',MERCATO_CSP_MODE:'enforce' });
   const headers=c.headers[0].values;
   assert.ok(headers['Content-Security-Policy']);
   assert.doesNotMatch(headers['Content-Security-Policy'].split(';').find(x=>x.includes('script-src')),/unsafe-inline|unsafe-eval|\*/);

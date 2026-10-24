@@ -1,2 +1,4 @@
-vex:
-  - security/java-not-affected.openvex.json
+# VEX is a vulnerability-scanner option, not a root configuration key.
+vulnerability:
+  vex:
+    - security/java-not-affected.openvex.json
