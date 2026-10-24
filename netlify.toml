@@ -1,0 +1,41 @@
+[build]
+  base = "."
+  command = "npm --prefix frontend ci --ignore-scripts && npm --prefix frontend run build"
+  publish = "frontend/dist"
+  edge_functions = "netlify/edge-functions"
+  [build.environment]
+    NODE_VERSION = "22"
+
+[[plugins]]
+  package = "./netlify/plugins/secure-ingress"
+
+# Static declarations keep Netlify's Runtime-secret signing contract explicit.
+# The build plugin replaces only the placeholder origin and validates coverage.
+[[redirects]]
+  from = "/api"
+  to = "https://ingress.invalid/api"
+  status = 200
+  force = true
+  signed = "NETLIFY_PROXY_SIGNING_KEY"
+[[redirects]]
+  from = "/api/*"
+  to = "https://ingress.invalid/api/:splat"
+  status = 200
+  force = true
+  signed = "NETLIFY_PROXY_SIGNING_KEY"
+[[redirects]]
+  from = "/images"
+  to = "https://ingress.invalid/images"
+  status = 200
+  force = true
+  signed = "NETLIFY_PROXY_SIGNING_KEY"
+[[redirects]]
+  from = "/images/*"
+  to = "https://ingress.invalid/images/:splat"
+  status = 200
+  force = true
+  signed = "NETLIFY_PROXY_SIGNING_KEY"
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

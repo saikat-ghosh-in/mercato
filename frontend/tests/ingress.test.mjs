@@ -1,0 +1,40 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import ingress, { config } from '../../netlify/edge-functions/trusted-ingress.js';
+import { proxyPaths } from '../../netlify/proxy-paths.mjs';
+import { configureIngress } from '../../netlify/plugins/secure-ingress/index.mjs';
+
+test('every signed proxy path is covered by a fail-closed edge function', () => {
+  const value = configureIngress({ MERCATO_ORIGIN: 'https://review.example.test', NETLIFY_PROXY_SIGNING_KEY: 'a'.repeat(40), CONTEXT: 'production' });
+  assert.deepEqual(value.redirects.slice(0,-1).map(r => r.from), proxyPaths);
+  assert.deepEqual(config.path, proxyPaths);
+  assert.equal(config.onError,'fail');
+  for(const rule of value.redirects.slice(0,-1)) assert.equal(rule.signed,'NETLIFY_PROXY_SIGNING_KEY');
+  assert.equal(value.redirects.at(-1).to,'/index.html');
+});
+test('ingress refuses absent/invalid upstream configuration and insecure CSP relaxation', () => {
+  for(const env of [{}, {MERCATO_ORIGIN:'http://origin.test'}, {MERCATO_ORIGIN:'https://origin.test/path'}, {MERCATO_ORIGIN:'https://127.0.0.1'}]) assert.throws(()=>configureIngress(env));
+  const c = configureIngress({ MERCATO_ORIGIN:'https://review.example.test', NETLIFY_PROXY_SIGNING_KEY:'a'.repeat(40),CONTEXT:'production',MERCATO_CSP_MODE:'enforce' });
+  const headers=c.headers[0].values;
+  assert.ok(headers['Content-Security-Policy']);
+  assert.doesNotMatch(headers['Content-Security-Policy'].split(';').find(x=>x.includes('script-src')),/unsafe-inline|unsafe-eval|\*/);
+  assert.equal(headers['X-Content-Type-Options'],'nosniff');
+});
+test('edge replaces caller metadata while preserving exact body bytes and cookies', async () => {
+  const raw = Buffer.from('{"amount": 12.00,"name":"म"}\r\n');
+  const request=new Request('https://shop.example.test/api/public/cashfree/webhook-v2', {method:'POST',headers:{'X-Mercato-Client-IP':'1.2.3.4','Forwarded':'for=forged;proto=http','X-Forwarded-For':'forged','x-nf-sign':'forged','cookie':'session=opaque'},body:raw});
+  let forwarded;
+  await ingress(request,{ip:'2001:db8::1',next:async r=>{forwarded=r;return new Response('ok');}});
+  assert.equal(forwarded.headers.get('x-mercato-client-ip'),'2001:db8::1');
+  assert.equal(forwarded.headers.get('forwarded'),null);
+  assert.equal(forwarded.headers.get('x-forwarded-for'),null);
+  assert.equal(forwarded.headers.get('x-nf-sign'),null);
+  assert.equal(forwarded.headers.get('cookie'),'session=opaque');
+  assert.deepEqual(Buffer.from(await forwarded.arrayBuffer()),raw);
+});
+test('missing IP and edge execution failure cannot pass a request to origin', async () => {
+  let called=false;
+  await assert.rejects(()=>ingress(new Request('https://shop.test/api'),{ip:'',next:async()=>{called=true;}}));
+  assert.equal(called,false);
+  await assert.rejects(()=>ingress(new Request('https://shop.test/api'),{ip:'127.0.0.1',next:async()=>{throw Error('edge failed');}}));
+});
