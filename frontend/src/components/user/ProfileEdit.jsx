@@ -9,6 +9,7 @@ import {
 import toast from "react-hot-toast";
 import api from "../../backend/api";
 import { fetchUserDetails } from "../../reduxStore/actions/authActions";
+import { profileDraft } from "../../utils/accountState.js";
 
 
 const inputCls = "w-full text-sm text-gray-800 focus:outline-none bg-transparent placeholder-gray-300";
@@ -30,18 +31,15 @@ const ProfileEdit = () => {
   const user = useSelector(s => s.auth?.userDetails);
 
   const isSeller = user?.roles?.some(role => ["ROLE_SELLER", "ROLE_ADMIN"].includes(role));
-  const [form, setForm] = useState({
-    firstName: user?.firstName ?? "",
-    lastName: user?.lastName ?? "",
-    phoneNumber: user?.phoneNumber ?? "",
-    profileImageUrl: user?.profileImageUrl ?? "",
-    sellerDisplayName: user?.sellerDisplayName ?? "",
-  });
+  const [draft, setDraft] = useState(null);
+  const initializedDraft = profileDraft(draft, user);
+  const form = initializedDraft?.form;
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
+  if (!form) return <div className="site-container route-loading" role="status" aria-label="Loading your profile"><div /><div /></div>;
 
   const set = (key, val) => {
-    setForm(f => ({ ...f, [key]: val }));
+    setDraft({ ...initializedDraft, dirty: true, form: { ...form, [key]: val } });
     if (errors[key]) setErrors(e => ({ ...e, [key]: "" }));
   };
 

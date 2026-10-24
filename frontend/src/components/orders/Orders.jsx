@@ -1,5 +1,5 @@
 import ActionArrow from "../shared/ActionArrow";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useDispatch } from "react-redux";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
@@ -7,7 +7,7 @@ import {
   MdWarning,
   MdAccessTime
 } from "react-icons/md";
-import api from "../../backend/api";
+import { useOrdersQuery } from "../../reduxStore/services/privateApi.js";
 import OrderDetails from "./OrderDetails";
 import { formatCurrency } from "../../utils/formatCurrency";
 import { formatDate } from "../../utils/formatDate";
@@ -123,25 +123,9 @@ const Orders = () => {
   const dispatch = useDispatch();
   const orderId = new URLSearchParams(location.search).get("orderId");
 
-  const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const { data: orders = [], isLoading: loading, error: queryError, refetch: fetchOrders } = useOrdersQuery();
+  const error = queryError ? queryError.data?.message || "Failed to fetch orders" : "";
   const [resumingOrderId, setResumingOrderId] = useState(null);
-
-  const fetchOrders = async () => {
-    try {
-      setLoading(true);
-      setError("");
-      const { data } = await api.get("/user/orders/summary");
-      setOrders(data || []);
-    } catch (err) {
-      setError(err?.response?.data?.message || err?.message || "Failed to fetch orders");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => { fetchOrders(); }, []);
 
   const handleResumePayment = async (ord) => {
     setResumingOrderId(ord.orderId);

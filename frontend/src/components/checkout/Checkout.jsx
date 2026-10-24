@@ -136,9 +136,10 @@ const Checkout = () => {
         placeOrder({ addressId: selectedAddress.addressId, expectedTotal: total, deliveryMethod })
       );
 
-      dispatch(setPaymentData(paymentHandoff(response)));
+      const handoff = paymentHandoff(response);
+      dispatch(setPaymentData(handoff));
       dispatch(setSelectedAddressForCheckout(selectedAddress));
-      navigate("cashfree-payment");
+      navigate(`cashfree-payment?orderId=${encodeURIComponent(handoff.orderId)}`);
     } catch (err) {
       setPaymentError(err?.response?.data?.message || (err.response ? "The payment service is unavailable right now." : err.message) || "The payment service is unavailable right now.");
     } finally {

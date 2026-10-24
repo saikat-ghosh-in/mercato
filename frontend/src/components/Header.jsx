@@ -4,7 +4,6 @@ import { FiSearch, FiShoppingBag, FiUser, FiLock, FiHelpCircle, FiChevronDown } 
 import { useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { logOutUser } from "../reduxStore/actions/authActions";
-import { isTokenExpired } from "../utils/tokenManager";
 import { selectCartQty } from "../reduxStore/selectors/cartSelectors";
 import Brand from "./Brand";
 import ExplorePanel from "./ExplorePanel";
@@ -22,7 +21,7 @@ export default function Header() {
   const details = useSelector(s => s.auth?.userDetails);
   const categories = useSelector(s => s.categories.categories) ?? [];
   const count = useSelector(selectCartQty);
-  const signedIn = Boolean(user?.token && !isTokenExpired(user.tokenExpirationTime));
+  const signedIn = Boolean(user);
   const [discoveryOpen, setDiscoveryOpen] = useState(false);
   const [keyword, setKeyword] = useState("");
   const checkout = location.pathname.startsWith("/checkout");

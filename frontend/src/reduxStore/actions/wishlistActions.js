@@ -1,32 +1,42 @@
-import api from "../../backend/api";
+import api, { session } from "../../backend/api";
 import toast from "react-hot-toast";
+import { privateApi } from "../services/privateApi.js";
 
-export const fetchWishlistIds = () => async (dispatch) => {
+export const fetchWishlistIds = () => async (dispatch, getState) => {
+    if (Object.values(getState().wishlist.pending).some(Boolean)) return;
+    const requestId = crypto.randomUUID();
+    const epoch = session.getSnapshot().epoch;
+    dispatch({ type: "WISHLIST_READ_STARTED", requestId });
     try {
         const { data } = await api.get("/wishlist/ids");
-        dispatch({ type: "SET_WISHLIST_IDS", payload: Array.from(data) });
+        if (epoch === session.getSnapshot().epoch) dispatch({ type: "SET_WISHLIST_IDS", payload: Array.from(data), requestId });
     } catch {
-        // Keep saved items visible during transient connection failures.
+        if (epoch === session.getSnapshot().epoch) dispatch({ type: "WISHLIST_READ_ERROR", requestId, payload: "Your saved items couldn’t load. Please retry." });
     }
 };
 
 export const toggleWishlist = (productId) => async (dispatch, getState) => {
-    if (getState().wishlist.pending?.[productId]) return;
+    if (!getState().auth.user || !getState().wishlist.loaded || getState().wishlist.pending?.[productId]) return;
+    const epoch = session.getSnapshot().epoch;
     dispatch({ type: "WISHLIST_PENDING", productId, value: true });
     const isWishlisted = getState().wishlist.productIds.includes(productId);
     try {
         if (isWishlisted) {
             await api.delete(`/wishlist/${productId}`);
+            if (epoch !== session.getSnapshot().epoch) return;
             dispatch({ type: "REMOVE_WISHLIST_ID", payload: productId });
             toast.success("Removed from wishlist");
         } else {
             await api.post(`/wishlist/${productId}`);
+            if (epoch !== session.getSnapshot().epoch) return;
             dispatch({ type: "ADD_WISHLIST_ID", payload: productId });
             toast.success("Saved to wishlist");
         }
+        dispatch(privateApi.util.invalidateTags(["Wishlist"]));
     } catch (err) {
+        if (epoch !== session.getSnapshot().epoch) return;
         toast.error(err?.response?.data?.message || "Failed to update wishlist");
-    } finally { dispatch({ type: "WISHLIST_PENDING", productId, value: false }); }
+    } finally { if (epoch === session.getSnapshot().epoch) dispatch({ type: "WISHLIST_PENDING", productId, value: false }); }
 };
 
 export const clearWishlist = () => ({ type: "CLEAR_WISHLIST" });

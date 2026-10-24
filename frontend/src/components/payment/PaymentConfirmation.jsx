@@ -6,6 +6,7 @@ import { FiCheck, FiClock, FiAlertCircle, FiShoppingBag } from "react-icons/fi";
 import api from "../../backend/api";
 import { syncCartFromBackend } from "../../reduxStore/actions/cartActions";
 import { clearPaymentData } from "../../reduxStore/actions/paymentActions";
+import { validatedOrderId } from "../../utils/accountState.js";
 
 const TERMINAL_FAILURE = new Set(["FAILED", "USER_DROPPED", "CANCELLED"]);
 const POLL_INTERVAL_MS = 3000;
@@ -16,7 +17,7 @@ const PaymentConfirmation = () => {
   const dispatch = useDispatch();
 
   const searchParams = new URLSearchParams(window.location.search);
-  const orderId = searchParams.get("order_id");
+  const orderId = validatedOrderId(searchParams.get("order_id") || searchParams.get("orderId"));
 
   const [status, setStatus] = useState(orderId ? "loading" : "failed");
   const [paymentStatus, setPaymentStatus] = useState(null);

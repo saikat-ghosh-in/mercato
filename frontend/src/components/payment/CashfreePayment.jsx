@@ -1,14 +1,30 @@
 import ActionArrow from "../shared/ActionArrow";
 import { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
-import { Link, Navigate } from "react-router-dom";
+import { Link, Navigate, useSearchParams } from "react-router-dom";
 import { load } from "@cashfreepayments/cashfree-js";
 import { FiLock } from "react-icons/fi";
 import { formatCurrency } from "../../utils/formatCurrency";
 import DeliveryDetails from "../checkout/DeliveryDetails";
+import { usePaymentSessionQuery } from "../../reduxStore/services/privateApi.js";
+import { recoveredPayment, validatedOrderId } from "../../utils/accountState.js";
 
 export default function CashfreePayment() {
-  const { paymentData, selectedAddressForCheckout } = useSelector(s => s.auth);
+  const [params] = useSearchParams();
+  const pendingPayment = useSelector(s => s.auth.paymentData);
+  const orderId = params.get("orderId");
+  const valid = Boolean(validatedOrderId(orderId));
+  const { data, isLoading, isFetching, error, refetch } = usePaymentSessionQuery(orderId, { skip: !valid, refetchOnMountOrArgChange: true });
+  if (!orderId && pendingPayment?.orderId) return <Navigate to={`?orderId=${encodeURIComponent(pendingPayment.orderId)}`} replace />;
+  if (isLoading || isFetching) return <div className="site-container route-loading" role="status" aria-label="Recovering your payment"><div /><div /></div>;
+  let payment;
+  let message = error ? "Your payment session couldn’t load. Please try again." : "Open an order to continue its payment.";
+  if (valid && !error) { try { payment = recoveredPayment(data, orderId); } catch (err) { message = err.message; } }
+  if (!payment) return <div className="site-container state-panel"><h1>Check your payment</h1><p role="alert">{message}</p>{valid && <button className="button button-dark" onClick={refetch}>Try again</button>}<Link className="button button-outline" to={valid ? `/orders?orderId=${encodeURIComponent(orderId)}` : "/orders"}>View order status</Link></div>;
+  return <PaymentSession key={String(payment.orderId)} paymentData={payment} selectedAddressForCheckout={payment.deliveryAddress} />;
+}
+
+function PaymentSession({ paymentData, selectedAddressForCheckout }) {
   const [attempt, setAttempt] = useState(0);
   const [state, setState] = useState("opening");
   const sessionId = paymentData?.paymentSessionId;

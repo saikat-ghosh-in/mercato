@@ -1,33 +1,14 @@
-import { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { MdBookmarkBorder, MdShoppingBag } from "react-icons/md";
-import api from "../../backend/api";
+import { useWishlistQuery } from "../../reduxStore/services/privateApi.js";
 import ProductCard, { CardSkeleton } from "../product/ProductCard";
 
 const Wishlist = () => {
     const navigate = useNavigate();
     const wishlist = useSelector(s => s.wishlist);
-    const [products, setProducts] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-
-    const loadWishlist = async () => {
-        setLoading(true);
-        setError(null);
-        try {
-            const { data } = await api.get("/wishlist");
-            setProducts(data);
-        } catch (err) {
-            setError(err?.response?.data?.message || "Failed to load wishlist");
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        loadWishlist();
-    }, []);
+    const { data: products = [], isLoading: loading, error: queryError, refetch: loadWishlist } = useWishlistQuery();
+    const error = queryError ? queryError.data?.message || "Failed to load wishlist" : null;
 
     const visibleProducts = wishlist.loaded ? products.filter(p => wishlist.productIds.includes(p.productId)) : products;
     return (

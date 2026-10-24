@@ -1,7 +1,7 @@
 import SelectControl from "../shared/SelectControl";
 import ModalFrame from "../shared/ModalFrame";
 import Field from "../shared/AuthField";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   MdLocationOn, MdAdd, MdEdit, MdDelete,
@@ -10,6 +10,7 @@ import {
 } from "react-icons/md";
 import toast from "react-hot-toast";
 import api from "../../backend/api";
+import { useAddressesQuery } from "../../reduxStore/services/privateApi.js";
 
 const INDIAN_STATES = [
   "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh",
@@ -302,8 +303,7 @@ const AddressCard = ({ address, onEdit, onDelete, onDefault, defaulting }) => (
 
 const Addresses = () => {
   const navigate = useNavigate();
-  const [addresses, setAddresses] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { data: addresses = [], isLoading: loading, error: addressError, refetch: fetchAddresses } = useAddressesQuery();
   const [showForm, setShowForm] = useState(false);
   const [editAddress, setEditAddress] = useState(null);
   const [deleteAddress, setDeleteAddress] = useState(null);
@@ -316,20 +316,6 @@ const Addresses = () => {
     catch (error) { toast.error(error?.response?.data?.message || "Couldn’t change the default address"); }
     finally { setDefaulting(false); }
   };
-
-  const fetchAddresses = async () => {
-    try {
-      setLoading(true);
-      const { data } = await api.get("/user/addresses");
-      setAddresses(data ?? []);
-    } catch {
-      toast.error("Failed to load addresses");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => { fetchAddresses(); }, []);
 
   const handleDelete = async () => {
     setDeleting(true);
@@ -385,7 +371,7 @@ const Addresses = () => {
           <div className="space-y-4">
             {[1, 2].map(i => <AddressSkeleton key={i} />)}
           </div>
-        ) : addresses.length === 0 ? (
+        ) : addressError ? <div className="state-panel" role="alert"><p>Your addresses couldn’t load.</p><button className="button button-dark" onClick={fetchAddresses}>Try again</button></div> : addresses.length === 0 ? (
           <EmptyState onAdd={() => setShowForm(true)} />
         ) : (
           <div className="space-y-4">

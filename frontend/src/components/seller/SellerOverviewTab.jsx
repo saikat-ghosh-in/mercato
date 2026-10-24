@@ -1,8 +1,7 @@
 import MarketplaceFinance from "../shared/MarketplaceFinance";
 import { ORDER_LINE_STATUS_MAP } from "../../utils/dashboardStatus";
-import { useEffect, useState } from "react";
 import { MdShoppingBag, MdAccessTime, MdHourglassEmpty, MdTrendingUp } from "react-icons/md";
-import api from "../../backend/api";
+import { useManagementQuery } from "../../reduxStore/services/privateApi.js";
 import { formatCurrency } from "../../utils/formatCurrency";
 import {
     DashboardSkeleton, DashboardError,
@@ -12,26 +11,10 @@ import {
 } from "../shared/DashboardWidgets";
 
 const SellerOverviewTab = () => {
-    const [stats, setStats] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState("");
+    const { data: stats, isLoading: loading, error: queryError, refetch: fetchStats } = useManagementQuery("seller");
+    const error = queryError ? queryError.data?.message || "Failed to load stats" : "";
 
-    const fetchStats = async () => {
-        try {
-            setLoading(true);
-            setError("");
-            const { data } = await api.get("/seller/dashboard/stats");
-            setStats(data);
-        } catch (err) {
-            setError(err?.response?.data?.message || "Failed to load stats");
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => { fetchStats(); }, []);
-
-    if (loading && !stats) return <DashboardSkeleton />;
+    if ((loading || !stats) && !error) return <DashboardSkeleton />;
     if (error) return <DashboardError message={error} onRetry={fetchStats} />;
 
     const { fulfillment, topSellingProducts, inventoryAlerts, orderLineStatusBreakdown } = stats;
