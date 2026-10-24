@@ -34,6 +34,7 @@ const CashfreePayment = lazyPage(() => import("./components/payment/CashfreePaym
 const SellerDashboard = lazyPage(() => import("./components/seller/SellerDashboard"));
 const AdminDashboard = lazyPage(() => import("./components/admin/AdminDashboard"));
 import SessionGate from './components/auth/SessionGate';
+const Mfa = lazyPage(() => import("./components/auth/Mfa"));
 const ProfileEdit = lazyPage(() => import("./components/user/ProfileEdit"));
 const Addresses = lazyPage(() => import("./components/user/Addresses"));
 const EmailVerificationPending = lazyPage(() => import("./components/auth/EmailVerificationPending"));
@@ -102,6 +103,7 @@ function App() {
           <SessionGate><ErrorBoundary key={sessionEpoch}>
           <Suspense fallback={<div className="site-container route-loading" role="status" aria-label="Loading page"><div /><div /></div>}><Routes>
             <Route path='/help' element={<Help />} />
+            <Route path='/auth/mfa' element={<Mfa />} />
             <Route path='/' element={<StorefrontEntry />} />
             <Route path='/seller-policies' element={<SellerPolicies />} />
             <Route path='/products' element={<ProductListingPage />} />
