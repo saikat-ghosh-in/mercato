@@ -36,7 +36,8 @@ public class OrderLineUpdateServiceImpl implements OrderLineUpdateService {
     @Transactional
     @Validated
     public OrderLineResponseDTO updateOrderLine(@Valid OrderLineUpdateRequestDTO request, TransitionTrigger trigger) {
-
+        orderRepository.lockByFulfillment(request.getFulfillmentId(),request.getOrderLineNumber())
+            .orElseThrow(()->new ResourceNotFoundException("OrderLine","fulfillmentId",request.getFulfillmentId()));
         OrderLine orderLine = orderLineRepository
                 .findByFulfillmentIdAndOrderLineNumberForUpdate(
                         request.getFulfillmentId(),
@@ -108,9 +109,7 @@ public class OrderLineUpdateServiceImpl implements OrderLineUpdateService {
         if (request.getAction() == OrderLineAction.ACCEPT) {
             toStatus = OrderLineStatus.PROCESSING;
         } else if (request.getAction() == OrderLineAction.CANCEL) {
-            toStatus = orderLine.getAcceptedQty() > 0
-                    ? orderLine.deriveStatus()
-                    : OrderLineStatus.CONFIRMED;
+            toStatus = orderLine.deriveStatus();
         } else {
             toStatus = orderLine.deriveStatus();
         }
@@ -146,6 +145,16 @@ public class OrderLineUpdateServiceImpl implements OrderLineUpdateService {
     }
 
     private void handleShip(OrderLine orderLine, int qty) {
+        Order order = orderLine.getOrder();
+        if (order.getPaymentStatus() != com.mercato.Entity.fulfillment.payment.PaymentStatus.SUCCESS
+                || order.getOrderStatus() == OrderStatus.CREATED || order.getOrderStatus() == OrderStatus.CANCELLED
+                || order.isInventoryFinalizationFailed()
+                || order.getAllocationCompletedAt()==null || order.getPayment()==null || order.getPayment().getCapturedAt()==null
+                || (orderLine.getOrderLineStatus() != OrderLineStatus.PROCESSING
+                    && orderLine.getOrderLineStatus() != OrderLineStatus.PARTIALLY_PROCESSED)
+                || qty > orderLine.getAcceptedQty() - orderLine.getShippedQty()) {
+            throw new CustomBadRequestException("Only paid, allocated and accepted units can be shipped");
+        }
         validateQty(qty, "SHIP", orderLine);
         orderLine.ship(qty);
         orderReservationService.settleQty(orderLine, qty, OrderLineAction.SHIP);

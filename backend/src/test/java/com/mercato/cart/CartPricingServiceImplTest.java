@@ -17,7 +17,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class CartPricingServiceImplTest {
 
-    private final CartPricingServiceImpl pricingService = new CartPricingServiceImpl();
+    private final CartPricingServiceImpl pricingService = new CartPricingServiceImpl(new com.mercato.Service.PackageDeliveryPricing());
 
     @BeforeEach
     void setUp() {
@@ -32,7 +32,7 @@ class CartPricingServiceImplTest {
 
         pricingService.applyCharges(cart);
 
-        assertEquals(BigDecimal.valueOf(50), cart.getChargeAmount(ChargeType.SHIPPING));
+        assertShipping("50", cart);
     }
 
     @Test
@@ -41,7 +41,7 @@ class CartPricingServiceImplTest {
 
         pricingService.applyCharges(cart);
 
-        assertEquals(BigDecimal.ZERO, cart.getChargeAmount(ChargeType.SHIPPING));
+        assertShipping("0", cart);
     }
 
     @Test
@@ -65,6 +65,8 @@ class CartPricingServiceImplTest {
         assertTrue(cart.getCharges().isEmpty());
     }
 
+    private void assertShipping(String expected, Cart cart) { assertEquals(0, new BigDecimal(expected).compareTo(cart.getChargeAmount(ChargeType.SHIPPING))); }
+
     private Cart cartWithSubtotal(BigDecimal unitPrice) {
         Product product = Product.builder()
                 .productId("P-1")
@@ -79,5 +81,71 @@ class CartPricingServiceImplTest {
         Cart cart = new Cart();
         cart.setCartItems(List.of(item));
         return cart;
+    }
+
+    @Test
+    void deliveryChoiceRepricesAtThresholdAndDoesNotAccumulateSurcharges() {
+        Cart cart = cartWithSubtotal(BigDecimal.valueOf(500));
+        pricingService.applyCharges(cart);
+        assertShipping("0", cart);
+        cart.setDeliveryMethod(com.mercato.Entity.cart.DeliveryMethod.EXPEDITED);
+        pricingService.applyCharges(cart);
+        assertShipping("49", cart);
+        pricingService.applyCharges(cart);
+        assertShipping("49", cart);
+        cart.setDeliveryMethod(com.mercato.Entity.cart.DeliveryMethod.CONSOLIDATED);
+        pricingService.applyCharges(cart);
+        assertShipping("0", cart);
+        assertEquals(3, cart.getDeliveryOptions().size());
+        Cart small = cartWithSubtotal(BigDecimal.valueOf(499));
+        small.setDeliveryMethod(com.mercato.Entity.cart.DeliveryMethod.EXPEDITED);
+        pricingService.applyCharges(small);
+        assertShipping("99", small);
+    }
+
+    @Test void bulkyFeesMultiplyByUnitsSurviveFreeBaseDeliveryAndDoNotAccumulate() {
+        Cart cart = cartWithSubtotal(new BigDecimal("1000"));
+        var item = cart.getCartItems().get(0); item.setQuantity(2);
+        var product = item.getProduct(); product.setWeightKg(new BigDecimal("6"));
+        product.setLengthCm(new BigDecimal("20")); product.setWidthCm(new BigDecimal("20")); product.setHeightCm(new BigDecimal("20"));
+        pricingService.applyCharges(cart);
+        assertEquals(new BigDecimal("100.00"), cart.getChargeAmount(ChargeType.SHIPPING));
+        assertEquals(new BigDecimal("100.00"), cart.getDeliveryOptions().get(0).bulkyItemSurcharge());
+        cart.setDeliveryMethod(com.mercato.Entity.cart.DeliveryMethod.EXPEDITED);
+        pricingService.applyCharges(cart); pricingService.applyCharges(cart);
+        assertEquals(new BigDecimal("149.00"), cart.getChargeAmount(ChargeType.SHIPPING));
+        item.setQuantity(1); pricingService.applyCharges(cart);
+        assertEquals(new BigDecimal("99.00"), cart.getChargeAmount(ChargeType.SHIPPING));
+    }
+
+    private void makeBulky(Product product) {
+        product.setWeightKg(new BigDecimal("12")); product.setLengthCm(new BigDecimal("110"));
+        product.setWidthCm(new BigDecimal("60")); product.setHeightCm(new BigDecimal("45"));
+    }
+    @Test void fullBagCapAppliesBeforeSellerCoverageAndExpeditedUpgrade() {
+        Cart cart=cartWithSubtotal(new BigDecimal("1000"));var item=cart.getCartItems().get(0);makeBulky(item.getProduct());item.setQuantity(2);
+        pricingService.applyCharges(cart);assertShipping("250",cart);
+        assertEquals(0,new BigDecimal("250").compareTo(cart.getDeliveryOptions().get(0).bulkyItemSurcharge()));
+        item.getProduct().setSellerPaysShipping(true);pricingService.applyCharges(cart);assertShipping("0",cart);
+        assertEquals(new BigDecimal("250.00"),item.getSellerDeliveryCharge());assertTrue(cart.getDeliveryOptions().get(0).sellerPaidStandard());
+        cart.setDeliveryMethod(com.mercato.Entity.cart.DeliveryMethod.EXPEDITED);pricingService.applyCharges(cart);assertShipping("49",cart);
+        cart.setDeliveryMethod(com.mercato.Entity.cart.DeliveryMethod.CONSOLIDATED);pricingService.applyCharges(cart);assertShipping("0",cart);
+        assertTrue(cart.getDeliveryOptions().get(2).description().contains("carbon emissions"));
+        item.getProduct().setSellerPaysShipping(false);pricingService.applyCharges(cart);assertShipping("250",cart);
+        assertEquals(0,item.getSellerDeliveryCharge().signum());
+    }
+    @Test void mixedCoverageNeverWaivesAnotherItemsCost() {
+        Cart cart=cartWithSubtotal(new BigDecimal("1000"));var first=cart.getCartItems().get(0);makeBulky(first.getProduct());first.getProduct().setSellerPaysShipping(true);
+        var second=CartItem.builder().quantity(1).product(Product.builder().productId("P-2").sellingPrice(new BigDecimal("1000")).build()).build();makeBulky(second.getProduct());
+        cart.setCartItems(List.of(first,second));pricingService.applyCharges(cart);assertShipping("125",cart);
+        assertEquals(new BigDecimal("125.00"),first.getSellerDeliveryCharge());assertEquals(0,second.getSellerDeliveryCharge().signum());
+        cart.setDeliveryMethod(com.mercato.Entity.cart.DeliveryMethod.EXPEDITED);pricingService.applyCharges(cart);assertShipping("174",cart);
+    }
+    @Test void thresholdBaseChargeIsSplitByItemValueWithExactTotals() {
+        Cart cart=cartWithSubtotal(new BigDecimal("100"));var first=cart.getCartItems().get(0);first.getProduct().setSellerPaysShipping(true);
+        var second=CartItem.builder().quantity(1).product(Product.builder().productId("P-2").sellingPrice(new BigDecimal("200")).build()).build();
+        cart.setCartItems(List.of(first,second));pricingService.applyCharges(cart);assertShipping("33.33",cart);
+        assertEquals(new BigDecimal("16.67"),first.getSellerDeliveryCharge());
+        assertEquals(new BigDecimal("50.00"),first.getSellerDeliveryCharge().add(cart.getChargeAmount(ChargeType.SHIPPING)));
     }
 }

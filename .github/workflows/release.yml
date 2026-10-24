@@ -1,0 +1,43 @@
+name: Release backend
+on:
+  release:
+    types: [published]
+permissions:
+  contents: read
+jobs:
+  checks:
+    uses: ./.github/workflows/application-checks.yml
+  artifact:
+    needs: checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Require a versioned release from main
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[A-Za-z0-9.-]+)?$ ]]
+          git merge-base --is-ancestor HEAD origin/main
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: maven
+      - name: Package the tested revision
+        working-directory: backend
+        run: bash mvnw -B -DskipTests package
+      - name: Upload JAR, checksum and redeploy script
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          mkdir release-assets
+          cp backend/target/mercato-backend.jar release-assets/
+          cp ops/redeploy.sh release-assets/
+          (cd release-assets && sha256sum mercato-backend.jar > mercato-backend.jar.sha256)
+          gh release upload "$RELEASE_TAG" release-assets/* --repo "$GITHUB_REPOSITORY"

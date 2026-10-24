@@ -1,0 +1,29 @@
+# Run caddy validate before reload. CADDY_HOST is a DNS name pointing to OCI.
+# Caddy obtains/renews its certificate; no self-signed browser exception is needed.
+{
+    email {$CADDY_ACME_EMAIL}
+    admin localhost:2019
+}
+
+{$CADDY_HOST} {
+    encode zstd gzip
+    header {
+        Strict-Transport-Security "max-age={$HSTS_SECONDS:300}"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        -Server
+    }
+    @owned path /api /api/* /images /images/*
+    handle @owned {
+        request_body { max_size 6MB }
+        reverse_proxy 127.0.0.1:{$MERCATO_PRIVATE_PORT:8080} {
+            # Preserve Netlify attestation, normalized Edge metadata, cookies and body bytes.
+            # Spring ignores forwarding until origin authenticity has been established.
+            header_up -X-Forwarded-For
+            header_up -X-Forwarded-Host
+            header_up -X-Forwarded-Proto
+        }
+    }
+    handle { respond 403 }
+}

@@ -1,6 +1,8 @@
 package com.mercato.Payloads.Request;
 
 import jakarta.validation.constraints.*;
+import jakarta.validation.Valid;
+import com.mercato.Entity.ProductSpecification;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -20,6 +22,46 @@ public class ProductRequestDTO {
     @Size(min = 7, max = 2000, message = "Description must be between 7 and 2000 characters")
     private String description;
 
+    @Size(max = 100)
+    private String brand;
+    @Size(max = 100)
+    private String productCode;
+    @DecimalMin("0.001") @DecimalMax("1000") @Digits(integer = 4, fraction = 3)
+    private BigDecimal weightKg;
+    @DecimalMin("0.01") @DecimalMax("600") @Digits(integer = 3, fraction = 2)
+    private BigDecimal lengthCm;
+    @DecimalMin("0.01") @DecimalMax("600") @Digits(integer = 3, fraction = 2)
+    private BigDecimal widthCm;
+    @DecimalMin("0.01") @DecimalMax("600") @Digits(integer = 3, fraction = 2)
+    private BigDecimal heightCm;
+    // Omission preserves an existing listing's delivery policy.
+    private Boolean sellerPaysShipping;
+
+    @AssertTrue(message = "Provide packed weight and all three dimensions together")
+    public boolean isPackageComplete() {
+        long count = java.util.stream.Stream.of(weightKg, lengthCm, widthCm, heightCm).filter(java.util.Objects::nonNull).count();
+        return count == 0 || count == 4;
+    }
+
+    public void requirePackageMeasurements() {
+        if (weightKg == null || lengthCm == null || widthCm == null || heightCm == null)
+            throw new IllegalArgumentException("Packed weight, length, width and height are required for a new listing");
+    }
+    @Size(max = 2000)
+    private String materials;
+    @Size(max = 2000)
+    private String care;
+    @Size(max = 2000)
+    private String warranty;
+    @Size(max = 2000)
+    private String packageContents;
+    @Size(max = 2000)
+    private String deliveryReturns;
+    @Size(max = 10)
+    private List<@NotBlank @Size(max = 300) String> highlights;
+    @Size(max = 30)
+    private List<@NotNull @Valid ProductSpecification> specifications;
+
     @NotNull(message = "Retail price is required")
     @DecimalMin(value = "0.01", message = "Retail price must be greater than 0")
     @Digits(integer = 8, fraction = 2, message = "Invalid price format")
@@ -36,7 +78,6 @@ public class ProductRequestDTO {
     @Size(max = 3, message = "Maximum 3 secondary images allowed")
     private List<String> secondaryImageUrls = new ArrayList<>();
 
-    @NotNull(message = "Quantity is required")
     @Min(value = 0, message = "Quantity cannot be negative")
     private Integer physicalQty;
 

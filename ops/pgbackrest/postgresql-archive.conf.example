@@ -1,0 +1,6 @@
+# Install through the cluster's normal include mechanism after review.
+# archive_mode/wal_level changes require a controlled PostgreSQL restart.
+wal_level = replica
+archive_mode = on
+archive_timeout = '300s'
+archive_command = '/usr/bin/python3 /usr/local/lib/mercato/backup_agent.py archive-push "%p"'

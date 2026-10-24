@@ -1,11 +1,15 @@
-import { useEffect, useState } from "react";
+import { LoadingLayout } from "../shared/LoadingStates";
+import ActionArrow from "../shared/ActionArrow";
+import SelectControl from "../shared/SelectControl";
+import ModalFrame from "../shared/ModalFrame";
+import { useCallback, useEffect, useState } from "react";
 import {
-    MdSearch, MdClose, MdArrowBack, MdArrowForward,
+    MdSearch, MdClose, MdArrowBack,
     MdCheckCircle, MdCancel, MdHourglassEmpty,
     MdAccessTime, MdWarning, MdShoppingBag,
     MdLocationOn, MdPayment, MdContentCopy,
 } from "react-icons/md";
-import toast from "react-hot-toast";
+import toast from "../../utils/toastUtils.js";
 import api from "../../backend/api";
 import { formatCurrency } from "../../utils/formatCurrency";
 import { formatDate } from "../../utils/formatDate";
@@ -13,8 +17,8 @@ import { formatDate } from "../../utils/formatDate";
 const STATUS_MAP = {
     CREATED: { label: "Awaiting Payment", color: "bg-yellow-100 text-yellow-700", icon: MdHourglassEmpty },
     CONFIRMED: { label: "Confirmed", color: "bg-blue-100 text-blue-700", icon: MdCheckCircle },
-    FULFILLMENT_PROCESSING: { label: "Processing", color: "bg-indigo-100 text-indigo-700", icon: MdAccessTime },
-    FULFILLMENT_COMPLETE: { label: "Delivered", color: "bg-green-100 text-green-700", icon: MdCheckCircle },
+    FULFILLMENT_PROCESSING: { label: "Processing", color: "bg-blue-100 text-blue-700", icon: MdAccessTime },
+    FULFILLMENT_COMPLETE: { label: "Delivered", color: "bg-blue-100 text-blue-700", icon: MdCheckCircle },
     CANCELLED: { label: "Cancelled", color: "bg-red-100 text-red-600", icon: MdCancel },
 };
 const getStatus = (raw) =>
@@ -22,32 +26,14 @@ const getStatus = (raw) =>
 
 const ALL_STATUSES = Object.keys(STATUS_MAP);
 
-const TableSkeleton = () => (
-    <div className="animate-pulse space-y-2 p-4">
-        {[1, 2, 3, 4].map(i => (
-            <div key={i} className="flex gap-4 py-3">
-                {[1, 2, 3, 4, 5].map(j => <div key={j} className="h-3 bg-gray-100 rounded flex-1" />)}
-            </div>
-        ))}
-    </div>
-);
+const TableSkeleton = ({ cols = 5 }) => <LoadingLayout variant="table" label="Loading products" cols={cols} />;
 
-const DetailSkeleton = () => (
-    <div className="animate-pulse space-y-4">
-        {[1, 2, 3].map(i => (
-            <div key={i} className="bg-white rounded-2xl border border-gray-100 p-5 space-y-3">
-                <div className="h-3 bg-gray-100 rounded w-1/3" />
-                <div className="h-4 bg-gray-100 rounded w-full" />
-                <div className="h-4 bg-gray-100 rounded w-2/3" />
-            </div>
-        ))}
-    </div>
-);
+const DetailSkeleton = () => <LoadingLayout variant="list" label="Loading content" />;
 
 const SectionCard = ({ title, icon: Icon, children }) => (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+    <div className="surface p-5">
         {title && (
-            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-1.5">
+            <h3 className="text-xs font-bold text-gray-400  mb-4 flex items-center gap-1.5">
                 {Icon && <Icon size={13} />}{title}
             </h3>
         )}
@@ -56,7 +42,7 @@ const SectionCard = ({ title, icon: Icon, children }) => (
 );
 
 const InfoRow = ({ label, value, mono, copyable, last }) => {
-    const handleCopy = () => { navigator.clipboard.writeText(value); toast.success("Copied"); };
+    const handleCopy = async () => { try { await navigator.clipboard.writeText(value); toast.success("Copied"); } catch { toast.error("Couldn’t copy. Select and copy the value instead."); } };
     return (
         <div className={`flex items-start justify-between gap-4 py-2.5 ${!last ? "border-b border-gray-50" : ""}`}>
             <span className="text-xs text-gray-400 shrink-0">{label}</span>
@@ -73,7 +59,7 @@ const InfoRow = ({ label, value, mono, copyable, last }) => {
 };
 
 const CancelModal = ({ order, onClose, onConfirm, loading }) => (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <ModalFrame title="Cancel Order" onClose={onClose}>
         <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl">
             <div className="flex items-center gap-2 text-red-600 mb-3">
                 <MdWarning size={20} />
@@ -82,13 +68,13 @@ const CancelModal = ({ order, onClose, onConfirm, loading }) => (
             <p className="text-sm text-gray-600 mb-1">Cancel order <span className="font-semibold">#{order.orderId}</span>?</p>
             <p className="text-xs text-gray-400 mb-6">Refund will be initiated if payment was completed.</p>
             <div className="flex gap-3">
-                <button onClick={onClose} className="flex-1 px-3 py-2.5 text-sm border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 cursor-pointer font-medium">Keep</button>
-                <button onClick={onConfirm} disabled={loading} className="flex-1 px-3 py-2.5 text-sm bg-red-500 hover:bg-red-600 text-white rounded-xl cursor-pointer font-bold disabled:opacity-50 active:scale-[0.98]">
+                <button aria-label="Close dialog" onClick={onClose} className="control flex-1 px-3 py-2.5 text-sm border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 cursor-pointer font-medium">Keep</button>
+                <button onClick={onConfirm} disabled={loading} className="control flex-1 px-3 py-2.5 text-sm bg-red-500 hover:bg-red-600 text-white rounded-xl cursor-pointer font-bold disabled:opacity-50 ">
                     {loading ? "Cancelling..." : "Yes, Cancel"}
                 </button>
             </div>
         </div>
-    </div>
+    </ModalFrame>
 );
 
 const OrderDetail = ({ orderId, onBack }) => {
@@ -97,19 +83,19 @@ const OrderDetail = ({ orderId, onBack }) => {
     const [showCancel, setShowCancel] = useState(false);
     const [cancelling, setCancelling] = useState(false);
 
-    const fetchOrder = async () => {
+    const fetchOrder = useCallback(async () => {
         try {
             setLoading(true);
             const { data } = await api.get(`/admin/orders/${orderId}`);
             setOrder(data);
-        } catch (err) {
+        } catch {
             toast.error("Failed to load order");
         } finally {
             setLoading(false);
         }
-    };
+    }, [orderId]);
 
-    useEffect(() => { fetchOrder(); }, [orderId]);
+    useEffect(() => { fetchOrder(); }, [fetchOrder]);
 
     const handleCancel = async () => {
         setCancelling(true);
@@ -125,29 +111,29 @@ const OrderDetail = ({ orderId, onBack }) => {
         }
     };
 
-    if (loading) return <DetailSkeleton />;
+    if (loading && !order) return <DetailSkeleton />;
     if (!order) return null;
 
-    const { label, color, icon: StatusIcon } = getStatus(order.orderStatus);
+    const { label, icon: StatusIcon } = getStatus(order.orderStatus);
     const canCancel = order.orderStatus === "CREATED" || order.orderStatus === "CONFIRMED";
 
-    const PAYMENT_COLOR = { SUCCESS: "text-green-600", PENDING: "text-yellow-600", FAILED: "text-red-500", CANCELLED: "text-gray-400" };
+    const PAYMENT_COLOR = { SUCCESS: "text-blue-700", PENDING: "text-yellow-600", FAILED: "text-red-500", CANCELLED: "text-gray-400" };
 
     return (
         <div className="space-y-4">
             {/* Header */}
             <div className="flex items-center gap-3">
-                <button onClick={onBack} className="flex items-center gap-1.5 text-xs font-semibold text-blue-500 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-xl transition-colors cursor-pointer">
+                <button onClick={onBack} className="control flex items-center gap-1.5 text-xs font-semibold text-blue-500 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-xl transition-colors cursor-pointer">
                     <MdArrowBack size={13} /> Back
                 </button>
                 <div>
                     <p className="text-sm font-bold text-gray-900">Order #{order.orderId}</p>
-                    <p className="text-[11px] text-gray-400">{formatDate(order.createdAt ?? order.createDate)}</p>
+                    <p className="text-xs text-gray-400">{formatDate(order.createdAt ?? order.createDate)}</p>
                 </div>
                 {canCancel && (
                     <button
                         onClick={() => setShowCancel(true)}
-                        className="ml-auto flex items-center gap-1.5 text-xs font-bold text-red-500 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-xl transition-colors cursor-pointer"
+                        className="control ml-auto flex items-center gap-1.5 text-xs font-bold text-red-500 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-xl transition-colors cursor-pointer"
                     >
                         <MdCancel size={13} /> Cancel Order
                     </button>
@@ -156,20 +142,19 @@ const OrderDetail = ({ orderId, onBack }) => {
 
             {/* Status banner */}
             <div className={`flex items-center gap-3 px-5 py-4 rounded-2xl border ${order.orderStatus === "CANCELLED" ? "bg-red-50 border-red-100" :
-                    order.orderStatus === "FULFILLMENT_COMPLETE" ? "bg-green-50 border-green-100" :
+                    order.orderStatus === "FULFILLMENT_COMPLETE" ? "bg-blue-50 border-blue-100" :
                         order.orderStatus === "CONFIRMED" ? "bg-blue-50 border-blue-100" :
                             "bg-yellow-50 border-yellow-100"
                 }`}>
                 <StatusIcon size={22} className={
                     order.orderStatus === "CANCELLED" ? "text-red-400" :
-                        order.orderStatus === "FULFILLMENT_COMPLETE" ? "text-green-500" :
+                        order.orderStatus === "FULFILLMENT_COMPLETE" ? "text-blue-500" :
                             order.orderStatus === "CONFIRMED" ? "text-blue-500" : "text-yellow-500"
                 } />
                 <div>
                     <p className="text-xs text-gray-500 font-medium">Order Status</p>
-                    <p className="text-base font-black text-gray-900">{label}</p>
+                    <p className="text-base font-semibold text-gray-900">{label}</p>
                 </div>
-                <span className={`ml-auto text-[11px] font-bold px-2.5 py-1 rounded-full ${color}`}>{order.orderStatus}</span>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
@@ -186,9 +171,9 @@ const OrderDetail = ({ orderId, onBack }) => {
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <p className="text-sm font-semibold text-gray-900 line-clamp-1">{line.product?.productName}</p>
-                                    <p className="text-[11px] text-gray-400">Qty: {line.quantity ?? line.orderedQty} · {formatCurrency(line.product?.unitPrice)} each</p>
+                                    <p className="text-xs text-gray-400">Qty: {line.quantity ?? line.orderedQty} · {formatCurrency(line.product?.unitPrice)} each</p>
                                 </div>
-                                <span className="text-sm font-black text-gray-900 shrink-0">{formatCurrency(line.lineTotal)}</span>
+                                <span className="text-sm font-semibold text-gray-900 shrink-0">{formatCurrency(line.lineTotal)}</span>
                             </div>
                         ))}
                     </SectionCard>
@@ -201,7 +186,7 @@ const OrderDetail = ({ orderId, onBack }) => {
                                 <p>{order.deliveryAddress.addressLine1}</p>
                                 {order.deliveryAddress.addressLine2 && <p>{order.deliveryAddress.addressLine2}</p>}
                                 <p>{order.deliveryAddress.city}, {order.deliveryAddress.state} — {order.deliveryAddress.pincode}</p>
-                                <p className="pt-1">📞 {order.deliveryAddress.recipientPhone}</p>
+                                <p className="pt-1">Phone: {order.deliveryAddress.recipientPhone}</p>
                             </div>
                         ) : <p className="text-sm text-gray-400">No address available</p>}
                     </SectionCard>
@@ -235,7 +220,7 @@ const OrderDetail = ({ orderId, onBack }) => {
                         </div>
                         <div className="flex justify-between items-center pt-3">
                             <span className="text-sm font-bold text-gray-900">Total</span>
-                            <span className="text-2xl font-black text-gray-950">{formatCurrency(order.totalAmount)}</span>
+                            <span className="text-2xl font-semibold text-gray-950">{formatCurrency(order.totalAmount)}</span>
                         </div>
                     </SectionCard>
                 </div>
@@ -262,7 +247,7 @@ const OrdersTab = () => {
                 setLoading(true);
                 const { data } = await api.get("/admin/orders/summary");
                 setOrders(data ?? []);
-            } catch (err) {
+            } catch {
                 toast.error("Failed to load orders");
             } finally {
                 setLoading(false);
@@ -285,21 +270,21 @@ const OrdersTab = () => {
     });
 
     return (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="surface overflow-hidden">
             {/* Toolbar */}
             <div className="flex items-center gap-3 p-4 border-b border-gray-50 flex-wrap">
-                <div className="flex items-center gap-2 flex-1 min-w-48 border border-gray-200 rounded-xl px-3 py-2 focus-within:ring-1 focus-within:ring-blue-300">
+                <div className="dashboard-search flex-1 min-w-48">
                     <MdSearch size={14} className="text-gray-400 shrink-0" />
                     <input
                         type="text"
-                        value={search}
+                        aria-label="Search by order ID or customer..." value={search}
                         onChange={e => setSearch(e.target.value)}
-                        placeholder="Search by order ID or customer..."
+                        placeholder="Order ID or customer"
                         className="text-xs text-gray-700 focus:outline-none w-full"
                     />
-                    {search && <button onClick={() => setSearch("")} className="text-gray-300 hover:text-gray-500 cursor-pointer"><MdClose size={13} /></button>}
+                    {search && <button aria-label="Clear search" onClick={() => setSearch("")} className="icon-action text-gray-300 hover:text-gray-500 cursor-pointer"><MdClose size={13} /></button>}
                 </div>
-                <select
+                <SelectControl aria-label="Filter orders by status"
                     value={statusFilter}
                     onChange={e => setStatusFilter(e.target.value)}
                     className="text-xs border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-300 text-gray-700"
@@ -308,17 +293,17 @@ const OrdersTab = () => {
                     {ALL_STATUSES.map(s => (
                         <option key={s} value={s}>{STATUS_MAP[s].label}</option>
                     ))}
-                </select>
+                </SelectControl>
                 <span className="text-xs text-gray-400 font-semibold shrink-0">{filtered.length} order{filtered.length !== 1 ? "s" : ""}</span>
             </div>
 
-            {loading ? <TableSkeleton /> : (
+            {loading && !orders.length ? <TableSkeleton /> : (
                 <div className="overflow-x-auto">
                     <table className="w-full">
                         <thead>
                             <tr className="border-b border-gray-50">
                                 {["Order ID", "Customer", "Status", "Total", "Date", ""].map(h => (
-                                    <th key={h} className="text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest px-4 py-3">{h}</th>
+                                    <th key={h} className="text-left text-xs font-bold text-gray-400  px-4 py-3">{h}</th>
                                 ))}
                             </tr>
                         </thead>
@@ -328,21 +313,21 @@ const OrdersTab = () => {
                             ) : filtered.map(o => {
                                 const { label, color, icon: StatusIcon } = getStatus(o.orderStatus);
                                 return (
-                                    <tr key={o.orderId} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors cursor-pointer" onClick={() => setSelectedOrderId(o.orderId)}>
+                                    <tr key={o.orderId} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors cursor-pointer" tabIndex={0} onKeyDown={e => { if (e.target === e.currentTarget && ["Enter", " "].includes(e.key)) { e.preventDefault(); setSelectedOrderId(o.orderId); } }} onClick={() => setSelectedOrderId(o.orderId)}>
                                         <td className="px-4 py-3 text-xs font-mono font-semibold text-gray-700">{o.orderId}</td>
                                         <td className="px-4 py-3">
                                             <p className="text-sm font-semibold text-gray-800">{o.customer?.name}</p>
-                                            <p className="text-[10px] text-gray-400">{o.customer?.email}</p>
+                                            <p className="text-xs text-gray-400">{o.customer?.email}</p>
                                         </td>
                                         <td className="px-4 py-3">
-                                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 w-fit ${color}`}>
+                                            <span className={`text-xs font-bold px-2 py-0.5 rounded-full flex items-center gap-1 w-fit ${color}`}>
                                                 <StatusIcon size={9} />{label}
                                             </span>
                                         </td>
-                                        <td className="px-4 py-3 text-sm font-black text-gray-900">{formatCurrency(o.totalAmount)}</td>
+                                        <td className="px-4 py-3 text-sm font-semibold text-gray-900">{formatCurrency(o.totalAmount)}</td>
                                         <td className="px-4 py-3 text-xs text-gray-400">{formatDate(o.createdAt)}</td>
                                         <td className="px-4 py-3">
-                                            <MdArrowForward size={14} className="text-gray-300" />
+                                            <ActionArrow size={14} className="text-gray-300" />
                                         </td>
                                     </tr>
                                 );

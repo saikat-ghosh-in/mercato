@@ -18,4 +18,6 @@ public class CartResponseDTO {
     private final BigDecimal total;
     private final List<CartItemResponseDTO> cartItems;
     private String warning;
+    private com.mercato.Entity.cart.DeliveryMethod deliveryMethod;
+    private List<DeliveryOptionDTO> deliveryOptions;
 }

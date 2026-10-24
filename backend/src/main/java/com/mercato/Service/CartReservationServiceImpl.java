@@ -31,6 +31,7 @@ public class CartReservationServiceImpl implements CartReservationService {
     @Transactional
     public void reserve(@NonNull CartItem cartItem) {
         Product product = getProductForUpdate(cartItem.getProduct().getProductId());
+        if (!product.isPurchasable()) throw new IllegalArgumentException("This listing is no longer approved or available");
         int requestedQty = cartItem.getQuantity();
 
         CartReservation reservation = cartReservationRepository
@@ -113,9 +114,12 @@ public class CartReservationServiceImpl implements CartReservationService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public void validateHeld(@NonNull CartItem cartItem) {
+        if (!getProductForUpdate(cartItem.getProduct().getProductId()).isPurchasable())
+            throw new IllegalArgumentException("This listing is no longer approved or available");
         cartReservationRepository.findByCartItem_CartItemId(cartItem.getCartItemId())
+                .filter(reservation -> reservation.getExpiresAt() != null && reservation.getExpiresAt().isAfter(Instant.now()))
                 .filter(reservation -> reservation.getReservedQty() >= cartItem.getQuantity())
                 .orElseThrow(() -> new InsufficientInventoryException(
                         cartItem.getProduct().getProductId(),

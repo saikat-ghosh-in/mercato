@@ -1,0 +1,23 @@
+{
+  "@context": "https://openvex.dev/ns/v0.2.0",
+  "@id": "https://mercato-in.netlify.app/security/vex/2026-10-24-java-views",
+  "author": "Mercato application maintainers",
+  "timestamp": "2026-10-24T00:00:00Z",
+  "version": 1,
+  "statements": [
+    {
+      "vulnerability": { "name": "CVE-2026-47884" },
+      "products": [{ "@id": "pkg:maven/org.springframework/spring-webmvc@6.2.19" }],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Mercato exposes REST controllers only. It has no XsltView/XsltViewResolver or server-side wildcard view rendering. CookieSessionIntegrationTest.restApiCannotActivateTheVexExcludedViewRenderingFeatures guards controller and resolver registrations. The public UI is a separately built React app. See Spring's advisory https://spring.io/security/cve-2026-47884/. Reassess this version-specific statement before adding server-side views."
+    },
+    {
+      "vulnerability": { "name": "CVE-2026-47890" },
+      "products": [{ "@id": "pkg:maven/org.springframework/spring-webmvc@6.2.19" }],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Mercato has no SSE/view-fragment endpoints, SseEmitter, ResponseBodyEmitter or FragmentsRendering handlers. CookieSessionIntegrationTest.restApiCannotActivateTheVexExcludedViewRenderingFeatures guards that invariant. See Spring's advisory https://spring.io/security/cve-2026-47890/. Reassess this version-specific statement before introducing SSE or view fragments."
+    }
+  ]
+}

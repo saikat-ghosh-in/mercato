@@ -27,18 +27,13 @@ public class GuestTokenFilter extends OncePerRequestFilter {
 
         String existingToken = jwtUtils.extractJwt(request);
 
-        if (existingToken == null) {
-            logger.debug("No token found, generating guest token");
-            String newGuestToken = jwtUtils.generateGuestTokenValue();
-            response.setHeader("X-Guest-Token", newGuestToken);
-            request.setAttribute(JwtUtils.GUEST_TOKEN_ATTRIBUTE, newGuestToken);
-        } else if (jwtUtils.validateJwtToken(existingToken)) {
+        if (existingToken != null && jwtUtils.validateJwtToken(existingToken)) {
             String tokenType = jwtUtils.getClaimFromToken(existingToken, "type");
 
             if ("guest".equals(tokenType)) {
                 request.setAttribute(JwtUtils.GUEST_TOKEN_ATTRIBUTE, existingToken);
             }
-        } else {
+        } else if (request.getRequestURI().startsWith("/api/cart")) {
             logger.debug("Invalid token found, generating new guest token");
             String newGuestToken = jwtUtils.generateGuestTokenValue();
 

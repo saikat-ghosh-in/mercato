@@ -28,7 +28,11 @@ public class EcommUserMapper {
                 user.getDeactivatedAt(),
                 user.isSeller(),
                 user.getSellerDisplayName(),
-                roles
+                roles,
+                user.getSellerStatus() == null ? (user.isSeller() ? com.mercato.Entity.SellerStatus.APPROVED : com.mercato.Entity.SellerStatus.NONE) : user.getSellerStatus(),
+                user.isSellerSuspended(),
+                user.getAccessVersion(),
+                user.isSelfDeactivated()
         );
     }
 }

@@ -1,0 +1,8 @@
+{
+  "observedAt": "REPLACE_WITH_REAL_UTC_MEASUREMENT_TIME",
+  "fullBytes": null,
+  "maxDifferentialBytes": null,
+  "dailyWalBytes": null,
+  "repositoryBudgetBytes": null,
+  "measurementNotes": "Measure the whole cluster, worst daily differential, compressed WAL rate and actual OCI budget. Null values intentionally fail closed."
+}

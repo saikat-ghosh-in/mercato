@@ -1,53 +1,37 @@
-import { useEffect, useState } from "react";
+import { LoadingLayout } from "../shared/LoadingStates";
+import ActionArrow from "../shared/ActionArrow";
+import { useCallback, useEffect, useState } from "react";
 import {
   MdLocalShipping, MdCheckCircle, MdAccessTime,
-  MdCancel, MdHourglassEmpty, MdArrowForward,
+  MdCancel, MdHourglassEmpty,
   MdArrowBack, MdClose, MdPerson,
   MdLocationOn, MdSearch,
 } from "react-icons/md";
-import toast from "react-hot-toast";
+import toast from "../../utils/toastUtils.js";
 import api from "../../backend/api";
 import { formatDate } from "../../utils/formatDate";
 
 const SUBTABS = [
-  { id: "active", label: "Active Fulfillments" },
-  { id: "history", label: "Fulfillment History" },
+  { id: "active", label: "Active" },
+  { id: "history", label: "History" },
 ];
 
 const LINE_STATUS = {
   CREATED: { label: "Pending", color: "bg-yellow-100 text-yellow-700", icon: MdHourglassEmpty },
   CONFIRMED: { label: "Confirmed", color: "bg-blue-100 text-blue-700", icon: MdCheckCircle },
-  PROCESSING: { label: "Processing", color: "bg-indigo-100 text-indigo-700", icon: MdAccessTime },
-  PARTIALLY_PROCESSED: { label: "Part. Processed", color: "bg-indigo-50 text-indigo-500", icon: MdAccessTime },
-  FULFILLED: { label: "Fulfilled", color: "bg-green-100 text-green-700", icon: MdCheckCircle },
-  PARTIALLY_FULFILLED: { label: "Part. Fulfilled", color: "bg-green-50 text-green-600", icon: MdLocalShipping },
+  PROCESSING: { label: "Processing", color: "bg-blue-100 text-blue-700", icon: MdAccessTime },
+  PARTIALLY_PROCESSED: { label: "Part. Processed", color: "bg-blue-50 text-blue-500", icon: MdAccessTime },
+  FULFILLED: { label: "Fulfilled", color: "bg-blue-100 text-blue-700", icon: MdCheckCircle },
+  PARTIALLY_FULFILLED: { label: "Part. Fulfilled", color: "bg-blue-50 text-blue-700", icon: MdLocalShipping },
   CANCELLED: { label: "Cancelled", color: "bg-red-100 text-red-500", icon: MdCancel },
 };
 const getLineStatus = (raw) =>
   LINE_STATUS[raw?.toUpperCase()] ?? { label: raw ?? "—", color: "bg-gray-100 text-gray-500", icon: MdAccessTime };
 
-const isActiveFulfillment = (fo) =>
-  fo.orderLines?.some(l => {
-    const s = l.orderLineStatus?.toUpperCase();
-    return s !== "FULFILLED" && s !== "PARTIALLY_FULFILLED" && s !== "CANCELLED";
-  });
-
-const CardSkeleton = () => (
-  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 animate-pulse space-y-3">
-    <div className="flex justify-between">
-      <div className="h-3.5 bg-gray-100 rounded w-1/3" />
-      <div className="h-5 bg-gray-100 rounded w-20" />
-    </div>
-    <div className="h-3 bg-gray-100 rounded w-1/4" />
-    <div className="space-y-2 mt-2">
-      <div className="h-10 bg-gray-100 rounded" />
-      <div className="h-10 bg-gray-100 rounded" />
-    </div>
-  </div>
-);
+const CardSkeleton = () => <LoadingLayout variant="list" label="Loading content" rows={1} />;
 
 const SectionCard = ({ children, className = "" }) => (
-  <div className={`bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden ${className}`}>
+  <div className={`surface overflow-hidden ${className}`}>
     {children}
   </div>
 );
@@ -57,19 +41,19 @@ const FulfillmentDetail = ({ fulfillmentId, onBack }) => {
   const [loading, setLoading] = useState(true);
   const [updatingLine, setUpdatingLine] = useState(null);
 
-  const fetchFo = async () => {
+  const fetchFo = useCallback(async () => {
     try {
       setLoading(true);
       const { data } = await api.get(`/seller/fulfillment-orders/${fulfillmentId}`);
       setFo(data);
-    } catch (err) {
+    } catch {
       toast.error("Failed to load fulfillment details");
     } finally {
       setLoading(false);
     }
-  };
+  }, [fulfillmentId]);
 
-  useEffect(() => { fetchFo(); }, [fulfillmentId]);
+  useEffect(() => { fetchFo(); }, [fetchFo]);
 
   const handleLineAction = async (line, action, qty) => {
     setUpdatingLine(line.orderLineNumber);
@@ -80,7 +64,6 @@ const FulfillmentDetail = ({ fulfillmentId, onBack }) => {
         action,
         qty,
       });
-      toast.success(`Line ${action.toLowerCase()}ed`);
       fetchFo();
     } catch (err) {
       toast.error(err?.response?.data?.message || `Failed to ${action.toLowerCase()} line`);
@@ -89,14 +72,14 @@ const FulfillmentDetail = ({ fulfillmentId, onBack }) => {
     }
   };
 
-  if (loading) return (
+  if (loading && !fo) return (
     <div className="space-y-4">
       <CardSkeleton />
       <CardSkeleton />
     </div>
   );
 
-  if (!fo) return null;
+  if (!fo) return <div className="state-panel" role="alert"><h2>Fulfillment details couldn’t load.</h2><p>Check your connection and try again.</p><button className="button button-dark" onClick={fetchFo}>Try again</button><button className="text-link" onClick={onBack}>Back to fulfillments</button></div>;
 
   return (
     <div className="space-y-4">
@@ -104,13 +87,13 @@ const FulfillmentDetail = ({ fulfillmentId, onBack }) => {
       <div className="flex items-center gap-3">
         <button
           onClick={onBack}
-          className="flex items-center gap-1.5 text-xs font-semibold text-blue-500 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-xl transition-colors cursor-pointer"
+          className="control flex items-center gap-1.5 text-xs font-semibold text-blue-500 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-xl transition-colors cursor-pointer"
         >
           <MdArrowBack size={13} /> Back
         </button>
         <div>
           <p className="text-sm font-bold text-gray-900">{fo.fulfillmentId}</p>
-          <p className="text-[11px] text-gray-400">Order #{fo.orderId} · {formatDate(fo.createdAt)}</p>
+          <p className="text-xs text-gray-400">Order #{fo.orderId} · {formatDate(fo.createdAt)}</p>
         </div>
       </div>
 
@@ -119,7 +102,7 @@ const FulfillmentDetail = ({ fulfillmentId, onBack }) => {
         <div className="lg:col-span-2">
           <SectionCard>
             <div className="px-5 py-4 border-b border-gray-50">
-              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Order Lines</h3>
+              <h3 className="text-xs font-bold text-gray-400 ">Order Lines</h3>
             </div>
             <div className="divide-y divide-gray-50">
               {fo.orderLines?.map((line, i) => {
@@ -144,11 +127,11 @@ const FulfillmentDetail = ({ fulfillmentId, onBack }) => {
                           <p className="text-sm font-semibold text-gray-900 line-clamp-1">
                             {line.product?.productName ?? "Product"}
                           </p>
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 flex items-center gap-1 ${color}`}>
+                          <span className={`text-xs font-bold px-2 py-0.5 rounded-full shrink-0 flex items-center gap-1 ${color}`}>
                             <StatusIcon size={9} /> {label}
                           </span>
                         </div>
-                        <div className="flex items-center gap-3 mt-1 text-[11px] text-gray-400 flex-wrap">
+                        <div className="flex items-center gap-3 mt-1 text-xs text-gray-400 flex-wrap">
                           <span>Ordered: <b className="text-gray-700">{line.orderedQty}</b></span>
                           <span>Accepted: <b className="text-gray-700">{line.acceptedQty}</b></span>
                           <span>Shipped: <b className="text-gray-700">{line.shippedQty}</b></span>
@@ -163,7 +146,7 @@ const FulfillmentDetail = ({ fulfillmentId, onBack }) => {
                               <button
                                 onClick={() => handleLineAction(line, "ACCEPT", line.pendingQty)}
                                 disabled={isUpdating}
-                                className="text-[11px] font-bold px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors cursor-pointer disabled:opacity-40"
+                                className="control text-xs font-bold px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors cursor-pointer disabled:opacity-40"
                               >
                                 {isUpdating ? "..." : "Accept"}
                               </button>
@@ -172,7 +155,7 @@ const FulfillmentDetail = ({ fulfillmentId, onBack }) => {
                               <button
                                 onClick={() => handleLineAction(line, "SHIP", line.pendingQty)}
                                 disabled={isUpdating}
-                                className="text-[11px] font-bold px-3 py-1.5 bg-green-50 text-green-600 hover:bg-green-100 rounded-lg transition-colors cursor-pointer disabled:opacity-40"
+                                className="control text-xs font-bold px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg transition-colors cursor-pointer disabled:opacity-40"
                               >
                                 {isUpdating ? "..." : "Ship All"}
                               </button>
@@ -192,7 +175,7 @@ const FulfillmentDetail = ({ fulfillmentId, onBack }) => {
         <div className="space-y-4">
           <SectionCard>
             <div className="p-5">
-              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+              <h3 className="text-xs font-bold text-gray-400  mb-3 flex items-center gap-1.5">
                 <MdPerson size={13} /> Customer
               </h3>
               <p className="text-sm font-semibold text-gray-900">{fo.customer?.name}</p>
@@ -201,7 +184,7 @@ const FulfillmentDetail = ({ fulfillmentId, onBack }) => {
           </SectionCard>
           <SectionCard>
             <div className="p-5">
-              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+              <h3 className="text-xs font-bold text-gray-400  mb-3 flex items-center gap-1.5">
                 <MdLocationOn size={13} /> Delivery Address
               </h3>
               {fo.deliveryAddress ? (
@@ -210,7 +193,7 @@ const FulfillmentDetail = ({ fulfillmentId, onBack }) => {
                   <p>{fo.deliveryAddress.addressLine1}</p>
                   {fo.deliveryAddress.addressLine2 && <p>{fo.deliveryAddress.addressLine2}</p>}
                   <p>{fo.deliveryAddress.city}, {fo.deliveryAddress.state} — {fo.deliveryAddress.pincode}</p>
-                  <p className="pt-1 text-gray-500">📞 {fo.deliveryAddress.recipientPhone}</p>
+                  <p className="pt-1 text-gray-500">Phone: {fo.deliveryAddress.recipientPhone}</p>
                 </div>
               ) : (
                 <p className="text-xs text-gray-400">No address available</p>
@@ -231,19 +214,19 @@ const FulfillmentCard = ({ fo, onClick }) => {
   }).length ?? 0;
 
   return (
-    <div
+    <button type="button" aria-label={"View fulfillment " + fo.fulfillmentId}
       onClick={onClick}
-      className="group bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer p-5"
+      className="group surface fulfillment-card w-full text-left cursor-pointer p-5"
     >
       <div className="flex items-start justify-between gap-3 mb-3">
         <div>
           <p className="text-sm font-bold text-gray-900">{fo.fulfillmentId}</p>
-          <p className="text-[11px] text-gray-400 mt-0.5">Order #{fo.orderId}</p>
+          <p className="text-xs text-gray-400 mt-0.5">Order #{fo.orderId}</p>
         </div>
-        <MdArrowForward size={16} className="text-gray-300 group-hover:text-blue-500 transition-colors shrink-0 mt-0.5" />
+        <ActionArrow size={16} className="text-gray-300 group-hover:text-blue-500 transition-colors shrink-0 mt-0.5" />
       </div>
 
-      <div className="flex items-center gap-3 text-[11px] text-gray-500 mb-3">
+      <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500 mb-3">
         <span>{fo.customer?.name}</span>
         <span className="text-gray-200">·</span>
         <span>{formatDate(fo.createdAt)}</span>
@@ -253,21 +236,21 @@ const FulfillmentCard = ({ fo, onClick }) => {
         {fo.orderLines?.slice(0, 3).map((line, i) => {
           const { label, color } = getLineStatus(line.orderLineStatus);
           return (
-            <span key={i} className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${color}`}>
+            <span key={i} className={`text-xs font-semibold px-2 py-0.5 rounded-full ${color}`}>
               {label}
             </span>
           );
         })}
         {lineCount > 3 && (
-          <span className="text-[10px] text-gray-400">+{lineCount - 3} more</span>
+          <span className="text-xs text-gray-400">+{lineCount - 3} more</span>
         )}
         {pendingLines > 0 && (
-          <span className="ml-auto text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
+          <span className="ml-auto text-xs font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
             {pendingLines} pending action
           </span>
         )}
       </div>
-    </div>
+    </button>
   );
 };
 
@@ -282,27 +265,15 @@ const FulfillmentTab = () => {
   const [search, setSearch] = useState("");
 
   useEffect(() => {
-    const fetch = async () => {
-      try {
-        setLoading(true);
-        const { data } = await api.get("/seller/open-fulfillment-orders");
-        setActiveFulfillments(data ?? []);
-      } catch (err) {
-        toast.error("Failed to load active fulfillment orders");
-      } finally {
-        setLoading(false);
-      }
-      try {
-        setLoading(true);
-        const { data } = await api.get("/seller/closed-fulfillment-orders");
-        setClosedFulfillments(data ?? []);
-      } catch (err) {
-        toast.error("Failed to load closedfulfillment orders");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetch();
+    const controller = new AbortController();
+    Promise.all([
+      api.get("/seller/open-fulfillment-orders", { signal: controller.signal }),
+      api.get("/seller/closed-fulfillment-orders", { signal: controller.signal })
+    ]).then(([active, closed]) => {
+      if (!controller.signal.aborted) { setActiveFulfillments(active.data ?? []); setClosedFulfillments(closed.data ?? []); }
+    }).catch(() => { if (!controller.signal.aborted) toast.error("Failed to load fulfillment orders"); })
+      .finally(() => { if (!controller.signal.aborted) setLoading(false); });
+    return () => controller.abort();
   }, []);
 
   if (selectedId) return (
@@ -325,19 +296,20 @@ const FulfillmentTab = () => {
     <div className="space-y-4">
       {/* Subtab switcher */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex gap-1 bg-white rounded-xl border border-gray-100 shadow-sm p-1">
+        <div className="workspace-subtabs">
           {SUBTABS.map(({ id, label }) => (
             <button
               key={id}
+              aria-pressed={subtab === id}
               onClick={() => { setSubtab(id); setSearch(""); }}
-              className={`px-4 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${subtab === id
+              className={`control px-4 py-2 rounded-lg text-xs font-semibold transition-[transform,opacity,background-color] cursor-pointer flex items-center gap-1.5 ${subtab === id
                 ? "bg-gray-950 text-white"
                 : "text-gray-500 hover:text-gray-800 hover:bg-gray-50"
                 }`}
             >
               {label}
               {id === "active" && activeFulfillments.length > 0 && (
-                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${subtab === "active" ? "bg-white text-gray-900" : "bg-blue-500 text-white"
+                <span className={`text-xs font-bold px-1.5 py-0.5 rounded-full ${subtab === "active" ? "bg-white text-gray-900" : "bg-blue-500 text-white"
                   }`}>
                   {activeFulfillments.length}
                 </span>
@@ -347,17 +319,17 @@ const FulfillmentTab = () => {
         </div>
 
         {/* Search */}
-        <div className="flex items-center gap-2 border border-gray-200 rounded-xl px-3 py-2 focus-within:ring-1 focus-within:ring-blue-300 bg-white min-w-48">
+        <div className="dashboard-search min-w-48">
           <MdSearch size={14} className="text-gray-400 shrink-0" />
           <input
             type="text"
-            value={search}
+            aria-label="Search by ID or customer..." value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Search by ID or customer..."
+            placeholder="ID or customer"
             className="text-xs text-gray-700 focus:outline-none w-full"
           />
           {search && (
-            <button onClick={() => setSearch("")} className="text-gray-300 hover:text-gray-500 cursor-pointer">
+            <button aria-label="Clear fulfillment search" onClick={() => setSearch("")} className="icon-action text-gray-300 hover:text-gray-500 cursor-pointer">
               <MdClose size={13} />
             </button>
           )}
@@ -365,12 +337,12 @@ const FulfillmentTab = () => {
       </div>
 
       {/* List */}
-      {loading ? (
+      {loading && !activeFulfillments.length && !closedFulfillments.length ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {[1, 2, 3, 4].map(i => <CardSkeleton key={i} />)}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-10 text-center">
+        <div className="surface p-10 text-center">
           <div className="w-16 h-16 rounded-2xl bg-gray-50 flex items-center justify-center mx-auto mb-4">
             <MdLocalShipping size={28} className="text-gray-300" />
           </div>

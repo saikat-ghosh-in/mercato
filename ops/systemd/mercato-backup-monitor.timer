@@ -1,0 +1,11 @@
+[Unit]
+Description=Mercato off-instance backup/WAL dead-man heartbeat
+
+[Timer]
+OnBootSec=2m
+OnUnitActiveSec=5m
+AccuracySec=30s
+Unit=mercato-backup-monitor.service
+
+[Install]
+WantedBy=timers.target

@@ -1,20 +1,26 @@
-import { useState } from "react";
+import DashboardFrame from "../shared/DashboardFrame";
+import { activeDashboardTab, dashboardParams } from "../../utils/dashboardNavigation";
+import { useSearchParams } from "react-router-dom";
 import { useSelector } from "react-redux";
 import {
   MdDashboard, MdPeople, MdShoppingBag,
-  MdCategory, MdShoppingCart, MdAdminPanelSettings,
-  MdInventory, MdMenu, MdClose,
+  MdCategory, MdShoppingCart,
+  MdInventory,
 } from "react-icons/md";
 import AdminOverviewTab from "./AdminOverviewTab";
-import UsersTab from "./UsersTab";
+import UsersTab from "./UserManagement";
 import OrdersTab from "./OrdersTab";
 import ProductsTab from "../shared/ProductsTab";
 import CategoriesTab from "./CategoriesTab";
 import CartsTab from "./CartsTab";
+import SellerApplicationsTab from "./SellerApplicationsTab";
+import CommissionTab from "./CommissionTab";
 
 const NAV = [
   { id: "overview", label: "Overview", icon: MdDashboard },
   { id: "users", label: "Users", icon: MdPeople },
+  { id: "applications", label: "Seller approvals", icon: MdPeople },
+  { id: "commission", label: "Commission", icon: MdShoppingBag },
   { id: "orders", label: "Orders", icon: MdShoppingBag },
   { id: "categories", label: "Categories", icon: MdCategory },
   { id: "products", label: "Products", icon: MdInventory },
@@ -22,14 +28,16 @@ const NAV = [
 ];
 
 const AdminDashboard = () => {
-  const [activeTab, setActiveTab] = useState("overview");
-  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [params, setParams] = useSearchParams();
+  const activeTab = activeDashboardTab(NAV, params);
   const user = useSelector(s => s.auth?.userDetails);
 
   const renderTab = () => {
     switch (activeTab) {
       case "overview": return <AdminOverviewTab />;
       case "users": return <UsersTab />;
+      case "applications": return <SellerApplicationsTab />;
+      case "commission": return <CommissionTab />;
       case "orders": return <OrdersTab />;
       case "categories": return <CategoriesTab />;
       case "products": return <ProductsTab mode="admin" />;
@@ -38,49 +46,9 @@ const AdminDashboard = () => {
     }
   };
 
-  return (
-    <div className="bg-gray-50 min-h-screen">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-
-        {/* Header */}
-        <div className="flex items-center gap-3 mb-6">
-          <div className="p-2 bg-purple-50 rounded-xl">
-            <MdAdminPanelSettings size={20} className="text-purple-500" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-gray-900">Admin Panel</h1>
-            <p className="text-xs text-gray-500 mt-0.5">{user?.username}</p>
-          </div>
-          <button
-            className="ml-auto lg:hidden p-2 rounded-xl bg-white border border-gray-100 text-gray-500"
-            onClick={() => setMobileNavOpen(v => !v)}
-          >
-            {mobileNavOpen ? <MdClose size={18} /> : <MdMenu size={18} />}
-          </button>
-        </div>
-
-        {/* Tab nav */}
-        <div className={`${mobileNavOpen ? "flex" : "hidden"} lg:flex flex-col lg:flex-row gap-1 bg-white rounded-2xl border border-gray-100 shadow-sm p-1.5 mb-6`}>
-          {NAV.map(({ id, label, icon: Icon }) => (
-            <button
-              key={id}
-              onClick={() => { setActiveTab(id); setMobileNavOpen(false); }}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer flex-1 justify-center lg:justify-start ${activeTab === id
-                ? "bg-gray-950 text-white shadow-sm"
-                : "text-gray-500 hover:bg-gray-50 hover:text-gray-800"
-                }`}
-            >
-              <Icon size={16} />
-              {label}
-            </button>
-          ))}
-        </div>
-
-        {/* Content */}
-        {renderTab()}
-      </div>
-    </div>
-  );
+  return <DashboardFrame title="Administration" subtitle={user?.username} items={NAV} activeTab={activeTab} onSelect={id => setParams(previous => dashboardParams(previous, id))}>
+    {renderTab()}
+  </DashboardFrame>;
 };
 
 export default AdminDashboard;

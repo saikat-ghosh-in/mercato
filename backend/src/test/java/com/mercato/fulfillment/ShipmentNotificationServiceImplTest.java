@@ -28,7 +28,7 @@ import static org.mockito.Mockito.when;
 class ShipmentNotificationServiceImplTest {
 
     @Mock private OrderRepository orderRepository;
-    @Mock private EmailService emailService;
+    @Mock private com.mercato.Jobs.DurableJobs jobs;
 
     @InjectMocks
     private ShipmentNotificationServiceImpl shipmentNotificationService;
@@ -47,15 +47,11 @@ class ShipmentNotificationServiceImplTest {
     @Test
     void notifyShippedIfNeeded_sendsOnceAcrossRepeatedCalls() {
         assertTrue(shipmentNotificationService.notifyShippedIfNeeded(order));
-        assertNotNull(order.getShipmentEmailSentAt());
+        assertNotNull(order.getShipmentEmailQueuedAt());
 
         assertFalse(shipmentNotificationService.notifyShippedIfNeeded(order));
 
-        verify(emailService, times(1)).sendOrderShippedEmail(
-                eq("buyer@example.com"),
-                eq("Buyer"),
-                eq("ORD-1")
-        );
+        verify(jobs,times(1)).enqueue(eq("SHIPMENT_EMAIL"),eq("shipment-email:ORD-1"),any());
         verify(orderRepository, times(1)).save(order);
     }
 
@@ -65,7 +61,7 @@ class ShipmentNotificationServiceImplTest {
 
         assertFalse(shipmentNotificationService.notifyShippedIfNeeded(order));
 
-        verify(emailService, never()).sendOrderShippedEmail(any(), any(), any());
+        org.mockito.Mockito.verifyNoInteractions(jobs);
         verify(orderRepository, never()).save(any());
     }
 }

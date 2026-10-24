@@ -16,13 +16,10 @@ import com.mercato.Repository.UserRepository;
 import com.mercato.Utils.AuthUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -31,13 +28,13 @@ import java.util.Set;
 @Slf4j
 public class UserServiceImpl implements UserService {
 
-    @Value("${mercato.account.cleanup.retention-days:7}")
-    private int retentionDays;
-
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final AuthUtil authUtil;
     private final EmailService emailService;
+    private final com.mercato.Session.SessionRevocation sessions;
+    @jakarta.persistence.PersistenceContext
+    private jakarta.persistence.EntityManager entityManager;
 
     @Override
     @Transactional(readOnly = true)
@@ -52,22 +49,13 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public void updateUserRoles(String userId, Set<String> roleNames) {
+        if (roleNames == null || roleNames.isEmpty() || roleNames.stream().anyMatch(java.util.Objects::isNull)) throw new IllegalArgumentException("At least one valid role is required");
         EcommUser user = userRepository.findByUserId(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User", "userId", userId));
 
-        Set<Role> newRoles = new HashSet<>();
-        for (String roleName : roleNames) {
-            AppRole appRole;
-            try {
-                appRole = AppRole.valueOf(roleName);
-            } catch (IllegalArgumentException e) {
-                throw new RuntimeException("Invalid role: " + roleName);
-            }
-            Role role = roleRepository.findByRoleName(appRole)
-                    .orElseThrow(() -> new RuntimeException("Role not found in DB: " + roleName));
-            newRoles.add(role);
-        }
-        user.setRoles(newRoles);
+        protectAdmin(user);
+        if (!roleNames.contains("ROLE_USER")) throw new IllegalArgumentException("The base user role cannot be removed");
+        throw new IllegalArgumentException("Use audited account access management to change selling access");
     }
 
     @Override
@@ -75,7 +63,7 @@ public class UserServiceImpl implements UserService {
         List<EcommUser> allSellers = userRepository.findUsersByRoleNames(List.of(AppRole.ROLE_SELLER));
 
         return allSellers.stream()
-                .filter(seller -> seller.isEnabled() && !seller.isAccountLocked())
+                .filter(seller -> seller.isEnabled() && !seller.isAccountLocked() && !seller.isSellerSuspended())
                 .map(SellerMapper::toDTO)
                 .toList();
     }
@@ -86,10 +74,10 @@ public class UserServiceImpl implements UserService {
         EcommUser user = authUtil.getLoggedInUser();
         if (request.getFirstName() != null) user.setFirstName(request.getFirstName());
         if (request.getLastName() != null) user.setLastName(request.getLastName());
-        if (request.getPhoneNumber() != null
-                && !request.getPhoneNumber().equals(user.getPhoneNumber())
-                && !userRepository.existsByPhoneNumber(request.getPhoneNumber()))
+        if (request.getPhoneNumber() != null && !request.getPhoneNumber().equals(user.getPhoneNumber())) {
+            if (userRepository.existsByPhoneNumber(request.getPhoneNumber())) throw new CustomConflictException("This phone number is already associated with another account");
             user.setPhoneNumber(request.getPhoneNumber());
+        }
         if (request.getProfileImageUrl() != null) user.setProfileImageUrl(request.getProfileImageUrl());
         if (request.getSellerDisplayName() != null
                 && user.isSeller())
@@ -101,14 +89,19 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public void deactivateAccount() {
-        EcommUser user = authUtil.getLoggedInUser();
+        EcommUser user = userRepository.findByUserIdForUpdate(authUtil.getLoggedInUser().getUserId()).orElseThrow();
+        entityManager.refresh(user); // Re-read after the lock; never overwrite a concurrent admin decision.
 
+        protectAdmin(user);
+        if (!user.isEnabled()) throw new org.springframework.security.access.AccessDeniedException("Account is already deactivated");
         user.setEnabled(false);
+        user.setSelfDeactivated(true);
+        user.setAccessVersion(user.getAccessVersion()+1);
+        sessions.revokeAll(user.getUserId());
         user.setDeactivatedAt(Instant.now());
 
         userRepository.save(user);
-        log.info("User {} deactivated. Scheduled for deletion after {} days.",
-                user.getUserId(), retentionDays);
+        log.info("User {} paused their account; history retained.", user.getUserId());
     }
 
     @Override
@@ -116,20 +109,9 @@ public class UserServiceImpl implements UserService {
     public void deactivateUser(String userId, boolean deleteNow) {
         EcommUser user = userRepository.findByUserId(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "userId", userId));
+        protectAdmin(user);
 
-        if (deleteNow) {
-            userRepository.delete(user);
-            log.info("Admin has permanently deleted user: {} with userId:{}",
-                    user.getUsername(), user.getUserId());
-            return;
-        }
-
-        user.setEnabled(false);
-        user.setDeactivatedAt(Instant.now());
-
-        userRepository.save(user);
-        log.info("Admin has deactivated User {}. Scheduled for deletion after {} days.",
-                user.getUserId(), retentionDays);
+        throw new IllegalArgumentException("Use audited account access management; accounts are retained");
     }
 
     @Override
@@ -137,18 +119,12 @@ public class UserServiceImpl implements UserService {
     public void reactivateAccount(String userId) {
         EcommUser user = userRepository.findByUserId(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "userId", userId));
+        protectAdmin(user);
+        throw new IllegalArgumentException("Use audited account access management to restore an account");
+    }
 
-        if (user.getDeactivatedAt() == null) {
-            throw new CustomConflictException("Account is not deactivated");
-        }
-
-        user.setEnabled(true);
-        user.setDeactivatedAt(null);
-
-        userRepository.save(user);
-
-        emailService.sendReactivationConfirmationEmail(user.getEmail(), user.getUsername());
-        log.info("User {} reactivated.", user.getUserId());
+    private void protectAdmin(EcommUser user) {
+        if (user.isAdmin()) throw new org.springframework.security.access.AccessDeniedException("Administrator accounts are read-only in user management");
     }
 
     @Override
@@ -156,19 +132,7 @@ public class UserServiceImpl implements UserService {
     public AccountDeletionStatusResponseDTO getAccountDeletionStatus() {
         EcommUser user = authUtil.getLoggedInUser();
 
-        boolean isDeactivated = !user.isEnabled();
-        long daysLeft = 0;
-
-        if (isDeactivated) {
-            if (user.getDeactivatedAt() != null) {
-                Instant deletionDate = user.getDeactivatedAt().plus(7, ChronoUnit.DAYS);
-                daysLeft = ChronoUnit.DAYS.between(Instant.now(), deletionDate);
-            } else daysLeft = retentionDays;
-        }
-
-        return new AccountDeletionStatusResponseDTO(
-                isDeactivated,
-                Math.max(0, daysLeft)
-        );
+        // Compatibility endpoint: no account is scheduled for automatic deletion.
+        return new AccountDeletionStatusResponseDTO(!user.isEnabled(), 0);
     }
 }

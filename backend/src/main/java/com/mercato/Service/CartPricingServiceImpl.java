@@ -2,13 +2,20 @@ package com.mercato.Service;
 
 import com.mercato.Entity.cart.Cart;
 import com.mercato.Entity.cart.ChargeType;
+import com.mercato.Entity.cart.DeliveryMethod;
+import com.mercato.Payloads.Response.DeliveryOptionDTO;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import lombok.RequiredArgsConstructor;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.*;
 
 @Service
+@RequiredArgsConstructor
 public class CartPricingServiceImpl implements CartPricingService {
+    private final PackageDeliveryPricing packages;
 
     @Value("${cart.shipping.threshold}")
     private BigDecimal CART_SHIPPING_THRESHOLD;
@@ -17,10 +24,53 @@ public class CartPricingServiceImpl implements CartPricingService {
     @Value("${cart.platform.fee}")
     private BigDecimal CART_PLATFORM_FEE;
 
+    @Value("${cart.delivery.expedited-surcharge:49}")
+    private BigDecimal expeditedSurcharge = BigDecimal.valueOf(49);
+    @Value("${cart.delivery.standard-cap:250}")
+    private BigDecimal standardCap = BigDecimal.valueOf(250);
+
+    @jakarta.annotation.PostConstruct void validateConfiguration() {
+        if (standardCap.signum() < 0 || standardCap.compareTo(BigDecimal.valueOf(250)) > 0 || expeditedSurcharge.signum() < 0
+                || CART_SHIPPING_THRESHOLD.signum() < 0 || CART_SHIPPING_CHARGE.signum() < 0)
+            throw new IllegalArgumentException("Delivery charges must be non-negative and standard delivery capped at ₹250 or less");
+    }
+
     @Override
     public void applyCharges(Cart cart) {
         BigDecimal subtotal = cart.getSubtotal();
         int cartQty = cart.getCartQuantity();
+
+        BigDecimal base = subtotal.signum() > 0 && subtotal.compareTo(CART_SHIPPING_THRESHOLD) < 0 ? CART_SHIPPING_CHARGE : BigDecimal.ZERO;
+        Map<String, BigDecimal> weights = new LinkedHashMap<>();
+        Map<String, BigDecimal> bulkyCosts = new HashMap<>();
+        BigDecimal totalBulky = BigDecimal.ZERO;
+        for (var item : cart.getCartItems()) {
+            BigDecimal bulky = packages.surcharge(item.getProduct()).multiply(BigDecimal.valueOf(item.getQuantity()));
+            bulkyCosts.put(item.getProduct().getProductId(), bulky); totalBulky = totalBulky.add(bulky);
+            // Multiplying by subtotal avoids rounding the proportional share of the base charge.
+            weights.put(item.getProduct().getProductId(), bulky.multiply(subtotal).add(base.multiply(item.getLineTotal())));
+        }
+        BigDecimal normalCost = base.add(totalBulky).min(standardCap);
+        Map<String, BigDecimal> shares = com.mercato.Utils.DeliveryAllocation.split(normalCost, weights);
+        BigDecimal standard = BigDecimal.ZERO, customerBulky = BigDecimal.ZERO, sellerCovered = BigDecimal.ZERO;
+        for (var item : cart.getCartItems()) {
+            String id = item.getProduct().getProductId(); BigDecimal share = shares.get(id);
+            boolean covered = item.getProduct().isSellerPaysShipping();
+            item.setSellerDeliveryCharge(covered ? share : BigDecimal.ZERO);
+            if (covered) sellerCovered = sellerCovered.add(share);
+            else {
+                standard = standard.add(share);
+                BigDecimal raw = weights.get(id);
+                if (raw.signum() > 0) customerBulky = customerBulky.add(share.multiply(bulkyCosts.get(id)).multiply(subtotal).divide(raw, 2, RoundingMode.DOWN));
+            }
+        }
+        boolean sellerPaid = standard.signum() == 0 && sellerCovered.signum() > 0;
+        cart.setDeliveryOptions(java.util.List.of(
+                new DeliveryOptionDTO(DeliveryMethod.STANDARD, "Standard", "3–5 business days", "", standard, customerBulky, sellerPaid),
+                new DeliveryOptionDTO(DeliveryMethod.EXPEDITED, "Expedited", "1–2 business days", "", standard.add(expeditedSurcharge), customerBulky, sellerPaid),
+                new DeliveryOptionDTO(DeliveryMethod.CONSOLIDATED, "Grouped delivery", "4–7 business days", "Extra time to group deliveries, aiming for fewer trips and lower carbon emissions.", standard, customerBulky, sellerPaid)
+        ));
+        if (cart.getDeliveryMethod() == null) cart.setDeliveryMethod(DeliveryMethod.STANDARD);
 
         if (subtotal.compareTo(BigDecimal.ZERO) == 0) {
             cart.clearCharges();
@@ -33,14 +83,14 @@ public class CartPricingServiceImpl implements CartPricingService {
     }
 
     private void applyShipping(Cart cart, BigDecimal subtotal) {
-        BigDecimal shipping = subtotal.compareTo(CART_SHIPPING_THRESHOLD) < 0
-                ? CART_SHIPPING_CHARGE
-                : BigDecimal.ZERO;
+        DeliveryOptionDTO selected = cart.getDeliveryOptions().stream()
+                .filter(option -> option.code() == cart.getDeliveryMethod()).findFirst().orElseThrow();
+        BigDecimal shipping = selected.price();
 
         cart.addOrUpdateCharge(
                 ChargeType.SHIPPING,
                 shipping,
-                "Standard Shipping"
+                selected.name() + " delivery"
         );
     }
 

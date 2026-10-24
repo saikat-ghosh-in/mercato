@@ -1,0 +1,4813 @@
+{
+  "at": "2026-10-20T17:09:19.212Z",
+  "scope": "Local disposable demo API and headless Chrome; responsive UI verification",
+  "checks": [
+    {
+      "name": "home",
+      "path": "/",
+      "title": "GOOD FINDS.\nEVERY DAY.",
+      "width": 320,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "home",
+      "path": "/",
+      "title": "GOOD FINDS.\nEVERY DAY.",
+      "width": 390,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "home",
+      "path": "/",
+      "title": "GOOD FINDS.\nEVERY DAY.",
+      "width": 768,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "home",
+      "path": "/",
+      "title": "GOOD FINDS.\nEVERY DAY.",
+      "width": 844,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "home",
+      "path": "/",
+      "title": "GOOD FINDS.\nEVERY DAY.",
+      "width": 1024,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "home",
+      "path": "/",
+      "title": "GOOD FINDS.\nEVERY DAY.",
+      "width": 1440,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "home",
+      "path": "/",
+      "title": "GOOD FINDS.\nEVERY DAY.",
+      "width": 1920,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "catalog",
+      "path": "/products",
+      "title": "All products",
+      "width": 320,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "catalog",
+      "path": "/products",
+      "title": "All products",
+      "width": 390,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "catalog",
+      "path": "/products",
+      "title": "All products",
+      "width": 768,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "catalog",
+      "path": "/products",
+      "title": "All products",
+      "width": 844,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "catalog",
+      "path": "/products",
+      "title": "All products",
+      "width": 1024,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "catalog",
+      "path": "/products",
+      "title": "All products",
+      "width": 1440,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "catalog",
+      "path": "/products",
+      "title": "All products",
+      "width": 1920,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "product",
+      "path": "/products/PDT-20261020-2F1CC6",
+      "title": "Wireless over-ear headphones",
+      "width": 320,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "product",
+      "path": "/products/PDT-20261020-2F1CC6",
+      "title": "Wireless over-ear headphones",
+      "width": 390,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "product",
+      "path": "/products/PDT-20261020-2F1CC6",
+      "title": "Wireless over-ear headphones",
+      "width": 768,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "product",
+      "path": "/products/PDT-20261020-2F1CC6",
+      "title": "Wireless over-ear headphones",
+      "width": 844,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "product",
+      "path": "/products/PDT-20261020-2F1CC6",
+      "title": "Wireless over-ear headphones",
+      "width": 1024,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "product",
+      "path": "/products/PDT-20261020-2F1CC6",
+      "title": "Wireless over-ear headphones",
+      "width": 1440,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "product",
+      "path": "/products/PDT-20261020-2F1CC6",
+      "title": "Wireless over-ear headphones",
+      "width": 1920,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "empty-bag",
+      "path": "/cart",
+      "title": "Bag",
+      "width": 320,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "empty-bag",
+      "path": "/cart",
+      "title": "Bag",
+      "width": 390,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "empty-bag",
+      "path": "/cart",
+      "title": "Bag",
+      "width": 768,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "empty-bag",
+      "path": "/cart",
+      "title": "Bag",
+      "width": 844,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "empty-bag",
+      "path": "/cart",
+      "title": "Bag",
+      "width": 1024,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "empty-bag",
+      "path": "/cart",
+      "title": "Bag",
+      "width": 1440,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "empty-bag",
+      "path": "/cart",
+      "title": "Bag",
+      "width": 1920,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "login",
+      "path": "/login",
+      "title": "Welcome back",
+      "width": 320,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "login",
+      "path": "/login",
+      "title": "Welcome back",
+      "width": 390,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "login",
+      "path": "/login",
+      "title": "Welcome back",
+      "width": 768,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "login",
+      "path": "/login",
+      "title": "Welcome back",
+      "width": 844,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "login",
+      "path": "/login",
+      "title": "Welcome back",
+      "width": 1024,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "login",
+      "path": "/login",
+      "title": "Welcome back",
+      "width": 1440,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "login",
+      "path": "/login",
+      "title": "Welcome back",
+      "width": 1920,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "register",
+      "path": "/register",
+      "title": "Your Mercato account",
+      "width": 320,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "register",
+      "path": "/register",
+      "title": "Your Mercato account",
+      "width": 390,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "register",
+      "path": "/register",
+      "title": "Your Mercato account",
+      "width": 768,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "register",
+      "path": "/register",
+      "title": "Your Mercato account",
+      "width": 844,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "register",
+      "path": "/register",
+      "title": "Your Mercato account",
+      "width": 1024,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "register",
+      "path": "/register",
+      "title": "Your Mercato account",
+      "width": 1440,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "register",
+      "path": "/register",
+      "title": "Your Mercato account",
+      "width": 1920,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "forgot-password",
+      "path": "/forgot-password",
+      "title": "Forgot password?",
+      "width": 320,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "forgot-password",
+      "path": "/forgot-password",
+      "title": "Forgot password?",
+      "width": 390,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "forgot-password",
+      "path": "/forgot-password",
+      "title": "Forgot password?",
+      "width": 768,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "forgot-password",
+      "path": "/forgot-password",
+      "title": "Forgot password?",
+      "width": 844,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "forgot-password",
+      "path": "/forgot-password",
+      "title": "Forgot password?",
+      "width": 1024,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "forgot-password",
+      "path": "/forgot-password",
+      "title": "Forgot password?",
+      "width": 1440,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "forgot-password",
+      "path": "/forgot-password",
+      "title": "Forgot password?",
+      "width": 1920,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "reset-password",
+      "path": "/reset-password",
+      "title": "Invalid reset link",
+      "width": 320,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "reset-password",
+      "path": "/reset-password",
+      "title": "Invalid reset link",
+      "width": 390,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "reset-password",
+      "path": "/reset-password",
+      "title": "Invalid reset link",
+      "width": 768,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "reset-password",
+      "path": "/reset-password",
+      "title": "Invalid reset link",
+      "width": 844,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "reset-password",
+      "path": "/reset-password",
+      "title": "Invalid reset link",
+      "width": 1024,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "reset-password",
+      "path": "/reset-password",
+      "title": "Invalid reset link",
+      "width": 1440,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "reset-password",
+      "path": "/reset-password",
+      "title": "Invalid reset link",
+      "width": 1920,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "verify-email",
+      "path": "/verify-email",
+      "title": "Verification Failed",
+      "width": 320,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "verify-email",
+      "path": "/verify-email",
+      "title": "Verification Failed",
+      "width": 390,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "verify-email",
+      "path": "/verify-email",
+      "title": "Verification Failed",
+      "width": 768,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "verify-email",
+      "path": "/verify-email",
+      "title": "Verification Failed",
+      "width": 844,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "verify-email",
+      "path": "/verify-email",
+      "title": "Verification Failed",
+      "width": 1024,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "verify-email",
+      "path": "/verify-email",
+      "title": "Verification Failed",
+      "width": 1440,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "verify-email",
+      "path": "/verify-email",
+      "title": "Verification Failed",
+      "width": 1920,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "verification-pending",
+      "path": "/verify-email-pending",
+      "title": "Check your inbox",
+      "width": 320,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "verification-pending",
+      "path": "/verify-email-pending",
+      "title": "Check your inbox",
+      "width": 390,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "verification-pending",
+      "path": "/verify-email-pending",
+      "title": "Check your inbox",
+      "width": 768,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "verification-pending",
+      "path": "/verify-email-pending",
+      "title": "Check your inbox",
+      "width": 844,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "verification-pending",
+      "path": "/verify-email-pending",
+      "title": "Check your inbox",
+      "width": 1024,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "verification-pending",
+      "path": "/verify-email-pending",
+      "title": "Check your inbox",
+      "width": 1440,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "verification-pending",
+      "path": "/verify-email-pending",
+      "title": "Check your inbox",
+      "width": 1920,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "deactivated",
+      "path": "/account-deactivated",
+      "title": "Account paused",
+      "width": 320,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "deactivated",
+      "path": "/account-deactivated",
+      "title": "Account paused",
+      "width": 390,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "deactivated",
+      "path": "/account-deactivated",
+      "title": "Account paused",
+      "width": 768,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "deactivated",
+      "path": "/account-deactivated",
+      "title": "Account paused",
+      "width": 844,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "deactivated",
+      "path": "/account-deactivated",
+      "title": "Account paused",
+      "width": 1024,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "deactivated",
+      "path": "/account-deactivated",
+      "title": "Account paused",
+      "width": 1440,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "deactivated",
+      "path": "/account-deactivated",
+      "title": "Account paused",
+      "width": 1920,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "help",
+      "path": "/help",
+      "title": "Shopping help",
+      "width": 320,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "help",
+      "path": "/help",
+      "title": "Shopping help",
+      "width": 390,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "help",
+      "path": "/help",
+      "title": "Shopping help",
+      "width": 768,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "help",
+      "path": "/help",
+      "title": "Shopping help",
+      "width": 844,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "help",
+      "path": "/help",
+      "title": "Shopping help",
+      "width": 1024,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "help",
+      "path": "/help",
+      "title": "Shopping help",
+      "width": 1440,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "help",
+      "path": "/help",
+      "title": "Shopping help",
+      "width": 1920,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "policies",
+      "path": "/seller-policies",
+      "title": "Seller policies",
+      "width": 320,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "policies",
+      "path": "/seller-policies",
+      "title": "Seller policies",
+      "width": 390,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "policies",
+      "path": "/seller-policies",
+      "title": "Seller policies",
+      "width": 768,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "policies",
+      "path": "/seller-policies",
+      "title": "Seller policies",
+      "width": 844,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "policies",
+      "path": "/seller-policies",
+      "title": "Seller policies",
+      "width": 1024,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "policies",
+      "path": "/seller-policies",
+      "title": "Seller policies",
+      "width": 1440,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "policies",
+      "path": "/seller-policies",
+      "title": "Seller policies",
+      "width": 1920,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "404",
+      "path": "/missing-page",
+      "title": "Page not found",
+      "width": 320,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "404",
+      "path": "/missing-page",
+      "title": "Page not found",
+      "width": 390,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "404",
+      "path": "/missing-page",
+      "title": "Page not found",
+      "width": 768,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "404",
+      "path": "/missing-page",
+      "title": "Page not found",
+      "width": 844,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "404",
+      "path": "/missing-page",
+      "title": "Page not found",
+      "width": 1024,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "404",
+      "path": "/missing-page",
+      "title": "Page not found",
+      "width": 1440,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "404",
+      "path": "/missing-page",
+      "title": "Page not found",
+      "width": 1920,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "seller-registration-base",
+      "path": "/register",
+      "title": "Your Mercato account",
+      "width": 320,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "seller-registration-base",
+      "path": "/register",
+      "title": "Your Mercato account",
+      "width": 390,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "seller-registration-base",
+      "path": "/register",
+      "title": "Your Mercato account",
+      "width": 768,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "seller-registration-base",
+      "path": "/register",
+      "title": "Your Mercato account",
+      "width": 844,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "seller-registration-base",
+      "path": "/register",
+      "title": "Your Mercato account",
+      "width": 1024,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "seller-registration-base",
+      "path": "/register",
+      "title": "Your Mercato account",
+      "width": 1440,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "seller-registration-base",
+      "path": "/register",
+      "title": "Your Mercato account",
+      "width": 1920,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "seller-registration",
+      "path": "/register",
+      "title": "Sell on Mercato",
+      "width": 320,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "seller-registration",
+      "path": "/register",
+      "title": "Sell on Mercato",
+      "width": 390,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "seller-registration",
+      "path": "/register",
+      "title": "Sell on Mercato",
+      "width": 768,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "seller-registration",
+      "path": "/register",
+      "title": "Sell on Mercato",
+      "width": 844,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "seller-registration",
+      "path": "/register",
+      "title": "Sell on Mercato",
+      "width": 1024,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "seller-registration",
+      "path": "/register",
+      "title": "Sell on Mercato",
+      "width": 1440,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "seller-registration",
+      "path": "/register",
+      "title": "Sell on Mercato",
+      "width": 1920,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "profile",
+      "path": "/profile",
+      "title": "Your account",
+      "width": 320,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "profile",
+      "path": "/profile",
+      "title": "Your account",
+      "width": 390,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "profile",
+      "path": "/profile",
+      "title": "Your account",
+      "width": 768,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "profile",
+      "path": "/profile",
+      "title": "Your account",
+      "width": 844,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "profile",
+      "path": "/profile",
+      "title": "Your account",
+      "width": 1024,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "profile",
+      "path": "/profile",
+      "title": "Your account",
+      "width": 1440,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "profile",
+      "path": "/profile",
+      "title": "Your account",
+      "width": 1920,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "edit-profile",
+      "path": "/edit-profile",
+      "title": "Edit profile",
+      "width": 320,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "edit-profile",
+      "path": "/edit-profile",
+      "title": "Edit profile",
+      "width": 390,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "edit-profile",
+      "path": "/edit-profile",
+      "title": "Edit profile",
+      "width": 768,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "edit-profile",
+      "path": "/edit-profile",
+      "title": "Edit profile",
+      "width": 844,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "edit-profile",
+      "path": "/edit-profile",
+      "title": "Edit profile",
+      "width": 1024,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "edit-profile",
+      "path": "/edit-profile",
+      "title": "Edit profile",
+      "width": 1440,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "edit-profile",
+      "path": "/edit-profile",
+      "title": "Edit profile",
+      "width": 1920,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "addresses",
+      "path": "/addresses",
+      "title": "Addresses",
+      "width": 320,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "addresses",
+      "path": "/addresses",
+      "title": "Addresses",
+      "width": 390,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "addresses",
+      "path": "/addresses",
+      "title": "Addresses",
+      "width": 768,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "addresses",
+      "path": "/addresses",
+      "title": "Addresses",
+      "width": 844,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "addresses",
+      "path": "/addresses",
+      "title": "Addresses",
+      "width": 1024,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "addresses",
+      "path": "/addresses",
+      "title": "Addresses",
+      "width": 1440,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "addresses",
+      "path": "/addresses",
+      "title": "Addresses",
+      "width": 1920,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "wishlist",
+      "path": "/wishlist",
+      "title": "Saved items",
+      "width": 320,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "wishlist",
+      "path": "/wishlist",
+      "title": "Saved items",
+      "width": 390,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "wishlist",
+      "path": "/wishlist",
+      "title": "Saved items",
+      "width": 768,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "wishlist",
+      "path": "/wishlist",
+      "title": "Saved items",
+      "width": 844,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "wishlist",
+      "path": "/wishlist",
+      "title": "Saved items",
+      "width": 1024,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "wishlist",
+      "path": "/wishlist",
+      "title": "Saved items",
+      "width": 1440,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "wishlist",
+      "path": "/wishlist",
+      "title": "Saved items",
+      "width": 1920,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "bag",
+      "path": "/cart",
+      "title": "Bag",
+      "width": 320,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "bag",
+      "path": "/cart",
+      "title": "Bag",
+      "width": 390,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "bag",
+      "path": "/cart",
+      "title": "Bag",
+      "width": 768,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "bag",
+      "path": "/cart",
+      "title": "Bag",
+      "width": 844,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "bag",
+      "path": "/cart",
+      "title": "Bag",
+      "width": 1024,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "bag",
+      "path": "/cart",
+      "title": "Bag",
+      "width": 1440,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "bag",
+      "path": "/cart",
+      "title": "Bag",
+      "width": 1920,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "checkout-review",
+      "path": "/checkout",
+      "title": "Checkout",
+      "width": 320,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "checkout-review",
+      "path": "/checkout",
+      "title": "Checkout",
+      "width": 390,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "checkout-review",
+      "path": "/checkout",
+      "title": "Checkout",
+      "width": 768,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "checkout-review",
+      "path": "/checkout",
+      "title": "Checkout",
+      "width": 844,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "checkout-review",
+      "path": "/checkout",
+      "title": "Checkout",
+      "width": 1024,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "checkout-review",
+      "path": "/checkout",
+      "title": "Checkout",
+      "width": 1440,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "checkout-review",
+      "path": "/checkout",
+      "title": "Checkout",
+      "width": 1920,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "payment-result",
+      "path": "/payment-confirmation",
+      "title": "Payment not completed.",
+      "width": 320,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "payment-result",
+      "path": "/payment-confirmation",
+      "title": "Payment not completed.",
+      "width": 390,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "payment-result",
+      "path": "/payment-confirmation",
+      "title": "Payment not completed.",
+      "width": 768,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "payment-result",
+      "path": "/payment-confirmation",
+      "title": "Payment not completed.",
+      "width": 844,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "payment-result",
+      "path": "/payment-confirmation",
+      "title": "Payment not completed.",
+      "width": 1024,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "payment-result",
+      "path": "/payment-confirmation",
+      "title": "Payment not completed.",
+      "width": 1440,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "payment-result",
+      "path": "/payment-confirmation",
+      "title": "Payment not completed.",
+      "width": 1920,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "payment-recovery",
+      "path": "/checkout",
+      "title": "Checkout",
+      "width": 320,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "payment-recovery",
+      "path": "/checkout",
+      "title": "Checkout",
+      "width": 390,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "payment-recovery",
+      "path": "/checkout",
+      "title": "Checkout",
+      "width": 768,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "payment-recovery",
+      "path": "/checkout",
+      "title": "Checkout",
+      "width": 844,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "payment-recovery",
+      "path": "/checkout",
+      "title": "Checkout",
+      "width": 1024,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "payment-recovery",
+      "path": "/checkout",
+      "title": "Checkout",
+      "width": 1440,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "payment-recovery",
+      "path": "/checkout",
+      "title": "Checkout",
+      "width": 1920,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "orders",
+      "path": "/orders",
+      "title": "Your orders",
+      "width": 320,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "orders",
+      "path": "/orders",
+      "title": "Your orders",
+      "width": 390,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "orders",
+      "path": "/orders",
+      "title": "Your orders",
+      "width": 768,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "orders",
+      "path": "/orders",
+      "title": "Your orders",
+      "width": 844,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "orders",
+      "path": "/orders",
+      "title": "Your orders",
+      "width": 1024,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "orders",
+      "path": "/orders",
+      "title": "Your orders",
+      "width": 1440,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "orders",
+      "path": "/orders",
+      "title": "Your orders",
+      "width": 1920,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "checkout-modal-base",
+      "path": "/checkout",
+      "title": "Checkout",
+      "width": 320,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "checkout-modal-base",
+      "path": "/checkout",
+      "title": "Checkout",
+      "width": 390,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "checkout-modal-base",
+      "path": "/checkout",
+      "title": "Checkout",
+      "width": 768,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "checkout-modal-base",
+      "path": "/checkout",
+      "title": "Checkout",
+      "width": 844,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "checkout-modal-base",
+      "path": "/checkout",
+      "title": "Checkout",
+      "width": 1024,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "checkout-modal-base",
+      "path": "/checkout",
+      "title": "Checkout",
+      "width": 1440,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "checkout-modal-base",
+      "path": "/checkout",
+      "title": "Checkout",
+      "width": 1920,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "checkout-address-modal",
+      "path": "/checkout",
+      "title": "Checkout",
+      "width": 320,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "checkout-address-modal",
+      "path": "/checkout",
+      "title": "Checkout",
+      "width": 390,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "checkout-address-modal",
+      "path": "/checkout",
+      "title": "Checkout",
+      "width": 768,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "checkout-address-modal",
+      "path": "/checkout",
+      "title": "Checkout",
+      "width": 844,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "checkout-address-modal",
+      "path": "/checkout",
+      "title": "Checkout",
+      "width": 1024,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "checkout-address-modal",
+      "path": "/checkout",
+      "title": "Checkout",
+      "width": 1440,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "checkout-address-modal",
+      "path": "/checkout",
+      "title": "Checkout",
+      "width": 1920,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "checkout-address-step",
+      "path": "/checkout",
+      "title": "Checkout",
+      "width": 320,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "checkout-address-step",
+      "path": "/checkout",
+      "title": "Checkout",
+      "width": 390,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "checkout-address-step",
+      "path": "/checkout",
+      "title": "Checkout",
+      "width": 768,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "checkout-address-step",
+      "path": "/checkout",
+      "title": "Checkout",
+      "width": 844,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "checkout-address-step",
+      "path": "/checkout",
+      "title": "Checkout",
+      "width": 1024,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "checkout-address-step",
+      "path": "/checkout",
+      "title": "Checkout",
+      "width": 1440,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "checkout-address-step",
+      "path": "/checkout",
+      "title": "Checkout",
+      "width": 1920,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "admin-overview",
+      "path": "/admin/dashboard?tab=overview",
+      "title": "Administration",
+      "width": 320,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "admin-overview",
+      "path": "/admin/dashboard?tab=overview",
+      "title": "Administration",
+      "width": 390,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "admin-overview",
+      "path": "/admin/dashboard?tab=overview",
+      "title": "Administration",
+      "width": 768,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "admin-overview",
+      "path": "/admin/dashboard?tab=overview",
+      "title": "Administration",
+      "width": 844,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "admin-overview",
+      "path": "/admin/dashboard?tab=overview",
+      "title": "Administration",
+      "width": 1024,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "admin-overview",
+      "path": "/admin/dashboard?tab=overview",
+      "title": "Administration",
+      "width": 1440,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "admin-overview",
+      "path": "/admin/dashboard?tab=overview",
+      "title": "Administration",
+      "width": 1920,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "admin-users",
+      "path": "/admin/dashboard?tab=users",
+      "title": "Administration",
+      "width": 320,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "admin-users",
+      "path": "/admin/dashboard?tab=users",
+      "title": "Administration",
+      "width": 390,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "admin-users",
+      "path": "/admin/dashboard?tab=users",
+      "title": "Administration",
+      "width": 768,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "admin-users",
+      "path": "/admin/dashboard?tab=users",
+      "title": "Administration",
+      "width": 844,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "admin-users",
+      "path": "/admin/dashboard?tab=users",
+      "title": "Administration",
+      "width": 1024,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "admin-users",
+      "path": "/admin/dashboard?tab=users",
+      "title": "Administration",
+      "width": 1440,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "admin-users",
+      "path": "/admin/dashboard?tab=users",
+      "title": "Administration",
+      "width": 1920,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "admin-applications",
+      "path": "/admin/dashboard?tab=applications",
+      "title": "Administration",
+      "width": 320,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "admin-applications",
+      "path": "/admin/dashboard?tab=applications",
+      "title": "Administration",
+      "width": 390,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "admin-applications",
+      "path": "/admin/dashboard?tab=applications",
+      "title": "Administration",
+      "width": 768,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "admin-applications",
+      "path": "/admin/dashboard?tab=applications",
+      "title": "Administration",
+      "width": 844,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "admin-applications",
+      "path": "/admin/dashboard?tab=applications",
+      "title": "Administration",
+      "width": 1024,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "admin-applications",
+      "path": "/admin/dashboard?tab=applications",
+      "title": "Administration",
+      "width": 1440,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "admin-applications",
+      "path": "/admin/dashboard?tab=applications",
+      "title": "Administration",
+      "width": 1920,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "admin-commission",
+      "path": "/admin/dashboard?tab=commission",
+      "title": "Administration",
+      "width": 320,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "admin-commission",
+      "path": "/admin/dashboard?tab=commission",
+      "title": "Administration",
+      "width": 390,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "admin-commission",
+      "path": "/admin/dashboard?tab=commission",
+      "title": "Administration",
+      "width": 768,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "admin-commission",
+      "path": "/admin/dashboard?tab=commission",
+      "title": "Administration",
+      "width": 844,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "admin-commission",
+      "path": "/admin/dashboard?tab=commission",
+      "title": "Administration",
+      "width": 1024,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "admin-commission",
+      "path": "/admin/dashboard?tab=commission",
+      "title": "Administration",
+      "width": 1440,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "admin-commission",
+      "path": "/admin/dashboard?tab=commission",
+      "title": "Administration",
+      "width": 1920,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "admin-orders",
+      "path": "/admin/dashboard?tab=orders",
+      "title": "Administration",
+      "width": 320,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "admin-orders",
+      "path": "/admin/dashboard?tab=orders",
+      "title": "Administration",
+      "width": 390,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "admin-orders",
+      "path": "/admin/dashboard?tab=orders",
+      "title": "Administration",
+      "width": 768,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "admin-orders",
+      "path": "/admin/dashboard?tab=orders",
+      "title": "Administration",
+      "width": 844,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "admin-orders",
+      "path": "/admin/dashboard?tab=orders",
+      "title": "Administration",
+      "width": 1024,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "admin-orders",
+      "path": "/admin/dashboard?tab=orders",
+      "title": "Administration",
+      "width": 1440,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "admin-orders",
+      "path": "/admin/dashboard?tab=orders",
+      "title": "Administration",
+      "width": 1920,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "admin-categories",
+      "path": "/admin/dashboard?tab=categories",
+      "title": "Administration",
+      "width": 320,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "admin-categories",
+      "path": "/admin/dashboard?tab=categories",
+      "title": "Administration",
+      "width": 390,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "admin-categories",
+      "path": "/admin/dashboard?tab=categories",
+      "title": "Administration",
+      "width": 768,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "admin-categories",
+      "path": "/admin/dashboard?tab=categories",
+      "title": "Administration",
+      "width": 844,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "admin-categories",
+      "path": "/admin/dashboard?tab=categories",
+      "title": "Administration",
+      "width": 1024,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "admin-categories",
+      "path": "/admin/dashboard?tab=categories",
+      "title": "Administration",
+      "width": 1440,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "admin-categories",
+      "path": "/admin/dashboard?tab=categories",
+      "title": "Administration",
+      "width": 1920,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "admin-products",
+      "path": "/admin/dashboard?tab=products",
+      "title": "Administration",
+      "width": 320,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "admin-products",
+      "path": "/admin/dashboard?tab=products",
+      "title": "Administration",
+      "width": 390,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "admin-products",
+      "path": "/admin/dashboard?tab=products",
+      "title": "Administration",
+      "width": 768,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "admin-products",
+      "path": "/admin/dashboard?tab=products",
+      "title": "Administration",
+      "width": 844,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "admin-products",
+      "path": "/admin/dashboard?tab=products",
+      "title": "Administration",
+      "width": 1024,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "admin-products",
+      "path": "/admin/dashboard?tab=products",
+      "title": "Administration",
+      "width": 1440,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "admin-products",
+      "path": "/admin/dashboard?tab=products",
+      "title": "Administration",
+      "width": 1920,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "admin-carts",
+      "path": "/admin/dashboard?tab=carts",
+      "title": "Administration",
+      "width": 320,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "admin-carts",
+      "path": "/admin/dashboard?tab=carts",
+      "title": "Administration",
+      "width": 390,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "admin-carts",
+      "path": "/admin/dashboard?tab=carts",
+      "title": "Administration",
+      "width": 768,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "admin-carts",
+      "path": "/admin/dashboard?tab=carts",
+      "title": "Administration",
+      "width": 844,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "admin-carts",
+      "path": "/admin/dashboard?tab=carts",
+      "title": "Administration",
+      "width": 1024,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "admin-carts",
+      "path": "/admin/dashboard?tab=carts",
+      "title": "Administration",
+      "width": 1440,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "admin-carts",
+      "path": "/admin/dashboard?tab=carts",
+      "title": "Administration",
+      "width": 1920,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "products-dialog-base",
+      "path": "/admin/dashboard?tab=products",
+      "title": "Administration",
+      "width": 320,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "products-dialog-base",
+      "path": "/admin/dashboard?tab=products",
+      "title": "Administration",
+      "width": 390,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "products-dialog-base",
+      "path": "/admin/dashboard?tab=products",
+      "title": "Administration",
+      "width": 768,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "products-dialog-base",
+      "path": "/admin/dashboard?tab=products",
+      "title": "Administration",
+      "width": 844,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "products-dialog-base",
+      "path": "/admin/dashboard?tab=products",
+      "title": "Administration",
+      "width": 1024,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "products-dialog-base",
+      "path": "/admin/dashboard?tab=products",
+      "title": "Administration",
+      "width": 1440,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "products-dialog-base",
+      "path": "/admin/dashboard?tab=products",
+      "title": "Administration",
+      "width": 1920,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "product-dialog",
+      "path": "/admin/dashboard?tab=products",
+      "title": "Administration",
+      "width": 320,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "product-dialog",
+      "path": "/admin/dashboard?tab=products",
+      "title": "Administration",
+      "width": 390,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "product-dialog",
+      "path": "/admin/dashboard?tab=products",
+      "title": "Administration",
+      "width": 768,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "product-dialog",
+      "path": "/admin/dashboard?tab=products",
+      "title": "Administration",
+      "width": 844,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "product-dialog",
+      "path": "/admin/dashboard?tab=products",
+      "title": "Administration",
+      "width": 1024,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "product-dialog",
+      "path": "/admin/dashboard?tab=products",
+      "title": "Administration",
+      "width": 1440,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "product-dialog",
+      "path": "/admin/dashboard?tab=products",
+      "title": "Administration",
+      "width": 1920,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "inventory-base",
+      "path": "/admin/dashboard?tab=products",
+      "title": "Administration",
+      "width": 320,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "inventory-base",
+      "path": "/admin/dashboard?tab=products",
+      "title": "Administration",
+      "width": 390,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "inventory-base",
+      "path": "/admin/dashboard?tab=products",
+      "title": "Administration",
+      "width": 768,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "inventory-base",
+      "path": "/admin/dashboard?tab=products",
+      "title": "Administration",
+      "width": 844,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "inventory-base",
+      "path": "/admin/dashboard?tab=products",
+      "title": "Administration",
+      "width": 1024,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "inventory-base",
+      "path": "/admin/dashboard?tab=products",
+      "title": "Administration",
+      "width": 1440,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "inventory-base",
+      "path": "/admin/dashboard?tab=products",
+      "title": "Administration",
+      "width": 1920,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "admin-inventory",
+      "path": "/admin/dashboard?tab=products",
+      "title": "Administration",
+      "width": 320,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "admin-inventory",
+      "path": "/admin/dashboard?tab=products",
+      "title": "Administration",
+      "width": 390,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "admin-inventory",
+      "path": "/admin/dashboard?tab=products",
+      "title": "Administration",
+      "width": 768,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "admin-inventory",
+      "path": "/admin/dashboard?tab=products",
+      "title": "Administration",
+      "width": 844,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "admin-inventory",
+      "path": "/admin/dashboard?tab=products",
+      "title": "Administration",
+      "width": 1024,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "admin-inventory",
+      "path": "/admin/dashboard?tab=products",
+      "title": "Administration",
+      "width": 1440,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "admin-inventory",
+      "path": "/admin/dashboard?tab=products",
+      "title": "Administration",
+      "width": 1920,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "supply-dialog",
+      "path": "/admin/dashboard?tab=products",
+      "title": "Administration",
+      "width": 320,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "supply-dialog",
+      "path": "/admin/dashboard?tab=products",
+      "title": "Administration",
+      "width": 390,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "supply-dialog",
+      "path": "/admin/dashboard?tab=products",
+      "title": "Administration",
+      "width": 768,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "supply-dialog",
+      "path": "/admin/dashboard?tab=products",
+      "title": "Administration",
+      "width": 844,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "supply-dialog",
+      "path": "/admin/dashboard?tab=products",
+      "title": "Administration",
+      "width": 1024,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "supply-dialog",
+      "path": "/admin/dashboard?tab=products",
+      "title": "Administration",
+      "width": 1440,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "supply-dialog",
+      "path": "/admin/dashboard?tab=products",
+      "title": "Administration",
+      "width": 1920,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "category-base",
+      "path": "/admin/dashboard?tab=categories",
+      "title": "Administration",
+      "width": 320,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "category-base",
+      "path": "/admin/dashboard?tab=categories",
+      "title": "Administration",
+      "width": 390,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "category-base",
+      "path": "/admin/dashboard?tab=categories",
+      "title": "Administration",
+      "width": 768,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "category-base",
+      "path": "/admin/dashboard?tab=categories",
+      "title": "Administration",
+      "width": 844,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "category-base",
+      "path": "/admin/dashboard?tab=categories",
+      "title": "Administration",
+      "width": 1024,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "category-base",
+      "path": "/admin/dashboard?tab=categories",
+      "title": "Administration",
+      "width": 1440,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "category-base",
+      "path": "/admin/dashboard?tab=categories",
+      "title": "Administration",
+      "width": 1920,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "category-dialog",
+      "path": "/admin/dashboard?tab=categories",
+      "title": "Administration",
+      "width": 320,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "category-dialog",
+      "path": "/admin/dashboard?tab=categories",
+      "title": "Administration",
+      "width": 390,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "category-dialog",
+      "path": "/admin/dashboard?tab=categories",
+      "title": "Administration",
+      "width": 768,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "category-dialog",
+      "path": "/admin/dashboard?tab=categories",
+      "title": "Administration",
+      "width": 844,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "category-dialog",
+      "path": "/admin/dashboard?tab=categories",
+      "title": "Administration",
+      "width": 1024,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "category-dialog",
+      "path": "/admin/dashboard?tab=categories",
+      "title": "Administration",
+      "width": 1440,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "category-dialog",
+      "path": "/admin/dashboard?tab=categories",
+      "title": "Administration",
+      "width": 1920,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "application-base",
+      "path": "/admin/dashboard?tab=applications",
+      "title": "Administration",
+      "width": 320,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "application-base",
+      "path": "/admin/dashboard?tab=applications",
+      "title": "Administration",
+      "width": 390,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "application-base",
+      "path": "/admin/dashboard?tab=applications",
+      "title": "Administration",
+      "width": 768,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "application-base",
+      "path": "/admin/dashboard?tab=applications",
+      "title": "Administration",
+      "width": 844,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "application-base",
+      "path": "/admin/dashboard?tab=applications",
+      "title": "Administration",
+      "width": 1024,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "application-base",
+      "path": "/admin/dashboard?tab=applications",
+      "title": "Administration",
+      "width": 1440,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "application-base",
+      "path": "/admin/dashboard?tab=applications",
+      "title": "Administration",
+      "width": 1920,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "application-dialog",
+      "path": "/admin/dashboard?tab=applications",
+      "title": "Administration",
+      "width": 320,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "application-dialog",
+      "path": "/admin/dashboard?tab=applications",
+      "title": "Administration",
+      "width": 390,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "application-dialog",
+      "path": "/admin/dashboard?tab=applications",
+      "title": "Administration",
+      "width": 768,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "application-dialog",
+      "path": "/admin/dashboard?tab=applications",
+      "title": "Administration",
+      "width": 844,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "application-dialog",
+      "path": "/admin/dashboard?tab=applications",
+      "title": "Administration",
+      "width": 1024,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "application-dialog",
+      "path": "/admin/dashboard?tab=applications",
+      "title": "Administration",
+      "width": 1440,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "application-dialog",
+      "path": "/admin/dashboard?tab=applications",
+      "title": "Administration",
+      "width": 1920,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "users-base",
+      "path": "/admin/dashboard?tab=users",
+      "title": "Administration",
+      "width": 320,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "users-base",
+      "path": "/admin/dashboard?tab=users",
+      "title": "Administration",
+      "width": 390,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "users-base",
+      "path": "/admin/dashboard?tab=users",
+      "title": "Administration",
+      "width": 768,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "users-base",
+      "path": "/admin/dashboard?tab=users",
+      "title": "Administration",
+      "width": 844,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "users-base",
+      "path": "/admin/dashboard?tab=users",
+      "title": "Administration",
+      "width": 1024,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "users-base",
+      "path": "/admin/dashboard?tab=users",
+      "title": "Administration",
+      "width": 1440,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "users-base",
+      "path": "/admin/dashboard?tab=users",
+      "title": "Administration",
+      "width": 1920,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "user-drawer",
+      "path": "/admin/dashboard?tab=users",
+      "title": "Administration",
+      "width": 320,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "user-drawer",
+      "path": "/admin/dashboard?tab=users",
+      "title": "Administration",
+      "width": 390,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "user-drawer",
+      "path": "/admin/dashboard?tab=users",
+      "title": "Administration",
+      "width": 768,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "user-drawer",
+      "path": "/admin/dashboard?tab=users",
+      "title": "Administration",
+      "width": 844,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "user-drawer",
+      "path": "/admin/dashboard?tab=users",
+      "title": "Administration",
+      "width": 1024,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "user-drawer",
+      "path": "/admin/dashboard?tab=users",
+      "title": "Administration",
+      "width": 1440,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "user-drawer",
+      "path": "/admin/dashboard?tab=users",
+      "title": "Administration",
+      "width": 1920,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "seller-overview",
+      "path": "/seller/dashboard?tab=overview",
+      "title": "Seller dashboard",
+      "width": 320,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "seller-overview",
+      "path": "/seller/dashboard?tab=overview",
+      "title": "Seller dashboard",
+      "width": 390,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "seller-overview",
+      "path": "/seller/dashboard?tab=overview",
+      "title": "Seller dashboard",
+      "width": 768,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "seller-overview",
+      "path": "/seller/dashboard?tab=overview",
+      "title": "Seller dashboard",
+      "width": 844,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "seller-overview",
+      "path": "/seller/dashboard?tab=overview",
+      "title": "Seller dashboard",
+      "width": 1024,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "seller-overview",
+      "path": "/seller/dashboard?tab=overview",
+      "title": "Seller dashboard",
+      "width": 1440,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "seller-overview",
+      "path": "/seller/dashboard?tab=overview",
+      "title": "Seller dashboard",
+      "width": 1920,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "seller-products",
+      "path": "/seller/dashboard?tab=products",
+      "title": "Seller dashboard",
+      "width": 320,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "seller-products",
+      "path": "/seller/dashboard?tab=products",
+      "title": "Seller dashboard",
+      "width": 390,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "seller-products",
+      "path": "/seller/dashboard?tab=products",
+      "title": "Seller dashboard",
+      "width": 768,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "seller-products",
+      "path": "/seller/dashboard?tab=products",
+      "title": "Seller dashboard",
+      "width": 844,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "seller-products",
+      "path": "/seller/dashboard?tab=products",
+      "title": "Seller dashboard",
+      "width": 1024,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "seller-products",
+      "path": "/seller/dashboard?tab=products",
+      "title": "Seller dashboard",
+      "width": 1440,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "seller-products",
+      "path": "/seller/dashboard?tab=products",
+      "title": "Seller dashboard",
+      "width": 1920,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "seller-fulfillment",
+      "path": "/seller/dashboard?tab=fulfillment",
+      "title": "Seller dashboard",
+      "width": 320,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "seller-fulfillment",
+      "path": "/seller/dashboard?tab=fulfillment",
+      "title": "Seller dashboard",
+      "width": 390,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "seller-fulfillment",
+      "path": "/seller/dashboard?tab=fulfillment",
+      "title": "Seller dashboard",
+      "width": 768,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "seller-fulfillment",
+      "path": "/seller/dashboard?tab=fulfillment",
+      "title": "Seller dashboard",
+      "width": 844,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "seller-fulfillment",
+      "path": "/seller/dashboard?tab=fulfillment",
+      "title": "Seller dashboard",
+      "width": 1024,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "seller-fulfillment",
+      "path": "/seller/dashboard?tab=fulfillment",
+      "title": "Seller dashboard",
+      "width": 1440,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "seller-fulfillment",
+      "path": "/seller/dashboard?tab=fulfillment",
+      "title": "Seller dashboard",
+      "width": 1920,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "seller-promotions",
+      "path": "/seller/dashboard?tab=promotions",
+      "title": "Seller dashboard",
+      "width": 320,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "seller-promotions",
+      "path": "/seller/dashboard?tab=promotions",
+      "title": "Seller dashboard",
+      "width": 390,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "seller-promotions",
+      "path": "/seller/dashboard?tab=promotions",
+      "title": "Seller dashboard",
+      "width": 768,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "seller-promotions",
+      "path": "/seller/dashboard?tab=promotions",
+      "title": "Seller dashboard",
+      "width": 844,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "seller-promotions",
+      "path": "/seller/dashboard?tab=promotions",
+      "title": "Seller dashboard",
+      "width": 1024,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "seller-promotions",
+      "path": "/seller/dashboard?tab=promotions",
+      "title": "Seller dashboard",
+      "width": 1440,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "seller-promotions",
+      "path": "/seller/dashboard?tab=promotions",
+      "title": "Seller dashboard",
+      "width": 1920,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "seller-notices",
+      "path": "/seller/dashboard?tab=notices",
+      "title": "Seller dashboard",
+      "width": 320,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "seller-notices",
+      "path": "/seller/dashboard?tab=notices",
+      "title": "Seller dashboard",
+      "width": 390,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "seller-notices",
+      "path": "/seller/dashboard?tab=notices",
+      "title": "Seller dashboard",
+      "width": 768,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "seller-notices",
+      "path": "/seller/dashboard?tab=notices",
+      "title": "Seller dashboard",
+      "width": 844,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "seller-notices",
+      "path": "/seller/dashboard?tab=notices",
+      "title": "Seller dashboard",
+      "width": 1024,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "seller-notices",
+      "path": "/seller/dashboard?tab=notices",
+      "title": "Seller dashboard",
+      "width": 1440,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "seller-notices",
+      "path": "/seller/dashboard?tab=notices",
+      "title": "Seller dashboard",
+      "width": 1920,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "fulfillment-base",
+      "path": "/seller/dashboard?tab=fulfillment",
+      "title": "Seller dashboard",
+      "width": 320,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "fulfillment-base",
+      "path": "/seller/dashboard?tab=fulfillment",
+      "title": "Seller dashboard",
+      "width": 390,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "fulfillment-base",
+      "path": "/seller/dashboard?tab=fulfillment",
+      "title": "Seller dashboard",
+      "width": 768,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "fulfillment-base",
+      "path": "/seller/dashboard?tab=fulfillment",
+      "title": "Seller dashboard",
+      "width": 844,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "fulfillment-base",
+      "path": "/seller/dashboard?tab=fulfillment",
+      "title": "Seller dashboard",
+      "width": 1024,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "fulfillment-base",
+      "path": "/seller/dashboard?tab=fulfillment",
+      "title": "Seller dashboard",
+      "width": 1440,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "fulfillment-base",
+      "path": "/seller/dashboard?tab=fulfillment",
+      "title": "Seller dashboard",
+      "width": 1920,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "fulfillment-history",
+      "path": "/seller/dashboard?tab=fulfillment",
+      "title": "Seller dashboard",
+      "width": 320,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "fulfillment-history",
+      "path": "/seller/dashboard?tab=fulfillment",
+      "title": "Seller dashboard",
+      "width": 390,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "fulfillment-history",
+      "path": "/seller/dashboard?tab=fulfillment",
+      "title": "Seller dashboard",
+      "width": 768,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "fulfillment-history",
+      "path": "/seller/dashboard?tab=fulfillment",
+      "title": "Seller dashboard",
+      "width": 844,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "fulfillment-history",
+      "path": "/seller/dashboard?tab=fulfillment",
+      "title": "Seller dashboard",
+      "width": 1024,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "fulfillment-history",
+      "path": "/seller/dashboard?tab=fulfillment",
+      "title": "Seller dashboard",
+      "width": 1440,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "fulfillment-history",
+      "path": "/seller/dashboard?tab=fulfillment",
+      "title": "Seller dashboard",
+      "width": 1920,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "seller-application-status",
+      "path": "/seller/dashboard",
+      "title": "Seller application pending",
+      "width": 320,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "seller-application-status",
+      "path": "/seller/dashboard",
+      "title": "Seller application pending",
+      "width": 390,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "seller-application-status",
+      "path": "/seller/dashboard",
+      "title": "Seller application pending",
+      "width": 768,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "seller-application-status",
+      "path": "/seller/dashboard",
+      "title": "Seller application pending",
+      "width": 844,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "seller-application-status",
+      "path": "/seller/dashboard",
+      "title": "Seller application pending",
+      "width": 1024,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "seller-application-status",
+      "path": "/seller/dashboard",
+      "title": "Seller application pending",
+      "width": 1440,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "seller-application-status",
+      "path": "/seller/dashboard",
+      "title": "Seller application pending",
+      "width": 1920,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "order-missing",
+      "path": "/orders?orderId=missing-review-order",
+      "width": 320,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "order-missing",
+      "path": "/orders?orderId=missing-review-order",
+      "width": 390,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "order-missing",
+      "path": "/orders?orderId=missing-review-order",
+      "width": 768,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "order-missing",
+      "path": "/orders?orderId=missing-review-order",
+      "width": 844,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "order-missing",
+      "path": "/orders?orderId=missing-review-order",
+      "width": 1024,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "order-missing",
+      "path": "/orders?orderId=missing-review-order",
+      "width": 1440,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "order-missing",
+      "path": "/orders?orderId=missing-review-order",
+      "width": 1920,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "nested-payment-result",
+      "path": "/checkout/payment-confirmation",
+      "title": "Payment not completed.",
+      "width": 320,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "nested-payment-result",
+      "path": "/checkout/payment-confirmation",
+      "title": "Payment not completed.",
+      "width": 390,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "nested-payment-result",
+      "path": "/checkout/payment-confirmation",
+      "title": "Payment not completed.",
+      "width": 768,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "nested-payment-result",
+      "path": "/checkout/payment-confirmation",
+      "title": "Payment not completed.",
+      "width": 844,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "nested-payment-result",
+      "path": "/checkout/payment-confirmation",
+      "title": "Payment not completed.",
+      "width": 1024,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "nested-payment-result",
+      "path": "/checkout/payment-confirmation",
+      "title": "Payment not completed.",
+      "width": 1440,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "nested-payment-result",
+      "path": "/checkout/payment-confirmation",
+      "title": "Payment not completed.",
+      "width": 1920,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "address-editor-base",
+      "path": "/addresses",
+      "title": "Addresses",
+      "width": 320,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "address-editor-base",
+      "path": "/addresses",
+      "title": "Addresses",
+      "width": 390,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "address-editor-base",
+      "path": "/addresses",
+      "title": "Addresses",
+      "width": 768,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "address-editor-base",
+      "path": "/addresses",
+      "title": "Addresses",
+      "width": 844,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "address-editor-base",
+      "path": "/addresses",
+      "title": "Addresses",
+      "width": 1024,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "address-editor-base",
+      "path": "/addresses",
+      "title": "Addresses",
+      "width": 1440,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "address-editor-base",
+      "path": "/addresses",
+      "title": "Addresses",
+      "width": 1920,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "account-address-editor",
+      "path": "/addresses",
+      "title": "Addresses",
+      "width": 320,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "account-address-editor",
+      "path": "/addresses",
+      "title": "Addresses",
+      "width": 390,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "account-address-editor",
+      "path": "/addresses",
+      "title": "Addresses",
+      "width": 768,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "account-address-editor",
+      "path": "/addresses",
+      "title": "Addresses",
+      "width": 844,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "account-address-editor",
+      "path": "/addresses",
+      "title": "Addresses",
+      "width": 1024,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "account-address-editor",
+      "path": "/addresses",
+      "title": "Addresses",
+      "width": 1440,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "account-address-editor",
+      "path": "/addresses",
+      "title": "Addresses",
+      "width": 1920,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "order-detail-base",
+      "path": "/admin/dashboard?tab=orders",
+      "title": "Administration",
+      "width": 320,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "order-detail-base",
+      "path": "/admin/dashboard?tab=orders",
+      "title": "Administration",
+      "width": 390,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "order-detail-base",
+      "path": "/admin/dashboard?tab=orders",
+      "title": "Administration",
+      "width": 768,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "order-detail-base",
+      "path": "/admin/dashboard?tab=orders",
+      "title": "Administration",
+      "width": 844,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "order-detail-base",
+      "path": "/admin/dashboard?tab=orders",
+      "title": "Administration",
+      "width": 1024,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "order-detail-base",
+      "path": "/admin/dashboard?tab=orders",
+      "title": "Administration",
+      "width": 1440,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "order-detail-base",
+      "path": "/admin/dashboard?tab=orders",
+      "title": "Administration",
+      "width": 1920,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "admin-order-detail",
+      "path": "/admin/dashboard?tab=orders",
+      "title": "Administration",
+      "width": 320,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "admin-order-detail",
+      "path": "/admin/dashboard?tab=orders",
+      "title": "Administration",
+      "width": 390,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "admin-order-detail",
+      "path": "/admin/dashboard?tab=orders",
+      "title": "Administration",
+      "width": 768,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "admin-order-detail",
+      "path": "/admin/dashboard?tab=orders",
+      "title": "Administration",
+      "width": 844,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "admin-order-detail",
+      "path": "/admin/dashboard?tab=orders",
+      "title": "Administration",
+      "width": 1024,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "admin-order-detail",
+      "path": "/admin/dashboard?tab=orders",
+      "title": "Administration",
+      "width": 1440,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "admin-order-detail",
+      "path": "/admin/dashboard?tab=orders",
+      "title": "Administration",
+      "width": 1920,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "cart-detail-base",
+      "path": "/admin/dashboard?tab=carts",
+      "title": "Administration",
+      "width": 320,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "cart-detail-base",
+      "path": "/admin/dashboard?tab=carts",
+      "title": "Administration",
+      "width": 390,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "cart-detail-base",
+      "path": "/admin/dashboard?tab=carts",
+      "title": "Administration",
+      "width": 768,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "cart-detail-base",
+      "path": "/admin/dashboard?tab=carts",
+      "title": "Administration",
+      "width": 844,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "cart-detail-base",
+      "path": "/admin/dashboard?tab=carts",
+      "title": "Administration",
+      "width": 1024,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "cart-detail-base",
+      "path": "/admin/dashboard?tab=carts",
+      "title": "Administration",
+      "width": 1440,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "cart-detail-base",
+      "path": "/admin/dashboard?tab=carts",
+      "title": "Administration",
+      "width": 1920,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "admin-cart-detail",
+      "path": "/admin/dashboard?tab=carts",
+      "title": "Administration",
+      "width": 320,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "admin-cart-detail",
+      "path": "/admin/dashboard?tab=carts",
+      "title": "Administration",
+      "width": 390,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "admin-cart-detail",
+      "path": "/admin/dashboard?tab=carts",
+      "title": "Administration",
+      "width": 768,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "admin-cart-detail",
+      "path": "/admin/dashboard?tab=carts",
+      "title": "Administration",
+      "width": 844,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "admin-cart-detail",
+      "path": "/admin/dashboard?tab=carts",
+      "title": "Administration",
+      "width": 1024,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "admin-cart-detail",
+      "path": "/admin/dashboard?tab=carts",
+      "title": "Administration",
+      "width": 1440,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "admin-cart-detail",
+      "path": "/admin/dashboard?tab=carts",
+      "title": "Administration",
+      "width": 1920,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "product-edit-base",
+      "path": "/admin/dashboard?tab=products",
+      "title": "Administration",
+      "width": 320,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "product-edit-base",
+      "path": "/admin/dashboard?tab=products",
+      "title": "Administration",
+      "width": 390,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "product-edit-base",
+      "path": "/admin/dashboard?tab=products",
+      "title": "Administration",
+      "width": 768,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "product-edit-base",
+      "path": "/admin/dashboard?tab=products",
+      "title": "Administration",
+      "width": 844,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "product-edit-base",
+      "path": "/admin/dashboard?tab=products",
+      "title": "Administration",
+      "width": 1024,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "product-edit-base",
+      "path": "/admin/dashboard?tab=products",
+      "title": "Administration",
+      "width": 1440,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "product-edit-base",
+      "path": "/admin/dashboard?tab=products",
+      "title": "Administration",
+      "width": 1920,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "product-edit-details",
+      "path": "/admin/dashboard?tab=products",
+      "title": "Administration",
+      "width": 320,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "product-edit-details",
+      "path": "/admin/dashboard?tab=products",
+      "title": "Administration",
+      "width": 390,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "product-edit-details",
+      "path": "/admin/dashboard?tab=products",
+      "title": "Administration",
+      "width": 768,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "product-edit-details",
+      "path": "/admin/dashboard?tab=products",
+      "title": "Administration",
+      "width": 844,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "product-edit-details",
+      "path": "/admin/dashboard?tab=products",
+      "title": "Administration",
+      "width": 1024,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "product-edit-details",
+      "path": "/admin/dashboard?tab=products",
+      "title": "Administration",
+      "width": 1440,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "product-edit-details",
+      "path": "/admin/dashboard?tab=products",
+      "title": "Administration",
+      "width": 1920,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "product-edit-specifications",
+      "path": "/admin/dashboard?tab=products",
+      "title": "Administration",
+      "width": 320,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "product-edit-specifications",
+      "path": "/admin/dashboard?tab=products",
+      "title": "Administration",
+      "width": 390,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "product-edit-specifications",
+      "path": "/admin/dashboard?tab=products",
+      "title": "Administration",
+      "width": 768,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "product-edit-specifications",
+      "path": "/admin/dashboard?tab=products",
+      "title": "Administration",
+      "width": 844,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "product-edit-specifications",
+      "path": "/admin/dashboard?tab=products",
+      "title": "Administration",
+      "width": 1024,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "product-edit-specifications",
+      "path": "/admin/dashboard?tab=products",
+      "title": "Administration",
+      "width": 1440,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "product-edit-specifications",
+      "path": "/admin/dashboard?tab=products",
+      "title": "Administration",
+      "width": 1920,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "product-edit-review",
+      "path": "/admin/dashboard?tab=products",
+      "title": "Administration",
+      "width": 320,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "product-edit-review",
+      "path": "/admin/dashboard?tab=products",
+      "title": "Administration",
+      "width": 390,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "product-edit-review",
+      "path": "/admin/dashboard?tab=products",
+      "title": "Administration",
+      "width": 768,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "product-edit-review",
+      "path": "/admin/dashboard?tab=products",
+      "title": "Administration",
+      "width": 844,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "product-edit-review",
+      "path": "/admin/dashboard?tab=products",
+      "title": "Administration",
+      "width": 1024,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "product-edit-review",
+      "path": "/admin/dashboard?tab=products",
+      "title": "Administration",
+      "width": 1440,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "product-edit-review",
+      "path": "/admin/dashboard?tab=products",
+      "title": "Administration",
+      "width": 1920,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "timeframe-base",
+      "path": "/admin/dashboard?tab=overview",
+      "title": "Administration",
+      "width": 320,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "timeframe-base",
+      "path": "/admin/dashboard?tab=overview",
+      "title": "Administration",
+      "width": 390,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "timeframe-base",
+      "path": "/admin/dashboard?tab=overview",
+      "title": "Administration",
+      "width": 768,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "timeframe-base",
+      "path": "/admin/dashboard?tab=overview",
+      "title": "Administration",
+      "width": 844,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "timeframe-base",
+      "path": "/admin/dashboard?tab=overview",
+      "title": "Administration",
+      "width": 1024,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "timeframe-base",
+      "path": "/admin/dashboard?tab=overview",
+      "title": "Administration",
+      "width": 1440,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "timeframe-base",
+      "path": "/admin/dashboard?tab=overview",
+      "title": "Administration",
+      "width": 1920,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "timeframe-popover",
+      "path": "/admin/dashboard?tab=overview",
+      "title": "Administration",
+      "width": 320,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "timeframe-popover",
+      "path": "/admin/dashboard?tab=overview",
+      "title": "Administration",
+      "width": 390,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "timeframe-popover",
+      "path": "/admin/dashboard?tab=overview",
+      "title": "Administration",
+      "width": 768,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "timeframe-popover",
+      "path": "/admin/dashboard?tab=overview",
+      "title": "Administration",
+      "width": 844,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "timeframe-popover",
+      "path": "/admin/dashboard?tab=overview",
+      "title": "Administration",
+      "width": 1024,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "timeframe-popover",
+      "path": "/admin/dashboard?tab=overview",
+      "title": "Administration",
+      "width": 1440,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "timeframe-popover",
+      "path": "/admin/dashboard?tab=overview",
+      "title": "Administration",
+      "width": 1920,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "filter-base",
+      "path": "/products",
+      "title": "All products",
+      "width": 320,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "filter-base",
+      "path": "/products",
+      "title": "All products",
+      "width": 390,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "filter-base",
+      "path": "/products",
+      "title": "All products",
+      "width": 768,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "filter-base",
+      "path": "/products",
+      "title": "All products",
+      "width": 844,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "filter-base",
+      "path": "/products",
+      "title": "All products",
+      "width": 1024,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "filter-base",
+      "path": "/products",
+      "title": "All products",
+      "width": 1440,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "filter-base",
+      "path": "/products",
+      "title": "All products",
+      "width": 1920,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "filter-drawer",
+      "path": "/products",
+      "title": "All products",
+      "width": 320,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "filter-drawer",
+      "path": "/products",
+      "title": "All products",
+      "width": 390,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "filter-drawer",
+      "path": "/products",
+      "title": "All products",
+      "width": 768,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "filter-drawer",
+      "path": "/products",
+      "title": "All products",
+      "width": 844,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "filter-drawer",
+      "path": "/products",
+      "title": "All products",
+      "width": 1024,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "filter-drawer",
+      "path": "/products",
+      "title": "All products",
+      "width": 1440,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "filter-drawer",
+      "path": "/products",
+      "title": "All products",
+      "width": 1920,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "mobile-navigation-base",
+      "path": "/admin/dashboard?tab=users",
+      "title": "Administration",
+      "width": 320,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "mobile-navigation-base",
+      "path": "/admin/dashboard?tab=users",
+      "title": "Administration",
+      "width": 390,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "mobile-navigation-base",
+      "path": "/admin/dashboard?tab=users",
+      "title": "Administration",
+      "width": 768,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "mobile-navigation-base",
+      "path": "/admin/dashboard?tab=users",
+      "title": "Administration",
+      "width": 844,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "mobile-navigation-base",
+      "path": "/admin/dashboard?tab=users",
+      "title": "Administration",
+      "width": 1024,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "mobile-navigation-base",
+      "path": "/admin/dashboard?tab=users",
+      "title": "Administration",
+      "width": 1440,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "mobile-navigation-base",
+      "path": "/admin/dashboard?tab=users",
+      "title": "Administration",
+      "width": 1920,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "mobile-dashboard-menu",
+      "path": "/admin/dashboard?tab=users",
+      "title": "Administration",
+      "width": 320,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "mobile-dashboard-menu",
+      "path": "/admin/dashboard?tab=users",
+      "title": "Administration",
+      "width": 390,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "mobile-dashboard-menu",
+      "path": "/admin/dashboard?tab=users",
+      "title": "Administration",
+      "width": 768,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "mobile-dashboard-menu",
+      "path": "/admin/dashboard?tab=users",
+      "title": "Administration",
+      "width": 844,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "mobile-dashboard-menu",
+      "path": "/admin/dashboard?tab=users",
+      "title": "Administration",
+      "width": 1024,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "mobile-dashboard-menu",
+      "path": "/admin/dashboard?tab=users",
+      "title": "Administration",
+      "width": 1440,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    },
+    {
+      "name": "mobile-dashboard-menu",
+      "path": "/admin/dashboard?tab=users",
+      "title": "Administration",
+      "width": 1920,
+      "overflow": 0,
+      "outside": [],
+      "crashed": false
+    }
+  ],
+  "motion": {
+    "pointer": {
+      "path": "?tab=users",
+      "selected": "Users",
+      "input": "pointer",
+      "same": true,
+      "called": [
+        {
+          "target": "dashboard-content",
+          "frames": [
+            {
+              "opacity": 0.7,
+              "transform": "translateY(4px)"
+            },
+            {
+              "opacity": 1,
+              "transform": "translateY(0)"
+            }
+          ],
+          "state": "running"
+        }
+      ],
+      "reduced": false,
+      "animations": [
+        {
+          "timing": {
+            "delay": 0,
+            "direction": "normal",
+            "duration": 180,
+            "easing": "cubic-bezier(0.23, 1, 0.32, 1)",
+            "endDelay": 0,
+            "fill": "auto",
+            "iterationStart": 0,
+            "iterations": 1
+          },
+          "frames": [
+            {
+              "offset": null,
+              "easing": "linear",
+              "composite": "auto",
+              "transform": "translateY(4px)",
+              "opacity": "0.7",
+              "computedOffset": 0
+            },
+            {
+              "offset": null,
+              "easing": "linear",
+              "composite": "auto",
+              "transform": "translateY(0px)",
+              "opacity": "1",
+              "computedOffset": 1
+            }
+          ]
+        }
+      ]
+    },
+    "keyboard": {
+      "path": "?tab=applications",
+      "selected": "Seller approvals",
+      "input": "keyboard",
+      "count": 0
+    },
+    "reduced": {
+      "path": "?tab=commission",
+      "frames": [
+        {
+          "offset": null,
+          "easing": "linear",
+          "composite": "auto",
+          "opacity": "0.7",
+          "computedOffset": 0
+        },
+        {
+          "offset": null,
+          "easing": "linear",
+          "composite": "auto",
+          "opacity": "1",
+          "computedOffset": 1
+        }
+      ]
+    },
+    "errors": []
+  },
+  "errors": [],
+  "detailFollowup": {
+    "checks": [
+      {
+        "tab": "orders",
+        "width": 320,
+        "overflow": 0,
+        "text": "Back\n\nOrder #DEMO-EARNINGS-001\n\n17m ago\n\nOrder Status\n\nDelivered\n\nOrder Items\n◈\n\nLinen lounge chair — synthetic demo sale\n\nQty: 2 · ₹11,049.15 each\n\n₹22,098.30\nDelivery Address\n\nSynthetic demo buyer\n\nSynthetic demo address — no delivery\n\nBengaluru, Karnataka — 560001\n\nPhone: 9999999999\n\nPayment\nMethod\nUPI\nStatus\nSUCCESS\nPaid On\n17m ago\nCustomer\n\nSynthetic demo buyer\n\nsynthetic-buyer@mercato.invalid\n\nOrder Summary\nSubtotal\n₹22,098.30\nFees\n₹12.00\nTotal\n₹22,110.30",
+        "products": [],
+        "clipped": []
+      },
+      {
+        "tab": "orders",
+        "width": 390,
+        "overflow": 0,
+        "text": "Back\n\nOrder #DEMO-EARNINGS-001\n\n17m ago\n\nOrder Status\n\nDelivered\n\nOrder Items\n◈\n\nLinen lounge chair — synthetic demo sale\n\nQty: 2 · ₹11,049.15 each\n\n₹22,098.30\nDelivery Address\n\nSynthetic demo buyer\n\nSynthetic demo address — no delivery\n\nBengaluru, Karnataka — 560001\n\nPhone: 9999999999\n\nPayment\nMethod\nUPI\nStatus\nSUCCESS\nPaid On\n17m ago\nCustomer\n\nSynthetic demo buyer\n\nsynthetic-buyer@mercato.invalid\n\nOrder Summary\nSubtotal\n₹22,098.30\nFees\n₹12.00\nTotal\n₹22,110.30",
+        "products": [],
+        "clipped": []
+      },
+      {
+        "tab": "orders",
+        "width": 768,
+        "overflow": 0,
+        "text": "Back\n\nOrder #DEMO-EARNINGS-001\n\n17m ago\n\nOrder Status\n\nDelivered\n\nOrder Items\n◈\n\nLinen lounge chair — synthetic demo sale\n\nQty: 2 · ₹11,049.15 each\n\n₹22,098.30\nDelivery Address\n\nSynthetic demo buyer\n\nSynthetic demo address — no delivery\n\nBengaluru, Karnataka — 560001\n\nPhone: 9999999999\n\nPayment\nMethod\nUPI\nStatus\nSUCCESS\nPaid On\n17m ago\nCustomer\n\nSynthetic demo buyer\n\nsynthetic-buyer@mercato.invalid\n\nOrder Summary\nSubtotal\n₹22,098.30\nFees\n₹12.00\nTotal\n₹22,110.30",
+        "products": [],
+        "clipped": []
+      },
+      {
+        "tab": "orders",
+        "width": 844,
+        "overflow": 0,
+        "text": "Back\n\nOrder #DEMO-EARNINGS-001\n\n17m ago\n\nOrder Status\n\nDelivered\n\nOrder Items\n◈\n\nLinen lounge chair — synthetic demo sale\n\nQty: 2 · ₹11,049.15 each\n\n₹22,098.30\nDelivery Address\n\nSynthetic demo buyer\n\nSynthetic demo address — no delivery\n\nBengaluru, Karnataka — 560001\n\nPhone: 9999999999\n\nPayment\nMethod\nUPI\nStatus\nSUCCESS\nPaid On\n17m ago\nCustomer\n\nSynthetic demo buyer\n\nsynthetic-buyer@mercato.invalid\n\nOrder Summary\nSubtotal\n₹22,098.30\nFees\n₹12.00\nTotal\n₹22,110.30",
+        "products": [],
+        "clipped": []
+      },
+      {
+        "tab": "orders",
+        "width": 1024,
+        "overflow": 0,
+        "text": "Back\n\nOrder #DEMO-EARNINGS-001\n\n17m ago\n\nOrder Status\n\nDelivered\n\nOrder Items\n◈\n\nLinen lounge chair — synthetic demo sale\n\nQty: 2 · ₹11,049.15 each\n\n₹22,098.30\nDelivery Address\n\nSynthetic demo buyer\n\nSynthetic demo address — no delivery\n\nBengaluru, Karnataka — 560001\n\nPhone: 9999999999\n\nPayment\nMethod\nUPI\nStatus\nSUCCESS\nPaid On\n17m ago\nCustomer\n\nSynthetic demo buyer\n\nsynthetic-buyer@mercato.invalid\n\nOrder Summary\nSubtotal\n₹22,098.30\nFees\n₹12.00\nTotal\n₹22,110.30",
+        "products": [],
+        "clipped": []
+      },
+      {
+        "tab": "orders",
+        "width": 1440,
+        "overflow": 0,
+        "text": "Back\n\nOrder #DEMO-EARNINGS-001\n\n17m ago\n\nOrder Status\n\nDelivered\n\nOrder Items\n◈\n\nLinen lounge chair — synthetic demo sale\n\nQty: 2 · ₹11,049.15 each\n\n₹22,098.30\nDelivery Address\n\nSynthetic demo buyer\n\nSynthetic demo address — no delivery\n\nBengaluru, Karnataka — 560001\n\nPhone: 9999999999\n\nPayment\nMethod\nUPI\nStatus\nSUCCESS\nPaid On\n17m ago\nCustomer\n\nSynthetic demo buyer\n\nsynthetic-buyer@mercato.invalid\n\nOrder Summary\nSubtotal\n₹22,098.30\nFees\n₹12.00\nTotal\n₹22,110.30",
+        "products": [],
+        "clipped": []
+      },
+      {
+        "tab": "orders",
+        "width": 1920,
+        "overflow": 0,
+        "text": "Back\n\nOrder #DEMO-EARNINGS-001\n\n17m ago\n\nOrder Status\n\nDelivered\n\nOrder Items\n◈\n\nLinen lounge chair — synthetic demo sale\n\nQty: 2 · ₹11,049.15 each\n\n₹22,098.30\nDelivery Address\n\nSynthetic demo buyer\n\nSynthetic demo address — no delivery\n\nBengaluru, Karnataka — 560001\n\nPhone: 9999999999\n\nPayment\nMethod\nUPI\nStatus\nSUCCESS\nPaid On\n17m ago\nCustomer\n\nSynthetic demo buyer\n\nsynthetic-buyer@mercato.invalid\n\nOrder Summary\nSubtotal\n₹22,098.30\nFees\n₹12.00\nTotal\n₹22,110.30",
+        "products": [],
+        "clipped": []
+      },
+      {
+        "tab": "carts",
+        "width": 320,
+        "overflow": 0,
+        "text": "Back\n\nCart #CART-20261020-FB2C5182A415\n\nCart Items (1)\n\nWireless over-ear headphones\n\nQty: 4\n·\n₹3,999.20 each\n₹15,996.80\nSummary\nSubtotal\n₹15,996.80\nDelivery\n₹0.00\nPlatform fee\n₹12.00\nProcessing & handling\n₹25.00\nTotal\n₹16,033.80",
+        "products": [
+          "Wireless over-ear headphones"
+        ],
+        "clipped": []
+      },
+      {
+        "tab": "carts",
+        "width": 390,
+        "overflow": 0,
+        "text": "Back\n\nCart #CART-20261020-FB2C5182A415\n\nCart Items (1)\n\nWireless over-ear headphones\n\nQty: 4\n·\n₹3,999.20 each\n₹15,996.80\nSummary\nSubtotal\n₹15,996.80\nDelivery\n₹0.00\nPlatform fee\n₹12.00\nProcessing & handling\n₹25.00\nTotal\n₹16,033.80",
+        "products": [
+          "Wireless over-ear headphones"
+        ],
+        "clipped": []
+      },
+      {
+        "tab": "carts",
+        "width": 768,
+        "overflow": 0,
+        "text": "Back\n\nCart #CART-20261020-FB2C5182A415\n\nCart Items (1)\n\nWireless over-ear headphones\n\nQty: 4\n·\n₹3,999.20 each\n₹15,996.80\nSummary\nSubtotal\n₹15,996.80\nDelivery\n₹0.00\nPlatform fee\n₹12.00\nProcessing & handling\n₹25.00\nTotal\n₹16,033.80",
+        "products": [
+          "Wireless over-ear headphones"
+        ],
+        "clipped": []
+      },
+      {
+        "tab": "carts",
+        "width": 844,
+        "overflow": 0,
+        "text": "Back\n\nCart #CART-20261020-FB2C5182A415\n\nCart Items (1)\n\nWireless over-ear headphones\n\nQty: 4\n·\n₹3,999.20 each\n₹15,996.80\nSummary\nSubtotal\n₹15,996.80\nDelivery\n₹0.00\nPlatform fee\n₹12.00\nProcessing & handling\n₹25.00\nTotal\n₹16,033.80",
+        "products": [
+          "Wireless over-ear headphones"
+        ],
+        "clipped": []
+      },
+      {
+        "tab": "carts",
+        "width": 1024,
+        "overflow": 0,
+        "text": "Back\n\nCart #CART-20261020-FB2C5182A415\n\nCart Items (1)\n\nWireless over-ear headphones\n\nQty: 4\n·\n₹3,999.20 each\n₹15,996.80\nSummary\nSubtotal\n₹15,996.80\nDelivery\n₹0.00\nPlatform fee\n₹12.00\nProcessing & handling\n₹25.00\nTotal\n₹16,033.80",
+        "products": [
+          "Wireless over-ear headphones"
+        ],
+        "clipped": []
+      },
+      {
+        "tab": "carts",
+        "width": 1440,
+        "overflow": 0,
+        "text": "Back\n\nCart #CART-20261020-FB2C5182A415\n\nCart Items (1)\n\nWireless over-ear headphones\n\nQty: 4\n·\n₹3,999.20 each\n₹15,996.80\nSummary\nSubtotal\n₹15,996.80\nDelivery\n₹0.00\nPlatform fee\n₹12.00\nProcessing & handling\n₹25.00\nTotal\n₹16,033.80",
+        "products": [
+          "Wireless over-ear headphones"
+        ],
+        "clipped": []
+      },
+      {
+        "tab": "carts",
+        "width": 1920,
+        "overflow": 0,
+        "text": "Back\n\nCart #CART-20261020-FB2C5182A415\n\nCart Items (1)\n\nWireless over-ear headphones\n\nQty: 4\n·\n₹3,999.20 each\n₹15,996.80\nSummary\nSubtotal\n₹15,996.80\nDelivery\n₹0.00\nPlatform fee\n₹12.00\nProcessing & handling\n₹25.00\nTotal\n₹16,033.80",
+        "products": [
+          "Wireless over-ear headphones"
+        ],
+        "clipped": []
+      }
+    ],
+    "errors": []
+  }
+}

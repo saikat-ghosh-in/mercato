@@ -34,4 +34,23 @@ public class RegisterUserRequest {
 
     @Size(max = 50)
     private String lastName;
+
+    @Pattern(regexp = "CUSTOMER|SELLER")
+    private String accountType = "CUSTOMER";
+
+    @Size(max = 120)
+    private String confirmPassword;
+
+    @jakarta.validation.Valid
+    private com.mercato.Payloads.Request.SellerApplicationRequest sellerApplication;
+
+    @jakarta.validation.constraints.AssertTrue(message = "Passwords must match")
+    public boolean isPasswordConfirmationValid() {
+        return confirmPassword == null || confirmPassword.equals(password);
+    }
+
+    @jakarta.validation.constraints.AssertTrue(message = "Seller business details are required")
+    public boolean isSellerApplicationPresent() {
+        return !"SELLER".equals(accountType) || sellerApplication != null;
+    }
 }

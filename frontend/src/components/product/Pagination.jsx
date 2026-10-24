@@ -9,7 +9,7 @@ const Pagination = ({ pageInfo, loading, onPageChange }) => {
             <button
                 onClick={() => onPageChange(pageNumber - 1)}
                 disabled={pageNumber === 0}
-                className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium border border-gray-200 rounded-xl bg-white text-gray-600 hover:border-blue-300 hover:text-blue-500 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                className="control flex items-center gap-1.5 px-4 py-2 text-sm font-medium border border-gray-200 rounded-xl bg-white text-gray-600 hover:border-blue-300 hover:text-blue-500 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
             >
                 <FiChevronLeft size={15} /> Prev
             </button>
@@ -29,7 +29,7 @@ const Pagination = ({ pageInfo, loading, onPageChange }) => {
                             onClick={() => onPageChange(i)}
                             className={`w-9 h-9 rounded-xl text-sm font-semibold transition-colors cursor-pointer ${
                                 i === pageNumber
-                                    ? "bg-blue-500 text-white shadow-sm"
+                                    ? "bg-blue-500 text-white "
                                     : "bg-white border border-gray-200 text-gray-600 hover:border-blue-300 hover:text-blue-500"
                             }`}
                         >
@@ -42,7 +42,7 @@ const Pagination = ({ pageInfo, loading, onPageChange }) => {
             <button
                 onClick={() => onPageChange(pageNumber + 1)}
                 disabled={lastPage}
-                className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium border border-gray-200 rounded-xl bg-white text-gray-600 hover:border-blue-300 hover:text-blue-500 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                className="control flex items-center gap-1.5 px-4 py-2 text-sm font-medium border border-gray-200 rounded-xl bg-white text-gray-600 hover:border-blue-300 hover:text-blue-500 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
             >
                 Next <FiChevronRight size={15} />
             </button>

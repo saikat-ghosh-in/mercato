@@ -1,0 +1,35 @@
+# Role-specific user activity and direct admin creation — 20 October 2026
+
+Local `stg` follow-up. Existing README and local configuration edits remain untouched and excluded. No remote push or `main` change.
+
+## Behavior
+
+Ordinary shoppers no longer see a Seller name row. Store name and seller status appear only for seller accounts/applicants. The read-only user drawer now includes Active bag and Orders; seller accounts additionally get Products and Listing requests. Administrators remain protected from role/account edits.
+
+Active bag shows saved quantities, unit/line prices, subtotal, charges, total, delivery method and update time. It is explicitly a saved snapshot, not a new checkout quote. Inspection does not reprice, change quantities or renew reservations. The shopper's own reserved stock is not incorrectly marked unavailable. Orders show order ID, date, fulfillment/payment status and amount. Products show category, current price, approval and enabled state. Results use bounded ten-row pages; cached pages remain visible during refreshes, cancelled/stale responses are ignored, and failures offer Retry without dismissing the drawer. Mobile navigation uses two columns so every activity section stays visible.
+
+`GET /api/admin/users/{id}/activity` is administrator-only at both route and service levels. It scopes all queries to the selected account, validates section/page/status, and does not expose passwords, guest tokens or tax application records. Order/product/request rows are paginated on the server; bag rows are paginated from the existing saved bag. Buyer orders are purchases placed by the selected account, separate from seller fulfillment operations.
+
+Seller submissions now create persistent listing-request snapshots with product name, category, price, submission time, decision, reviewer, date and note. Rejection and approval retain the original submission. Resubmission creates a new request; replacing an open request marks the previous one Superseded. Removing a product marks its open request Withdrawn and retains earlier history. Product write locks serialize review/update decisions; the PostgreSQL migration additionally enforces one open request per product. The drawer supports All, Open, Approved, Rejected, Superseded and Withdrawn filters.
+
+Admin creation now says Create product / Review & create and uses the administrator endpoint. Products are approved immediately, without a seller request or approval queue entry. Seller creation remains a free Request approval flow. Both paths retain product validation and package requirements. The editor adds no initial stock; stock is entered separately through Perpetual Inventory. Admin edits retain the existing approval state, including pending seller submissions that still require an explicit review.
+
+## Schema and startup
+
+Back up PostgreSQL and stop the API. Apply the earlier marketplace, package-pricing and seller-delivery migrations, then [2026-10-listing-request-history.sql](sql/2026-10-listing-request-history.sql), before deploying this backend/frontend. It adds the `listing_requests` table and indexes without changing product/order/cart data. Existing known current moderation states are imported once per product and labeled Imported in the UI; unrecorded prior decisions cannot be reconstructed. Direct admin creations are excluded from import. Legacy listings with null approval state are not assigned invented requests. The script is repeatable. The live PostgreSQL migration was not executed in this local review.
+
+Listing history intentionally stores immutable identifiers/snapshots without a cascading product relationship, so product deletion cannot erase decisions. Production access/retention policy must account for these audit records and former seller identifiers.
+
+Start backend from `backend` with `.\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=demo"`. From `frontend`, build and run `npm run preview -- --host 127.0.0.1 --port 5175 --strictPort`. Open `http://127.0.0.1:5175`. Isolated demo admin: `reviewer` / `ReviewOnly!2026`. Never enable `demo` in production. The current disposable preview contains a shopper bag, an approved synthetic seller with open/approved/rejected listing history, and a product created directly through the admin UI. Demo data resets on restart.
+
+## Verification
+
+- **Backend: 92 tests pass**, zero failures/errors. Five new integration tests cover admin-only access, invalid filters, cross-account isolation, read-only bag inspection including owned reservations, bounded order pagination, direct creation, seller restrictions, and rejection/resubmission/approval/supersession/withdrawal history that survives product deletion. Tests use an isolated H2 PostgreSQL-mode database. Existing commerce, payment, inventory and commission regressions remain green.
+- **Frontend: all 37 tests, lint and production build pass.** Final entry: 464.59 kB / 153.72 kB gzip. Local ignored logs: `backend/target/user-activity-backend-verified.log`, `user-activity-frontend-tests.log`, `user-activity-lint.log`, `user-activity-build.log`.
+- Browser: shopper panel omits seller fields and seller-only tabs. A two-unit tote bag shows subtotal ₹2,698.20, saved charges ₹12 and total ₹2,710.20. Orders shows its empty state. Populated purchase results and pagination are covered by the integration test with 12 scoped orders. [Shopper drawer](screenshots/user-activity-shopper-desktop.jpg).
+- Browser: seller Products shows two owned listings. Listing requests shows the original rejection, corrected approval and separate open request, with preserved names and notes; Rejected filters to the original request. [Desktop history](screenshots/user-activity-seller-history-desktop.jpg), [mobile history](screenshots/user-activity-seller-history-mobile.jpg).
+- Browser: an admin's 12 products page forward to the final two products. Admin role controls remain absent. Drawer and content measured without horizontal overflow at 320, 390, 768 and 1440px; all four mobile sections fit in the two-column navigation. Temporary viewport overrides were reset.
+- Browser: completed the admin Create product journey with category, description, price, packed measurements and an existing demo catalog image. Review states Published directly by admin; saving immediately yields Approved in the catalog. No approval request or stock update is created. [Creation review](screenshots/user-activity-admin-create-review.jpg), [approved result](screenshots/user-activity-admin-created.jpg).
+- Browser console had no warning/error entries during final verification. `git diff --check` passes. Browser's earlier connection-error block was resolved by the user closing the old tabs and authorizing a fresh tab.
+
+Physical-device touch/keyboard behavior, live PostgreSQL deployment and external carrier/payment/email/payout integrations remain outside this local verification. All new fixtures are disposable; no real payment, campaign purchase or physical shipment was initiated.

@@ -16,4 +16,5 @@ public class AddressResponseDTO {
     private final String state;
     private final String pincode;
     private final String country;
+    private final boolean defaultAddress;
 }

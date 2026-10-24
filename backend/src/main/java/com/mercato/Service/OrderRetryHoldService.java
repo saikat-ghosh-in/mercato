@@ -31,11 +31,11 @@ public class OrderRetryHoldService {
         }
 
         for (OrderLine orderLine : order.getOrderLines()) {
+            Product product = productRepository.findByProductIdForUpdate(orderLine.getProductId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Product", "productId", orderLine.getProductId()));
+            if (!product.isPurchasable()) throw new IllegalArgumentException("An item in this order is no longer approved or available");
             CartItem cartItem = cart.findItemByProductId(orderLine.getProductId()).orElse(null);
             if (cartItem == null) {
-                Product product = productRepository.findByProductIdForUpdate(orderLine.getProductId())
-                        .orElseThrow(() -> new ResourceNotFoundException(
-                                "Product", "productId", orderLine.getProductId()));
                 cart.addProduct(product, orderLine.getOrderedQty());
                 cartItem = cart.findItemByProductId(orderLine.getProductId())
                         .orElseThrow(() -> new IllegalStateException("Cart item missing after add"));

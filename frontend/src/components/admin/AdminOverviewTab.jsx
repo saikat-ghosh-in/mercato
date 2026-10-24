@@ -1,16 +1,16 @@
-import { useEffect, useState } from "react";
+import MarketplaceFinance from "../shared/MarketplaceFinance";
+import { ORDER_STATUS_MAP } from "../../utils/dashboardStatus";
 import {
     MdPeople, MdShoppingBag, MdAccessTime, MdHourglassEmpty,
-    MdStorefront, MdAdminPanelSettings, MdPerson,
 } from "react-icons/md";
-import api from "../../backend/api";
+import { useManagementQuery } from "../../reduxStore/services/privateApi.js";
 import { formatCurrency } from "../../utils/formatCurrency";
 import { formatDate } from "../../utils/formatDate";
 import {
     DashboardSkeleton, DashboardError,
-    RevenueCards, StatCard, SectionCard, SectionLabel,
+    StatCard, SectionCard, SectionLabel,
     TopSellingProducts, StatusBreakdownBars,
-    ORDER_STATUS_MAP,
+
 } from "../shared/DashboardWidgets";
 
 const RecentOrders = ({ orders, statusMap }) => {
@@ -27,7 +27,7 @@ const RecentOrders = ({ orders, statusMap }) => {
                         <thead>
                             <tr className="border-b border-gray-50">
                                 {["Order ID", "Customer", "Status", "Amount", "Date"].map(h => (
-                                    <th key={h} className="text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest pb-3 pr-4">{h}</th>
+                                    <th key={h} className="text-left text-xs font-bold text-gray-400  pb-3 pr-4">{h}</th>
                                 ))}
                             </tr>
                         </thead>
@@ -39,14 +39,14 @@ const RecentOrders = ({ orders, statusMap }) => {
                                         <td className="py-3 pr-4 text-xs font-mono font-semibold text-gray-700 whitespace-nowrap">{o.orderId}</td>
                                         <td className="py-3 pr-4">
                                             <p className="text-sm font-semibold text-gray-800">{o.customerName}</p>
-                                            <p className="text-[10px] text-gray-400">{o.customerEmail}</p>
+                                            <p className="text-xs text-gray-400">{o.customerEmail}</p>
                                         </td>
                                         <td className="py-3 pr-4">
-                                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 w-fit ${color}`}>
+                                            <span className={`text-xs font-bold px-2 py-0.5 rounded-full flex items-center gap-1 w-fit ${color}`}>
                                                 <StatusIcon size={9} />{label}
                                             </span>
                                         </td>
-                                        <td className="py-3 pr-4 text-sm font-black text-gray-950 whitespace-nowrap">{formatCurrency(o.totalAmount)}</td>
+                                        <td className="py-3 pr-4 text-sm font-semibold text-gray-950 whitespace-nowrap">{formatCurrency(o.totalAmount)}</td>
                                         <td className="py-3 text-xs text-gray-400 whitespace-nowrap">{formatDate(o.createdAt)}</td>
                                     </tr>
                                 );
@@ -63,17 +63,14 @@ const UserBreakdown = ({ users }) => (
     <SectionCard title="User Breakdown" icon={MdPeople}>
         <div className="space-y-3">
             {[
-                { label: "Total Users", value: users.total, icon: MdPerson, color: "bg-blue-50 text-blue-600" },
-                { label: "Sellers", value: users.sellers, icon: MdStorefront, color: "bg-amber-50 text-amber-600" },
-                { label: "Admins", value: users.admins, icon: MdAdminPanelSettings, color: "bg-purple-50 text-purple-600" },
-                { label: "New This Month", value: users.newThisMonth, icon: MdPeople, color: "bg-green-50 text-green-600" },
-            ].map(({ label, value, icon: Icon, color }) => (
+                { label: "Total users", value: users.total },
+                { label: "Sellers", value: users.sellers },
+                { label: "Administrators", value: users.admins },
+                { label: "New this month", value: users.newThisMonth },
+            ].map(({ label, value }) => (
                 <div key={label} className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0">
-                    <div className={`p-2 rounded-lg shrink-0 ${color}`}>
-                        <Icon size={14} />
-                    </div>
                     <span className="text-sm text-gray-600 flex-1">{label}</span>
-                    <span className="text-base font-black text-gray-950">{value}</span>
+                    <span className="text-base font-semibold text-gray-950">{value}</span>
                 </div>
             ))}
         </div>
@@ -81,35 +78,19 @@ const UserBreakdown = ({ users }) => (
 );
 
 const AdminOverviewTab = () => {
-    const [stats, setStats] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState("");
+    const { data: stats, isLoading: loading, error: queryError, refetch: fetchStats } = useManagementQuery("admin");
+    const error = queryError ? queryError.data?.message || "Failed to load stats" : "";
 
-    const fetchStats = async () => {
-        try {
-            setLoading(true);
-            setError("");
-            const { data } = await api.get("/admin/dashboard/stats");
-            setStats(data);
-        } catch (err) {
-            setError(err?.response?.data?.message || "Failed to load stats");
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => { fetchStats(); }, []);
-
-    if (loading) return <DashboardSkeleton />;
+    if ((loading || !stats) && !error) return <DashboardSkeleton />;
     if (error) return <DashboardError message={error} onRetry={fetchStats} />;
 
-    const { users, order, revenue, topSellingProducts, orderStatusBreakdown, recentOrders } = stats;
+    const { users, order, topSellingProducts, orderStatusBreakdown, recentOrders } = stats;
 
     return (
         <div className="space-y-6">
 
             {/* Revenue */}
-            <RevenueCards revenue={revenue} />
+            <MarketplaceFinance admin />
 
             {/* Order + user stats */}
             <div>
@@ -141,7 +122,7 @@ const AdminOverviewTab = () => {
                         value={users.total}
                         sub={`${users.newThisMonth} new this month`}
                         icon={MdPeople}
-                        iconBg="bg-purple-500"
+                        iconBg="bg-blue-500"
                     />
                 </div>
             </div>

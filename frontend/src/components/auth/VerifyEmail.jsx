@@ -1,7 +1,9 @@
+import { Spinner } from "../shared/Spinner";
+import ActionArrow from "../shared/ActionArrow";
 import { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { MdCheckCircle, MdCancel, MdHourglassEmpty, MdArrowForward, MdEmail, MdRefresh } from "react-icons/md";
-import toast from "react-hot-toast";
+import { MdCheckCircle, MdCancel, MdHourglassEmpty, MdEmail, MdRefresh } from "react-icons/md";
+import toast from "../../utils/toastUtils.js";
 import api from "../../backend/api";
 
 const VerifyEmail = () => {
@@ -58,14 +60,14 @@ const VerifyEmail = () => {
         loading: {
             icon: MdHourglassEmpty,
             iconBg: "bg-blue-50",
-            iconColor: "text-blue-400 animate-pulse",
+            iconColor: "text-blue-600",
             title: "Verifying your email...",
             sub: "Please wait, this will only take a moment.",
         },
         success: {
             icon: MdCheckCircle,
-            iconBg: "bg-green-50",
-            iconColor: "text-green-500",
+            iconBg: "bg-blue-50",
+            iconColor: "text-blue-500",
             title: "Email Verified!",
             sub: message,
         },
@@ -82,19 +84,19 @@ const VerifyEmail = () => {
 
     return (
         <div className="bg-gray-50 min-h-screen flex items-center justify-center px-4">
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 max-w-sm w-full text-center">
+            <div className="surface p-8 max-w-sm w-full text-center">
                 <div className={`w-16 h-16 rounded-2xl ${config.iconBg} flex items-center justify-center mx-auto mb-5`}>
                     <Icon size={30} className={config.iconColor} />
                 </div>
-                <h1 className="text-xl font-black text-gray-900 mb-2">{config.title}</h1>
+                <h1 className="text-xl font-semibold text-gray-900 mb-2">{config.title}</h1>
                 <p className="text-sm text-gray-500 leading-relaxed mb-8">{config.sub}</p>
 
                 {status === "success" && (
                     <button
                         onClick={() => navigate("/login")}
-                        className="w-full flex items-center justify-center gap-2 py-3 text-sm font-bold bg-gray-950 hover:bg-gray-800 text-white rounded-xl transition-all cursor-pointer active:scale-[0.98]"
+                        className="w-full flex items-center justify-center gap-2 py-3 text-sm font-bold bg-gray-950 hover:bg-gray-800 text-white rounded-xl transition-[transform,opacity,background-color] cursor-pointer "
                     >
-                        Go to Login <MdArrowForward size={15} />
+                        Go to Login <ActionArrow size={15} />
                     </button>
                 )}
 
@@ -116,20 +118,20 @@ const VerifyEmail = () => {
                         <button
                             onClick={handleResend}
                             disabled={!email || cooldown > 0 || resending}
-                            className="w-full flex items-center justify-center gap-2 py-3 text-sm font-bold bg-gray-950 hover:bg-gray-800 text-white rounded-xl transition-all cursor-pointer active:scale-[0.98] disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
+                            className="w-full flex items-center justify-center gap-2 py-3 text-sm font-bold bg-gray-950 hover:bg-gray-800 text-white rounded-xl transition-[transform,opacity,background-color] cursor-pointer  disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
                         >
-                            <MdRefresh size={15} className={resending ? "animate-spin" : ""} />
+                            {resending ? <Spinner size={15} /> : <MdRefresh size={15} />}
                             {resending ? "Sending..." : cooldown > 0 ? `Resend in ${cooldown}s` : "Resend Verification Email"}
                         </button>
                         {cooldown > 0 && (
                             <div className="flex items-center gap-1.5">
                                 <div className="h-1 bg-gray-100 rounded-full flex-1 overflow-hidden">
                                     <div
-                                        className="h-full bg-blue-400 rounded-full transition-all duration-1000"
+                                        className="h-full bg-blue-400 rounded-full "
                                         style={{ width: `${((30 - cooldown) / 30) * 100}%` }}
                                     />
                                 </div>
-                                <span className="text-[11px] text-gray-400 shrink-0">{cooldown}s</span>
+                                <span className="text-xs text-gray-400 shrink-0">{cooldown}s</span>
                             </div>
                         )}
                         <button

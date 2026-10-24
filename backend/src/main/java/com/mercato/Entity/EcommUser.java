@@ -99,9 +99,25 @@ public class EcommUser {
     @Column(name = "deactivated_at")
     private Instant deactivatedAt;
 
+    @Builder.Default
+    @Column(name = "self_deactivated", nullable = false)
+    private boolean selfDeactivated = false;
+
+    @Builder.Default
+    @Column(name = "seller_suspended", nullable = false)
+    private boolean sellerSuspended = false;
+
+    @Builder.Default
+    @Column(name = "access_version", nullable = false)
+    private long accessVersion = 0;
+
     @Size(max = 100)
     @Column(name = "seller_display_name", length = 100)
     private String sellerDisplayName;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "seller_status", length = 20)
+    private SellerStatus sellerStatus;
 
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(

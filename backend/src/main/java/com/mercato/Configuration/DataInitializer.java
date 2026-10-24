@@ -16,12 +16,14 @@ import java.util.Set;
 
 @Slf4j
 @Component
+@org.springframework.core.annotation.Order(0)
 @RequiredArgsConstructor
 public class DataInitializer implements CommandLineRunner {
 
     private final RoleRepository roleRepository;
     private final UserRepository userRepository;
     private final PasswordEncoder encoder;
+    private final org.springframework.core.env.Environment environment;
 
     @Value("${app.admin.username}")
     private String adminUsername;
@@ -37,6 +39,9 @@ public class DataInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
+        if ((environment.matchesProfiles("prod") || !environment.matchesProfiles("demo")) && "ReviewOnly!2026".equals(adminPassword)) {
+            throw new IllegalStateException("Demo admin credentials are permitted only in the isolated demo profile");
+        }
         createRoleIfNotExists(AppRole.ROLE_USER);
         createRoleIfNotExists(AppRole.ROLE_SELLER);
         createRoleIfNotExists(AppRole.ROLE_ADMIN);
@@ -68,7 +73,7 @@ public class DataInitializer implements CommandLineRunner {
                 .enabled(true)
                 .accountLocked(false)
                 .emailVerified(true)
-                .roles(Set.of(adminRole, sellerRole))
+                .roles(Set.of(adminRole, sellerRole, roleRepository.findByRoleName(AppRole.ROLE_USER).orElseThrow()))
                 .sellerDisplayName("Marcato Admin")
                 .build();
 

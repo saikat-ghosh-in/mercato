@@ -1,26 +1,10 @@
+import Field from "../shared/AuthField";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { FiLogIn, FiUser, FiLock, FiEye, FiEyeOff } from "react-icons/fi";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { useState } from "react";
 import { useDispatch } from "react-redux";
 import { authenticateUser } from "../../reduxStore/actions/authActions";
-
-const Field = ({ label, error, icon: Icon, required = false, children }) => (
-    <div>
-        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1.5">
-            {label}
-            {required && <span className="text-red-400 ml-0.5">*</span>}
-        </label>
-        <div className={`flex items-center gap-2.5 border rounded-xl px-3 py-2.5 transition-colors focus-within:ring-1 ${error
-                ? "border-red-300 focus-within:ring-red-300 bg-red-50/30"
-                : "border-gray-200 focus-within:ring-blue-300"
-            }`}>
-            {Icon && <Icon size={15} className={error ? "text-red-400" : "text-gray-400"} />}
-            {children}
-        </div>
-        {error && <p className="text-[11px] text-red-500 mt-1 font-medium">{error}</p>}
-    </div>
-);
 
 const inputCls = "w-full text-sm text-gray-800 focus:outline-none bg-transparent placeholder-gray-300";
 
@@ -37,34 +21,34 @@ const Login = () => {
         register,
         handleSubmit,
         reset,
-        watch,
+        control,
         formState: { errors, isSubmitting, isValid },
     } = useForm({ mode: "onTouched" });
 
-    const passwordValue = watch("password");
+    const passwordValue = useWatch({ control, name: "password", defaultValue: "" });
 
     const onSubmit = (data) => {
-        dispatch(authenticateUser(data, navigate, reset, redirect));
+        return dispatch(authenticateUser(data, navigate, reset, redirect));
     };
 
     return (
-        <main className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-10">
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-10">
             <div className="w-full max-w-md">
 
                 {/* Brand */}
                 <div className="text-center mb-8">
-                    <h1 className="text-2xl font-black text-gray-950 tracking-tight">Welcome back</h1>
+                    <h1 className="text-2xl font-semibold text-gray-950 tracking-tight">Welcome back</h1>
                     <p className="text-sm text-gray-400 mt-1">Sign in to your Mercato account</p>
                 </div>
 
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-7">
+                <div className="surface p-7">
                     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
 
                         {/* Username */}
                         <Field label="Username" error={errors.username?.message} icon={FiUser} required>
                             <input
                                 {...register("username", { required: "Username is required" })}
-                                placeholder="johndoe"
+                                placeholder="Your username"
                                 autoComplete="username"
                                 className={inputCls}
                             />
@@ -82,8 +66,8 @@ const Login = () => {
                             {passwordValue?.length > 0 && (
                                 <button
                                     type="button"
-                                    onClick={() => setShowPassword(v => !v)}
-                                    className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer shrink-0"
+                                    onClick={() => setShowPassword(v => !v)} aria-label={showPassword ? "Hide password" : "Show password"}
+                                    className="icon-action text-gray-400 hover:text-gray-600 transition-colors cursor-pointer shrink-0"
                                 >
                                     {showPassword ? <FiEyeOff size={15} /> : <FiEye size={15} />}
                                 </button>
@@ -93,7 +77,7 @@ const Login = () => {
                         {/* Forgot password */}
                         <div className="flex justify-end -mt-2">
                             <Link
-                                to="/reset-password"
+                                to="/forgot-password"
                                 className="text-xs text-blue-500 hover:text-blue-700 font-semibold transition-colors"
                             >
                                 Forgot password?
@@ -104,7 +88,7 @@ const Login = () => {
                         <button
                             type="submit"
                             disabled={!isValid || isSubmitting}
-                            className="w-full flex items-center justify-center gap-2 bg-gray-950 hover:bg-gray-800 active:scale-[0.98] disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed text-white text-sm font-bold py-3 rounded-xl transition-all cursor-pointer"
+                            className="control control-prominent w-full flex items-center justify-center gap-2 bg-gray-950 hover:bg-gray-800  disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed text-white text-sm font-bold py-3 rounded-xl transition-[transform,opacity,background-color] cursor-pointer"
                         >
                             <FiLogIn size={15} />
                             {isSubmitting ? "Signing in..." : "Sign In"}
@@ -121,7 +105,7 @@ const Login = () => {
                     </div>
                 </div>
             </div>
-        </main>
+        </div>
     );
 };
 

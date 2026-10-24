@@ -47,8 +47,13 @@ public class Payment {
     @OneToOne(mappedBy = "payment", optional = false)
     private Order order;
 
-    @OneToOne(mappedBy = "payment", cascade = CascadeType.ALL, orphanRemoval = true)
-    private Refund refund;
+    @OneToMany(mappedBy = "payment", cascade = CascadeType.ALL, orphanRemoval = true)
+    @org.hibernate.annotations.BatchSize(size=50)
+    private java.util.List<Refund> refunds = new java.util.ArrayList<>();
+
+    /** Compatibility presentation of the latest obligation; accounting uses every refund. */
+    public Refund getRefund() {return refunds.isEmpty()?null:refunds.get(refunds.size()-1);}
+    public void setRefund(Refund refund) {refunds.clear();if(refund!=null){refund.setPayment(this);refunds.add(refund);}}
 
     @Column(nullable = false, precision = 15, scale = 2)
     private BigDecimal amount;
@@ -81,6 +86,11 @@ public class Payment {
 
     private Instant initiatedAt;
     private Instant completedAt;
+
+    @Column(precision=15,scale=2)
+    private BigDecimal capturedAmount;
+    @Column
+    private Instant capturedAt;
 
     @PrePersist
     private void prePersist() {

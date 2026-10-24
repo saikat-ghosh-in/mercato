@@ -30,9 +30,12 @@ public class UserDetailsImpl implements UserDetails {
     private boolean enabled;
     private boolean accountNonLocked;
     private Collection<? extends GrantedAuthority> authorities;
+    private long accessVersion;
 
     public static UserDetailsImpl build(EcommUser user) {
         List<GrantedAuthority> authorities = user.getRoles().stream()
+                .filter(role -> role.getRoleName() != com.mercato.Entity.AppRole.ROLE_SELLER
+                        || user.getSellerStatus() == null || user.getSellerStatus() == com.mercato.Entity.SellerStatus.APPROVED)
                 .map(role -> new SimpleGrantedAuthority(role.getRoleName().name()))
                 .collect(Collectors.toList());
 
@@ -44,7 +47,8 @@ public class UserDetailsImpl implements UserDetails {
                 user.getPassword(),
                 user.isEnabled(),
                 !user.isAccountLocked(),
-                authorities
+                authorities,
+                user.getAccessVersion()
         );
     }
 

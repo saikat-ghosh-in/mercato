@@ -60,6 +60,21 @@ public class Product {
     @Builder.Default
     private boolean active = true;
 
+    // Null denotes a listing approved before moderation was introduced.
+    @Column(name = "listing_status", length = 20)
+    private String listingStatus;
+    @Column(name = "listing_review_note", length = 1000)
+    private String listingReviewNote;
+    private Instant listingReviewedAt;
+    private String listingReviewedBy;
+
+    @Transient
+    public boolean isPurchasable() {
+        return active && (listingStatus == null || "APPROVED".equals(listingStatus))
+            && (seller == null || (seller.isEnabled() && !seller.isAccountLocked() && !seller.isSellerSuspended()
+                && (seller.getSellerStatus() == null || seller.getSellerStatus() == SellerStatus.APPROVED)));
+    }
+
     @NotBlank(message = "Primary image is required")
     @Column(name = "primary_image_url", nullable = false, length = 500)
     private String primaryImageUrl;
@@ -79,6 +94,46 @@ public class Product {
     @Size(min = 7, message = "Product description must be at least 7 characters")
     @Column(columnDefinition = "TEXT", nullable = false)
     private String description;
+
+    @Column(length = 100)
+    private String brand;
+    @Column(name = "product_code", length = 100)
+    private String productCode;
+    // Packed measurements of one sellable unit, used for delivery pricing.
+    @Column(precision = 8, scale = 3)
+    private BigDecimal weightKg;
+    @Column(precision = 8, scale = 2)
+    private BigDecimal lengthCm;
+    @Column(precision = 8, scale = 2)
+    private BigDecimal widthCm;
+    @Column(precision = 8, scale = 2)
+    private BigDecimal heightCm;
+    @Builder.Default
+    @Column(nullable = false)
+    private boolean sellerPaysShipping = false;
+    @Column(columnDefinition = "TEXT")
+    private String materials;
+    @Column(columnDefinition = "TEXT")
+    private String care;
+    @Column(columnDefinition = "TEXT")
+    private String warranty;
+    @Column(name = "package_contents", columnDefinition = "TEXT")
+    private String packageContents;
+    @Column(name = "delivery_returns", columnDefinition = "TEXT")
+    private String deliveryReturns;
+
+    @ElementCollection
+    @CollectionTable(name = "product_highlights", joinColumns = @JoinColumn(name = "product_id"))
+    @OrderColumn(name = "highlight_order")
+    @Column(name = "highlight", length = 300)
+    @Builder.Default
+    private List<String> highlights = new ArrayList<>();
+
+    @ElementCollection
+    @CollectionTable(name = "product_specifications", joinColumns = @JoinColumn(name = "product_id"))
+    @OrderColumn(name = "spec_order")
+    @Builder.Default
+    private List<ProductSpecification> specifications = new ArrayList<>();
 
     @NotNull(message = "Quantity is required")
     @Min(value = 0, message = "Quantity cannot be negative")

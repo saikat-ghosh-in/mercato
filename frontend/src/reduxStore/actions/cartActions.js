@@ -1,99 +1,61 @@
-import api from "../../backend/api";
-import toast from "react-hot-toast";
+import api, { session } from "../../backend/api";
+import toast from "../../utils/toastUtils.js";
 import { showWarningToast } from "../../utils/toastUtils";
+import { createSerialQueue } from "../../utils/cartState.js";
 
-export const syncCartFromBackend = () => async (dispatch) => {
-  try {
-    const { data } = await api.get(`/cart`);
-    dispatch({ type: "SYNC_CART_SUCCESS", payload: data });
-  } catch (error) {
-    console.error("Failed to sync cart:", error);
-    if (error?.response?.status === 404) {
-      dispatch({ type: "CLEAR_CART" });
-    }
-  }
+const requests = createSerialQueue();
+let epoch = 0;
+export const waitForCartRequests = () => requests.drain();
+export const invalidateCartRequests = () => { epoch += 1; };
+let sessionEpoch = session.getSnapshot().epoch;
+session.subscribe(snapshot => {
+  if (snapshot.epoch !== sessionEpoch) { sessionEpoch = snapshot.epoch; invalidateCartRequests(); }
+});
+
+const acceptCart = (dispatch, data) => {
+  if (!data || !Array.isArray(data.cartItems)) throw new Error("The server returned an invalid bag. Please refresh.");
+  dispatch({ type: "SYNC_CART_SUCCESS", payload: data });
 };
-
-export const addToCart = (productId, quantity = 1) => async (dispatch) => {
-  dispatch({ type: "CART_PENDING" });
-  try {
-    const { data } = await api.post(`/cart/add`, { cartItems: [{ productId, quantity }] });
-    dispatch({ type: "SYNC_CART_SUCCESS", payload: data });
-    toast.success("Added to cart ✓");
-  } catch (error) {
-    dispatch({ type: "CART_IDLE" });
-    const status = error?.response?.status;
-    if (status === 409) {
-      const availableQty = error?.response?.data?.availableQty;
-      toast.error(
-        availableQty === 0
-          ? "This item is out of stock"
-          : `Only ${availableQty} unit${availableQty !== 1 ? "s" : ""} available`
-      );
-    } else {
-      toast.error(error?.response?.data?.message || "Failed to add to cart");
-    }
-  }
+export const syncCartFromBackend = () => dispatch => {
+  const current = epoch;
+  return requests.run(async () => {
+    if (current !== epoch) return;
+    try { const { data } = await api.get("/cart"); if (current === epoch) acceptCart(dispatch, data); }
+    catch (error) { if (current === epoch) dispatch({ type: "CART_ERROR", payload: error?.response?.data?.message || "Your bag couldn’t be refreshed. Please try again." }); }
+  });
 };
-
-const _qtyUpdateTimers = {};
-const _pendingDeltas = {};
-
-export const updateCartItemQuantity = (productId, newQuantity) => (dispatch, getState) => {
-  const currentQty = getState().cart.cartItems.find((i) => i.productId === productId)?.quantity ?? 0;
-  if (newQuantity === currentQty) return;
-
-  const clickDelta = newQuantity - currentQty;
-  _pendingDeltas[productId] = (_pendingDeltas[productId] ?? 0) + clickDelta;
-
-  if (_qtyUpdateTimers[productId]) clearTimeout(_qtyUpdateTimers[productId]);
-
-  _qtyUpdateTimers[productId] = setTimeout(async () => {
-    delete _qtyUpdateTimers[productId];
-
-    const totalDelta = _pendingDeltas[productId] ?? 0;
-    delete _pendingDeltas[productId];
-
-    if (totalDelta === 0) return;
-
-    const confirmedQty = getState().cart.cartItems.find((i) => i.productId === productId)?.quantity ?? 0;
-    const targetQty = confirmedQty + totalDelta;
-
-    if (targetQty <= 0) {
-      dispatch(removeFromCart(productId));
-      return;
-    }
-
+const mutate = (productId, execute) => dispatch => {
+  const current = epoch;
+  dispatch({ type: "CART_PENDING", productId });
+  return requests.run(async () => {
+    if (current !== epoch) return;
     try {
-      const { data } = await api.put(`/cart`, { productId, quantity: targetQty });
-      dispatch({ type: "SYNC_CART_SUCCESS", payload: data });
+      const data = await execute();
+      if (current !== epoch) return;
+      acceptCart(dispatch, data);
       if (data.warning) showWarningToast(data.warning);
+      return true;
     } catch (error) {
-      toast.error(error?.response?.data?.message || "Failed to update quantity");
-      dispatch({ type: "CART_ITEM_UPDATE_FAILED", payload: productId });
-    }
-  }, 500);
+      if (current === epoch) { dispatch({ type: "CART_ERROR", payload: error?.response?.data?.message || error.message || "Couldn’t update your bag. Please try again." }); toast.error(error?.response?.data?.message || "Couldn’t update your bag. Please try again."); }
+      return false;
+    } finally { if (current === epoch) dispatch({ type: "CART_IDLE", productId }); }
+  });
 };
+export const addToCart = (productId, quantity = 1) => mutate(productId, async () => {
+  const { data } = await api.post("/cart/add", { cartItems: [{ productId, quantity }] }); return data;
+});
+export const updateCartItemQuantity = (productId, newQuantity) => (dispatch, getState) => {
+  if (!Number.isSafeInteger(newQuantity) || newQuantity < 1) return Promise.resolve(false);
+  if (newQuantity === getState().cart.cartItems.find(i => i.productId === productId)?.quantity) return Promise.resolve(true);
+  return dispatch(mutate(productId, async () => { const { data } = await api.put("/cart", { productId, quantity: newQuantity }); return data; }));
+};
+export const removeFromCart = productId => mutate(productId, async () => {
+  await api.delete("/cart/remove/" + productId); return (await api.get("/cart")).data;
+});
+export const clearCart = () => mutate("*", async () => {
+  await api.delete("/cart"); return (await api.get("/cart")).data;
+});
 
-export const removeFromCart = (productId) => async (dispatch) => {
-  dispatch({ type: "CART_PENDING" });
-  try {
-    const { data } = await api.delete(`/cart/remove/${productId}`);
-    dispatch({ type: "SYNC_CART_SUCCESS", payload: data });
-    toast.success("Removed from cart ✓");
-  } catch (error) {
-    dispatch({ type: "CART_IDLE" });
-    toast.error("Couldn't remove item. Please try again.");
-  }
-};
-
-export const clearCart = () => async (dispatch) => {
-  dispatch({ type: "CART_PENDING" });
-  try {
-    await api.delete(`/cart`);
-    dispatch({ type: "CLEAR_CART" });
-  } catch (error) {
-    dispatch({ type: "CART_IDLE" });
-    toast.error("Failed to clear cart. Please try again.");
-  }
-};
+export const selectDeliveryMethod = deliveryMethod => mutate("delivery", async () => {
+  const { data } = await api.put("/cart/delivery-method", { deliveryMethod }); return data;
+});

@@ -1,30 +1,22 @@
-import { useEffect, useState } from "react";
+import { LoadingLayout } from "../shared/LoadingStates";
+import PageHeading from "../shared/PageHeading";
+import ActionArrow from "../shared/ActionArrow";
+import { useState } from "react";
 import { useDispatch } from "react-redux";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
-  MdShoppingBag, MdArrowBack,
-  MdArrowForward, MdWarning,
+  MdShoppingBag,
+  MdWarning,
   MdAccessTime
 } from "react-icons/md";
-import api from "../../backend/api";
+import { useOrdersQuery } from "../../reduxStore/services/privateApi.js";
 import OrderDetails from "./OrderDetails";
 import { formatCurrency } from "../../utils/formatCurrency";
 import { formatDate } from "../../utils/formatDate";
 import { getOrderStatus } from "../../utils/orderUtils";
 import { retryPayment } from "../../utils/paymentUtils";
 
-const OrderSkeleton = () => (
-  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 animate-pulse">
-    <div className="flex items-center justify-between">
-      <div className="space-y-2 flex-1">
-        <div className="h-3.5 bg-gray-100 rounded w-1/4" />
-        <div className="h-3 bg-gray-100 rounded w-1/3" />
-        <div className="h-3 bg-gray-100 rounded w-1/5 mt-1" />
-      </div>
-      <div className="h-9 w-28 bg-gray-100 rounded-xl ml-4 shrink-0" />
-    </div>
-  </div>
-);
+const OrderSkeleton = () => <LoadingLayout variant="list" label="Loading content" rows={1} />;
 
 const EmptyOrders = ({ onShop }) => (
   <div className="flex flex-col items-center justify-center py-20 text-center">
@@ -35,7 +27,7 @@ const EmptyOrders = ({ onShop }) => (
     <p className="text-sm text-gray-400 mb-6">You haven't placed any orders. Start shopping!</p>
     <button
       onClick={onShop}
-      className="flex items-center gap-2 bg-gray-950 hover:bg-gray-800 active:scale-[0.98] text-white text-sm font-bold px-6 py-2.5 rounded-xl transition-all"
+      className="control flex items-center gap-2 bg-gray-950 hover:bg-gray-800  text-white text-sm font-bold px-6 py-2.5 rounded-xl transition-[transform,opacity,background-color]"
     >
       <MdShoppingBag size={15} /> Start Shopping
     </button>
@@ -51,7 +43,7 @@ const ErrorState = ({ message, onRetry }) => (
     <p className="text-sm text-gray-400 mb-6">{message}</p>
     <button
       onClick={onRetry}
-      className="bg-blue-500 hover:bg-blue-600 active:scale-[0.98] text-white text-sm font-bold px-6 py-2.5 rounded-xl transition-all"
+      className="control bg-blue-500 hover:bg-blue-600  text-white text-sm font-bold px-6 py-2.5 rounded-xl transition-[transform,opacity,background-color]"
     >
       Try Again
     </button>
@@ -66,23 +58,23 @@ const OrderCard = ({ ord, onClick, onResumePayment, resumingOrderId }) => {
 
   return (
     <div
-      className="group bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 overflow-hidden"
+      className="group surface  transition-[transform,opacity,background-color] duration-200 overflow-hidden"
     >
-      <div
+      <button type="button" aria-label={"View order " + ord.orderId}
         onClick={onClick}
-        className="flex items-center gap-4 px-5 py-4 cursor-pointer"
+        className="order-card-button flex items-center gap-4 px-5 py-4 cursor-pointer w-full text-left"
       >
         <div className="w-10 h-10 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center shrink-0">
           <MdShoppingBag size={18} className="text-gray-400" />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap mb-0.5">
-            <p className="text-sm font-bold text-gray-900">Order #{ord.orderId}</p>
-            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold ${color}`}>
+            <p className="text-sm font-semibold text-gray-900 break-words">Order #{ord.orderId}</p>
+            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${color}`}>
               <StatusIcon size={10} /> {label}
             </span>
           </div>
-          <p className="text-[11px] text-gray-400 flex items-center gap-1">
+          <p className="text-xs text-gray-500 flex flex-wrap items-center gap-1">
             <MdAccessTime size={11} /> {formatDate(ord.createdAt)}
             {sublabel && (
               <>
@@ -93,10 +85,10 @@ const OrderCard = ({ ord, onClick, onResumePayment, resumingOrderId }) => {
           </p>
         </div>
         <div className="flex items-center gap-3 shrink-0">
-          <span className="text-base font-black text-gray-950">{formatCurrency(ord.totalAmount)}</span>
-          <MdArrowForward size={16} className="text-gray-300 group-hover:text-blue-500 transition-colors" />
+          <span className="text-base font-semibold text-gray-950">{formatCurrency(ord.totalAmount)}</span>
+          <ActionArrow size={16} className="text-gray-300 group-hover:text-blue-500 transition-colors" />
         </div>
-      </div>
+      </button>
       {needsPayment && (
         <div className="px-5 pb-4">
           <button
@@ -122,25 +114,9 @@ const Orders = () => {
   const dispatch = useDispatch();
   const orderId = new URLSearchParams(location.search).get("orderId");
 
-  const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const { data: orders = [], isLoading: loading, error: queryError, refetch: fetchOrders } = useOrdersQuery();
+  const error = queryError ? queryError.data?.message || "Failed to fetch orders" : "";
   const [resumingOrderId, setResumingOrderId] = useState(null);
-
-  const fetchOrders = async () => {
-    try {
-      setLoading(true);
-      setError("");
-      const { data } = await api.get("/user/orders/summary");
-      setOrders(data || []);
-    } catch (err) {
-      setError(err?.response?.data?.message || err?.message || "Failed to fetch orders");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => { fetchOrders(); }, []);
 
   const handleResumePayment = async (ord) => {
     setResumingOrderId(ord.orderId);
@@ -160,37 +136,19 @@ const Orders = () => {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
 
         {/* Header */}
-        <div className="flex items-center gap-3 mb-6">
-          <div className="p-2 bg-blue-50 rounded-xl">
-            <MdShoppingBag size={20} className="text-blue-500" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-gray-900">My Orders</h1>
-            {!loading && !error && (
-              <p className="text-xs text-gray-500 mt-0.5">
-                {orders.length} order{orders.length !== 1 ? "s" : ""} placed
-              </p>
-            )}
-          </div>
-          <button
-            onClick={() => navigate("/products")}
-            className="ml-auto flex items-center gap-1.5 text-xs font-semibold text-blue-500 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-xl transition-colors"
-          >
-            <MdArrowBack size={13} /> Continue Shopping
-          </button>
-        </div>
+        <PageHeading title="Your orders" description={!loading && !error ? `${orders.length} ${orders.length === 1 ? "order" : "orders"} placed` : "Track deliveries and view previous orders."}><button type="button" className="button button-outline" onClick={() => navigate("/products")}>Continue shopping <ActionArrow /></button></PageHeading>
 
         {/* Content */}
-        {loading ? (
+        {loading && !orders.length ? (
           <div className="space-y-3">
             {[1, 2, 3].map(i => <OrderSkeleton key={i} />)}
           </div>
         ) : error ? (
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm">
+          <div className="surface">
             <ErrorState message={error} onRetry={fetchOrders} />
           </div>
         ) : orders.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm">
+          <div className="surface">
             <EmptyOrders onShop={() => navigate("/products")} />
           </div>
         ) : (

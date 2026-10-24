@@ -28,6 +28,8 @@ public class OrderResponseDTO {
 
     private final Instant createdAt;
     private final Instant updatedAt;
+    private final com.mercato.Entity.cart.DeliveryMethod deliveryMethod;
+    private final String deliveryEstimate;
 
 
     @Getter

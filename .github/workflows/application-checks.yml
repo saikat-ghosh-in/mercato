@@ -1,0 +1,105 @@
+name: Application checks
+on:
+  push:
+    branches: [stg, main]
+  pull_request:
+    branches: [stg, main]
+  workflow_dispatch:
+  workflow_call:
+permissions:
+  contents: read
+jobs:
+  frontend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+      - name: Audit all resolved npm dependencies
+        run: npm audit --audit-level=high
+  backend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      MERCATO_TEST_POSTGRES_URL: ''
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: maven
+      - name: Require Docker for PostgreSQL Testcontainers
+        run: docker info > /dev/null
+      - name: Full backend suite including PostgreSQL migrations and locking
+        run: bash mvnw -B test
+      - name: Require non-skipped PostgreSQL and normalized schema evidence
+        run: python3 ../scripts/assert-postgres-reports.py target/surefire-reports
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-test-reports
+          path: backend/target/surefire-reports/
+          retention-days: 14
+  operations:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python3 -m unittest discover -s ops/tests -v
+      - run: python3 -m py_compile ops/backup_agent.py scripts/assert-postgres-reports.py
+      - run: bash -n ops/redeploy.sh
+      - name: Validate systemd unit syntax without starting services
+        run: systemd-analyze verify ops/systemd/*.service ops/systemd/*.timer
+  java-advisories:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: maven
+      - name: Generate a resolved direct/transitive Java SBOM
+        working-directory: backend
+        run: bash mvnw -B -DskipTests org.cyclonedx:cyclonedx-maven-plugin:2.9.1:makeAggregateBom
+      - name: Scan resolved Java components against current advisories
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          version: v0.76.1
+          scan-type: sbom
+          scan-ref: backend/target/bom.json
+          scanners: vuln
+          format: json
+          output: java-advisories.json
+          severity: HIGH,CRITICAL
+          ignore-unfixed: false
+          exit-code: '1'
+          timeout: 10m
+          trivy-config: security/trivy.yaml
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: java-dependency-advisories
+          path: |
+            java-advisories.json
+            backend/target/bom.json
+          retention-days: 14

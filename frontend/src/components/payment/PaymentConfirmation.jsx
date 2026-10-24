@@ -1,40 +1,41 @@
 import { useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
-import { useNavigate } from "react-router-dom";
-import { FaCheckCircle, FaTimesCircle, FaClock } from "react-icons/fa";
-import { MdShoppingBag } from "react-icons/md";
+import { Link } from "react-router-dom";
+import { FiCheck, FiClock, FiAlertCircle, FiShoppingBag } from "react-icons/fi";
+
 import api from "../../backend/api";
-import { clearCart } from "../../reduxStore/actions/cartActions";
+import { syncCartFromBackend } from "../../reduxStore/actions/cartActions";
 import { clearPaymentData } from "../../reduxStore/actions/paymentActions";
+import { validatedOrderId } from "../../utils/accountState.js";
 
 const TERMINAL_FAILURE = new Set(["FAILED", "USER_DROPPED", "CANCELLED"]);
 const POLL_INTERVAL_MS = 3000;
 const POLL_TIMEOUT_MS = 45000;
 
 const PaymentConfirmation = () => {
-  const navigate = useNavigate();
+
   const dispatch = useDispatch();
 
   const searchParams = new URLSearchParams(window.location.search);
-  const orderId = searchParams.get("order_id");
+  const orderId = validatedOrderId(searchParams.get("order_id") || searchParams.get("orderId"));
 
-  const [status, setStatus] = useState("loading");
+  const [status, setStatus] = useState(orderId ? "loading" : "failed");
   const [paymentStatus, setPaymentStatus] = useState(null);
 
   useEffect(() => {
     if (!orderId) {
-      setStatus("failed");
       return;
     }
 
     let cancelled = false;
-    let attempts = 0;
-    const maxAttempts = Math.ceil(POLL_TIMEOUT_MS / POLL_INTERVAL_MS);
+    let timeoutId;
+    const deadline = Date.now() + POLL_TIMEOUT_MS;
+    const controller = new AbortController();
 
     const resolveStatus = async () => {
       try {
-        await api.post(`/orders/${orderId}/sync-payment-refund`);
-        const { data: order } = await api.get(`/user/orders/${orderId}`);
+        await api.post(`/orders/${orderId}/sync-payment-refund`, undefined, { signal: controller.signal, timeout: 10000 });
+        const { data: order } = await api.get(`/user/orders/${orderId}`, { signal: controller.signal, timeout: 10000 });
         if (cancelled) return true;
 
         const currentStatus = order?.paymentSummary?.status;
@@ -47,7 +48,7 @@ const PaymentConfirmation = () => {
         }
 
         if (currentStatus === "SUCCESS") {
-          dispatch(clearCart());
+          dispatch(syncCartFromBackend());
           dispatch(clearPaymentData());
           setStatus("success");
           return true;
@@ -72,173 +73,32 @@ const PaymentConfirmation = () => {
       const done = await resolveStatus();
       if (done || cancelled) return;
 
-      attempts += 1;
-      if (attempts >= maxAttempts) {
+      if (Date.now() >= deadline) {
         dispatch(clearPaymentData());
         setStatus("pending");
+      } else {
+        timeoutId = setTimeout(poll, POLL_INTERVAL_MS);
       }
     };
 
     poll();
-    const intervalId = setInterval(poll, POLL_INTERVAL_MS);
+
 
     return () => {
       cancelled = true;
-      clearInterval(intervalId);
+      controller.abort();
+      clearTimeout(timeoutId);
     };
   }, [orderId, dispatch]);
 
-  if (status === "loading") {
-    return (
-      <div className="bg-gray-50 min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <svg className="animate-spin h-8 w-8 text-blue-500 mx-auto mb-4" viewBox="0 0 24 24" fill="none">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-          </svg>
-          <p className="text-gray-500 text-sm">Confirming your payment...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (status === "inventory_failed") {
-    return (
-      <div className="bg-gray-50 min-h-screen py-6 flex items-center justify-center">
-        <div className="max-w-md w-full mx-auto px-4">
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center">
-            <div className="flex justify-center mb-4">
-              <div className="p-3 bg-amber-50 rounded-2xl">
-                <FaTimesCircle size={40} className="text-amber-500" />
-              </div>
-            </div>
-            <h2 className="text-xl font-bold text-gray-900 mb-2">Payment received, stock unavailable</h2>
-            <p className="text-sm text-gray-500 mb-6">
-              Your payment went through, but the items are no longer held in stock. Please contact support or try placing a new order.
-            </p>
-            <div className="flex flex-col gap-3">
-              <button
-                onClick={() => navigate(orderId ? `/orders?orderId=${orderId}` : "/orders")}
-                className="w-full py-3 bg-blue-500 hover:bg-blue-600 text-white text-sm font-bold rounded-xl transition-all"
-              >
-                View Order
-              </button>
-              <button
-                onClick={() => navigate("/products")}
-                className="w-full py-3 bg-blue-50 hover:bg-blue-100 text-blue-600 text-sm font-bold rounded-xl transition-colors"
-              >
-                Continue Shopping
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (status === "failed") {
-    return (
-      <div className="bg-gray-50 min-h-screen py-6 flex items-center justify-center">
-        <div className="max-w-md w-full mx-auto px-4">
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center">
-            <div className="flex justify-center mb-4">
-              <div className="p-3 bg-red-50 rounded-2xl">
-                <FaTimesCircle size={40} className="text-red-400" />
-              </div>
-            </div>
-            <h2 className="text-xl font-bold text-gray-900 mb-2">Payment not completed</h2>
-            <p className="text-sm text-gray-500 mb-6">
-              {paymentStatus
-                ? `Payment status: ${paymentStatus.replaceAll("_", " ").toLowerCase()}`
-                : "We couldn't confirm your payment. You can retry from your orders page."}
-            </p>
-            <div className="flex flex-col gap-3">
-              <button
-                onClick={() => navigate(orderId ? `/orders?orderId=${orderId}` : "/orders")}
-                className="w-full py-3 bg-blue-500 hover:bg-blue-600 text-white text-sm font-bold rounded-xl transition-all"
-              >
-                View Order & Retry Payment
-              </button>
-              <button
-                onClick={() => navigate("/cart")}
-                className="w-full py-3 bg-blue-50 hover:bg-blue-100 text-blue-600 text-sm font-bold rounded-xl transition-colors"
-              >
-                Return to Cart
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (status === "pending") {
-    return (
-      <div className="bg-gray-50 min-h-screen py-6 flex items-center justify-center">
-        <div className="max-w-md w-full mx-auto px-4">
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center">
-            <div className="flex justify-center mb-4">
-              <div className="p-3 bg-yellow-50 rounded-2xl">
-                <FaClock size={40} className="text-yellow-500" />
-              </div>
-            </div>
-            <h2 className="text-xl font-bold text-gray-900 mb-2">Payment processing</h2>
-            <p className="text-sm text-gray-500 mb-6">
-              Your payment is still being confirmed. Check your order shortly for the latest status.
-            </p>
-            <button
-              onClick={() => navigate(orderId ? `/orders?orderId=${orderId}` : "/orders")}
-              className="w-full py-3 bg-blue-500 hover:bg-blue-600 text-white text-sm font-bold rounded-xl transition-all"
-            >
-              View Order
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="bg-gray-50 min-h-screen py-6 flex items-center justify-center">
-      <div className="max-w-md w-full mx-auto px-4">
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center">
-          <div className="flex justify-center mb-4">
-            <div className="p-3 bg-green-50 rounded-2xl">
-              <FaCheckCircle size={40} className="text-green-500" />
-            </div>
-          </div>
-          <h2 className="text-xl font-bold text-gray-900 mb-2">Payment confirmed!</h2>
-          <p className="text-sm text-gray-500 mb-2">
-            Your order is confirmed. We'll email you a receipt shortly.
-          </p>
-
-          {orderId && (
-            <div className="mb-6 p-4 bg-gray-50 rounded-xl text-left">
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-400">Order</span>
-                <span className="font-semibold text-gray-800">#{orderId}</span>
-              </div>
-            </div>
-          )}
-
-          <div className="flex flex-col gap-3">
-            <button
-              onClick={() => navigate(orderId ? `/orders?orderId=${orderId}` : "/orders")}
-              className="w-full flex items-center justify-center gap-2 py-3 bg-blue-500 hover:bg-blue-600 active:scale-[0.98] text-white text-sm font-bold rounded-xl transition-all"
-            >
-              <MdShoppingBag size={16} /> View Order
-            </button>
-            <button
-              onClick={() => navigate("/products")}
-              className="w-full py-3 bg-blue-50 hover:bg-blue-100 text-blue-600 text-sm font-bold rounded-xl transition-colors"
-            >
-              Continue Shopping
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+  const content = {
+    loading: { title: "Checking your payment.", description: "We’re confirming your payment status. This can take a moment.", icon: FiClock },
+    inventory_failed: { title: "Payment received. We’re checking stock.", description: "Your payment went through, but stock could not be confirmed. Check your order for updates and contact support. Avoid paying again for this order.", icon: FiAlertCircle },
+    failed: { title: "Payment not completed.", description: paymentStatus ? `Payment status: ${paymentStatus.replaceAll("_", " ").toLowerCase()}. Check your order to retry payment.` : "We couldn’t confirm a payment. Check your orders before trying again.", icon: FiAlertCircle },
+    pending: { title: "Your payment is still processing.", description: "We’re still waiting for confirmation. Check your order shortly for the latest status before paying again.", icon: FiClock },
+    success: { title: "Payment confirmed.", description: "Your payment is confirmed. You can follow your order and delivery updates in Your orders.", icon: FiCheck },
+  }[status];
+  const Icon = content.icon;
+  return <div className="checkout-shell"><section className="site-container checkout-result" aria-labelledby="payment-result-title"><span className="checkout-result-icon"><Icon aria-hidden="true" /></span><h1 id="payment-result-title">{content.title}</h1><p role="status">{content.description}</p>{orderId && <p className="checkout-session-order">Order {orderId}</p>}<div className="checkout-handoff-actions"><Link className="button button-dark button-prominent" to={orderId ? `/orders?orderId=${encodeURIComponent(orderId)}` : "/orders"}><FiShoppingBag /> View your order{!orderId && "s"}</Link><Link className="button button-outline" to={status === "success" ? "/products" : "/cart"}>{status === "success" ? "Keep discovering" : "Return to bag"}</Link></div><Link className="text-link" to="/help">Need a hand? Visit Help</Link></section></div>;
 };
-
 export default PaymentConfirmation;

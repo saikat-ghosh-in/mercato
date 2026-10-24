@@ -58,6 +58,10 @@ public class CartItem {
     @Builder.Default
     private boolean outOfStock = false;
 
+    @Transient
+    @Builder.Default
+    private BigDecimal sellerDeliveryCharge = BigDecimal.ZERO;
+
 
     @Transient
     public BigDecimal getItemPrice() {

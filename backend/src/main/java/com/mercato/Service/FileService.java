@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -39,9 +40,11 @@ public class FileService {
             }
 
             Path filePath = uploadPath.resolve(filename);
-            Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+            try (InputStream stream = file.getInputStream()) {
+                Files.copy(stream, filePath, StandardCopyOption.REPLACE_EXISTING);
+            }
 
-            return baseUrl + "/images/" + filename;
+            return imageBaseUrl() + "/" + filename;
         } catch (IOException e) {
             throw new FileUploadException("Failed to upload image", e);
         }
@@ -53,8 +56,12 @@ public class FileService {
         }
 
         try {
+            if (!imageUrl.startsWith(imageBaseUrl() + "/")) return;
             String filename = imageUrl.substring(imageUrl.lastIndexOf("/") + 1);
-            Path filePath = Paths.get(uploadDir).resolve(filename);
+            if (!filename.matches("[a-fA-F0-9-]{36}\\.(jpg|jpeg|png|webp)")) return;
+            Path root = Paths.get(uploadDir).toAbsolutePath().normalize();
+            Path filePath = root.resolve(filename).normalize();
+            if (!filePath.getParent().equals(root)) throw new InvalidFileException("Invalid image path");
 
             if (Files.exists(filePath)) {
                 Files.delete(filePath);
@@ -87,12 +94,30 @@ public class FileService {
         if (!isAllowed) {
             throw new InvalidFileException("File type not allowed. Only JPG, PNG, and WebP are supported.");
         }
+        try (InputStream stream = file.getInputStream()) {
+            byte[] header = stream.readNBytes(12);
+            String ext = extension.toLowerCase(java.util.Locale.ROOT);
+            boolean jpeg = header.length >= 3 && (header[0] & 255) == 255 && (header[1] & 255) == 216 && (header[2] & 255) == 255;
+            boolean png = header.length >= 8 && header[0] == (byte) 137 && header[1] == 80 && header[2] == 78 && header[3] == 71
+                    && header[4] == 13 && header[5] == 10 && header[6] == 26 && header[7] == 10;
+            boolean webp = header.length >= 12 && new String(header, 0, 4, java.nio.charset.StandardCharsets.US_ASCII).equals("RIFF")
+                    && new String(header, 8, 4, java.nio.charset.StandardCharsets.US_ASCII).equals("WEBP");
+            if (!(ext.equals(".png") && png || (ext.equals(".jpg") || ext.equals(".jpeg")) && jpeg || ext.equals(".webp") && webp))
+                throw new InvalidFileException("File contents do not match a supported image format");
+        } catch (IOException e) {
+            throw new InvalidFileException("Could not read image file");
+        }
+    }
+
+    private String imageBaseUrl() {
+        String root = baseUrl.replaceAll("/+$", "");
+        return root.endsWith("/images") ? root : root + "/images";
     }
 
     private String getExtension(String filename) {
         if (filename == null || !filename.contains(".")) {
             throw new InvalidFileException("Invalid filename");
         }
-        return filename.substring(filename.lastIndexOf("."));
+        return filename.substring(filename.lastIndexOf(".")).toLowerCase(java.util.Locale.ROOT);
     }
 }

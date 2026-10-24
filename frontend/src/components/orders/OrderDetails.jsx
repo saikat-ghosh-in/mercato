@@ -1,4 +1,8 @@
-import { useEffect, useState, useRef } from "react";
+import { Spinner } from "../shared/Spinner";
+import { LoadingLayout, Skeleton as ImageSkeleton } from "../shared/LoadingStates";
+import PageHeading from "../shared/PageHeading";
+import ModalFrame from "../shared/ModalFrame";
+import { useCallback, useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import {
@@ -6,13 +10,13 @@ import {
   MdCancel, MdWarning, MdContentCopy, MdShoppingCart,
   MdClose, MdSync, MdTimer, MdAutorenew
 } from "react-icons/md";
-import toast from "react-hot-toast";
+import toast from "../../utils/toastUtils.js";
 import api from "../../backend/api";
 import { formatCurrency } from "../../utils/formatCurrency";
 import { formatDate } from "../../utils/formatDate";
 import QuantityStepper from "../shared/QuantityStepper";
 import {
-  getOrderStatus, getLineStatus,
+  getOrderStatus,
   CANCEL_REASONS, getCancelWindowRemaining, formatTimeRemaining,
   getPaymentStatusStyle, getRefundStatusStyle,
   getPaymentMessage, getRefundMessage,
@@ -29,20 +33,20 @@ const CancelReasonModal = ({ title, subtitle, onClose, onConfirm, loading, child
   const canSubmit = selected !== "" && (selected !== "Other" || custom.trim() !== "");
 
   return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <ModalFrame title={title} onClose={onClose}>
       <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl">
         <div className="flex items-center justify-between mb-1">
           <div className="flex items-center gap-2 text-red-600">
             <MdWarning size={20} />
             <h2 className="text-sm font-bold">{title}</h2>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 cursor-pointer transition-colors">
+          <button aria-label="Close dialog" onClick={onClose} className="icon-action text-gray-400 hover:text-gray-600 cursor-pointer transition-colors">
             <MdClose size={18} />
           </button>
         </div>
         {subtitle && <p className="text-xs text-gray-400 mb-2 leading-relaxed">{subtitle}</p>}
         {children}
-        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 mt-3">
+        <p className="text-xs font-bold text-gray-400  mb-2 mt-3">
           Reason for cancellation
         </p>
         <div className="space-y-1.5 mb-3">
@@ -50,7 +54,7 @@ const CancelReasonModal = ({ title, subtitle, onClose, onConfirm, loading, child
             <button
               key={r}
               onClick={() => { setSelected(r); setCustom(""); }}
-              className={`w-full text-left text-xs px-3 py-2 rounded-xl border transition-colors cursor-pointer ${selected === r
+              className={`control w-full text-left text-xs px-3 py-2 rounded-xl border transition-colors cursor-pointer ${selected === r
                 ? "bg-red-50 border-red-200 text-red-700 font-semibold"
                 : "border-gray-100 text-gray-600 hover:bg-gray-50"
                 }`}
@@ -63,42 +67,42 @@ const CancelReasonModal = ({ title, subtitle, onClose, onConfirm, loading, child
           <textarea
             value={custom}
             onChange={e => setCustom(e.target.value)}
-            placeholder="Please describe your reason..."
+            placeholder="Your reason"
             rows={2}
             className="w-full text-xs border border-gray-200 rounded-xl px-3 py-2 mb-3 focus:outline-none focus:ring-1 focus:ring-red-300 resize-none text-gray-700 placeholder-gray-300"
           />
         )}
         <div className="flex gap-3 mt-1">
-          <button onClick={onClose} className="flex-1 px-3 py-2.5 text-sm border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 cursor-pointer font-medium">
+          <button onClick={onClose} className="control flex-1 px-3 py-2.5 text-sm border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 cursor-pointer font-medium">
             Keep
           </button>
           <button
             onClick={() => onConfirm(reason)}
             disabled={loading || !canSubmit}
-            className="flex-1 px-3 py-2.5 text-sm bg-red-500 hover:bg-red-600 text-white rounded-xl transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer font-bold active:scale-[0.98]"
+            className="control flex-1 px-3 py-2.5 text-sm bg-red-500 hover:bg-red-600 text-white rounded-xl transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer font-bold "
           >
             {loading ? "Cancelling..." : "Yes, Cancel"}
           </button>
         </div>
       </div>
-    </div>
+    </ModalFrame>
   );
 };
 
 const useCancelCountdown = (completedAt) => {
-  const [remaining, setRemaining] = useState(() => getCancelWindowRemaining(completedAt));
+  const [now, setNow] = useState(Date.now);
   const intervalRef = useRef(null);
 
   useEffect(() => {
     if (!completedAt) return;
-    setRemaining(getCancelWindowRemaining(completedAt));
+
     intervalRef.current = setInterval(() => {
-      setRemaining(getCancelWindowRemaining(completedAt));
+      setNow(Date.now());
     }, 1000);
     return () => clearInterval(intervalRef.current);
   }, [completedAt]);
 
-  return remaining;
+  return getCancelWindowRemaining(completedAt, now);
 };
 
 const SyncPaymentButton = ({ orderId, onSync }) => {
@@ -107,11 +111,11 @@ const SyncPaymentButton = ({ orderId, onSync }) => {
     <button
       onClick={() => syncPayment({ orderId, onSuccess: onSync, setLoading })}
       disabled={loading}
-      className="flex items-center gap-1.5 text-xs font-bold text-yellow-700 bg-yellow-100
+      className="control flex items-center gap-1.5 text-xs font-bold text-yellow-700 bg-yellow-100
         hover:bg-yellow-200 px-3 py-2 rounded-xl transition-colors cursor-pointer
-        disabled:opacity-50 active:scale-[0.98]"
+        disabled:opacity-50 "
     >
-      <MdSync size={14} className={loading ? "animate-spin" : ""} />
+      {loading ? <Spinner size={14} /> : <MdSync size={14} />}
       {loading ? "Checking..." : "Check Status"}
     </button>
   );
@@ -125,9 +129,9 @@ const RetryPaymentButton = ({ order }) => {
     <button
       onClick={() => retryPayment({ order, dispatch, navigate, setLoading })}
       disabled={loading}
-      className="flex items-center gap-1.5 text-xs font-bold text-white bg-blue-500
+      className="control flex items-center gap-1.5 text-xs font-bold text-white bg-blue-500
         hover:bg-blue-600 px-3 py-2 rounded-xl transition-colors cursor-pointer
-        disabled:opacity-50 active:scale-[0.98]"
+        disabled:opacity-50 "
     >
       <MdPayment size={14} />
       {loading ? "Redirecting..." : "Retry Payment"}
@@ -143,7 +147,7 @@ const StatusBanner = ({ order }) => {
       <div className="flex items-center gap-3 px-5 py-4">
         <StatusIcon size={22} className={iconColor} />
         <div className="flex-1 min-w-0">
-          <p className="text-base font-black text-gray-900">{label}</p>
+          <p className="text-base font-semibold text-gray-900">{label}</p>
           <p className="text-xs text-gray-500 mt-0.5">{sublabel}</p>
         </div>
       </div>
@@ -151,37 +155,12 @@ const StatusBanner = ({ order }) => {
   );
 };
 
-const Skeleton = () => (
-  <div className="animate-pulse space-y-4">
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-3">
-      <div className="h-4 bg-gray-100 rounded w-1/4" />
-      <div className="h-8 bg-gray-100 rounded w-1/2" />
-      <div className="h-3 bg-gray-100 rounded w-1/3" />
-    </div>
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-      <div className="lg:col-span-2 space-y-4">
-        {[1, 2, 3].map(i => (
-          <div key={i} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-3">
-            <div className="h-3 bg-gray-100 rounded w-1/3" />
-            <div className="h-4 bg-gray-100 rounded w-full" />
-            <div className="h-4 bg-gray-100 rounded w-3/4" />
-          </div>
-        ))}
-      </div>
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-3">
-        <div className="h-3 bg-gray-100 rounded w-1/2" />
-        <div className="h-6 bg-gray-100 rounded w-full" />
-        <div className="h-6 bg-gray-100 rounded w-full" />
-        <div className="h-10 bg-gray-100 rounded w-full mt-4" />
-      </div>
-    </div>
-  </div>
-);
+const Skeleton = () => <LoadingLayout variant="checkout" label="Loading content" />;
 
 const SectionCard = ({ title, icon: Icon, children }) => (
-  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+  <div className="surface p-5">
     {title && (
-      <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-1.5">
+      <h3 className="text-xs font-bold text-gray-400  mb-4 flex items-center gap-1.5">
         {Icon && <Icon size={13} />} {title}
       </h3>
     )}
@@ -190,7 +169,7 @@ const SectionCard = ({ title, icon: Icon, children }) => (
 );
 
 const InfoRow = ({ label, value, mono, copyable, color, last }) => {
-  const handleCopy = () => { navigator.clipboard.writeText(value); toast.success("Copied to clipboard"); };
+  const handleCopy = async () => { try { await navigator.clipboard.writeText(value); toast.success("Copied to clipboard"); } catch { toast.error("Couldn’t copy. Select and copy the value instead."); } };
   return (
     <div className={`flex items-start justify-between gap-4 py-2.5 ${!last ? "border-b border-gray-100" : ""}`}>
       <span className="text-xs text-gray-400 shrink-0 pt-0.5">{label}</span>
@@ -217,7 +196,7 @@ const QuantityBreakdown = ({ line }) => {
       {visible.map(({ key, label, className }) => (
         <span
           key={label}
-          className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${className}`}
+          className={`text-xs font-semibold px-1.5 py-0.5 rounded-md ${className}`}
         >
           {line[key]} {label}
         </span>
@@ -243,7 +222,7 @@ const OrderLineItem = ({ line, orderStatus, onLineUpdate, cancelWindowRemaining 
         .catch(err => console.error(`Failed to fetch product ${line.product.productId}:`, err))
         .finally(() => setImageLoading(false));
     }
-  }, [line.product?.productId]);
+  }, [line.product?.productId, line.product?.primaryImageUrl]);
 
   const lineStatus = line.orderLineStatus?.toUpperCase();
 
@@ -281,7 +260,7 @@ const OrderLineItem = ({ line, orderStatus, onLineUpdate, cancelWindowRemaining 
       <div className="flex items-center gap-3 py-3 last:pb-0 border-b border-gray-100 last:border-0 hover:bg-gray-50/50 transition-colors rounded-lg px-1 cursor-pointer" onClick={() => navigate(`/products/${line.product.productId}`)}>
         <div className="w-14 h-14 rounded-xl bg-gray-50 border border-gray-100 overflow-hidden shrink-0">
           {imageLoading ? (
-            <div className="w-full h-full bg-linear-to-r from-gray-100 to-gray-50 animate-pulse" />
+            <ImageSkeleton shape="block" className="w-full h-full" />
           ) : (fullProduct?.primaryImageUrl || line.product?.primaryImageUrl) ? (
             <img src={fullProduct?.primaryImageUrl || line.product?.primaryImageUrl} alt={line.product.productName} className="w-full h-full object-cover" />
           ) : (
@@ -291,20 +270,20 @@ const OrderLineItem = ({ line, orderStatus, onLineUpdate, cancelWindowRemaining 
 
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-gray-900 line-clamp-1 hover:text-blue-600 transition-colors">{line.product?.productName ?? "Product"}</p>
-          {/* ✦ seller + unit rate on the same line */}
-          <p className="text-[10px] text-gray-400 mt-0.5">
+          {/* Seller and unit price */}
+          <p className="text-xs text-gray-400 mt-0.5">
             by {sellerName}&nbsp;·&nbsp;{formatCurrency(line.product?.unitPrice)} / unit
           </p>
           <QuantityBreakdown line={line} />
         </div>
 
         <div className="flex flex-col items-end gap-1 shrink-0">
-          <span className="text-sm font-black text-gray-900">{formatCurrency(line.lineTotal)}</span>
+          <span className="text-sm font-semibold text-gray-900">{formatCurrency(line.lineTotal)}</span>
           {canCancelLine && (
             <button
               onClick={(e) => { e.stopPropagation(); openModal(); }}
               disabled={cancelling}
-              className="text-[11px] font-semibold text-red-400 hover:text-red-600 transition-colors cursor-pointer disabled:opacity-40"
+              className="text-xs font-semibold text-red-400 hover:text-red-600 transition-colors cursor-pointer disabled:opacity-40"
             >
               Cancel
             </button>
@@ -322,7 +301,7 @@ const OrderLineItem = ({ line, orderStatus, onLineUpdate, cancelWindowRemaining 
         >
           {line.pendingQty > 1 && (
             <div className="mb-3">
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Quantity to cancel</p>
+              <p className="text-xs font-bold text-gray-400  mb-2">Quantity to cancel</p>
               <div className="flex items-center gap-3">
                 <QuantityStepper
                   quantity={cancelQty}
@@ -334,7 +313,7 @@ const OrderLineItem = ({ line, orderStatus, onLineUpdate, cancelWindowRemaining 
                 <span className="text-xs text-gray-400">of {line.pendingQty} pending</span>
               </div>
               {cancelQty < line.pendingQty && (
-                <p className="text-[11px] text-blue-500 mt-1.5">
+                <p className="text-xs text-blue-500 mt-1.5">
                   Partial cancellation — {line.pendingQty - cancelQty} unit{line.pendingQty - cancelQty !== 1 ? "s" : ""} will remain active
                 </p>
               )}
@@ -354,7 +333,7 @@ const OrderDetails = ({ orderId }) => {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelling, setCancelling] = useState(false);
 
-  const fetchOrder = async (silent = false) => {
+  const fetchOrder = useCallback(async (silent = false) => {
     try {
       if (!silent) setLoading(true);
       setError("");
@@ -365,9 +344,9 @@ const OrderDetails = ({ orderId }) => {
     } finally {
       if (!silent) setLoading(false);
     }
-  };
+  }, [orderId]);
 
-  useEffect(() => { if (orderId) fetchOrder(); }, [orderId]);
+  useEffect(() => { if (orderId) fetchOrder(); }, [fetchOrder, orderId]);
 
   const cancelWindowRemaining = useCancelCountdown(
     order?.orderStatus === "CONFIRMED" ? order?.paymentSummary?.completedAt : null
@@ -390,7 +369,7 @@ const OrderDetails = ({ orderId }) => {
   const canCancelOrder = order?.orderStatus === "CREATED" ||
     (order?.orderStatus === "CONFIRMED" && cancelWindowRemaining > 0);
 
-  if (loading) return (
+  if (loading && !order) return (
     <div className="bg-gray-50 min-h-screen py-6">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8"><Skeleton /></div>
     </div>
@@ -399,7 +378,7 @@ const OrderDetails = ({ orderId }) => {
   if (error || !order) return (
     <div className="bg-gray-50 min-h-screen py-6">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-10 text-center">
+        <div className="surface p-10 text-center">
           <div className="w-16 h-16 rounded-2xl bg-red-50 flex items-center justify-center mx-auto mb-4">
             <MdWarning size={28} className="text-red-300" />
           </div>
@@ -407,7 +386,7 @@ const OrderDetails = ({ orderId }) => {
           <p className="text-sm text-gray-400 mb-6">{error || "Unable to load order details"}</p>
           <button
             onClick={() => navigate("/orders")}
-            className="inline-flex items-center gap-2 bg-gray-950 hover:bg-gray-800 text-white text-sm font-bold px-5 py-2.5 rounded-xl transition-all active:scale-[0.98]"
+            className="control inline-flex items-center gap-2 bg-gray-950 hover:bg-gray-800 text-white text-sm font-bold px-5 py-2.5 rounded-xl transition-[transform,opacity,background-color] "
           >
             <MdArrowBack size={14} /> Back to Orders
           </button>
@@ -434,28 +413,14 @@ const OrderDetails = ({ orderId }) => {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
 
         {/* Header */}
-        <div className="flex items-center gap-3 mb-6">
-          <div className="p-2 bg-blue-50 rounded-xl">
-            <MdShoppingBag size={20} className="text-blue-500" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-gray-900">Order #{order.orderId}</h1>
-            <p className="text-xs text-gray-500 mt-0.5">Placed on {formatDate(order.createdAt)}</p>
-          </div>
-          <button
-            onClick={() => navigate("/orders")}
-            className="ml-auto flex items-center gap-1.5 text-xs font-semibold text-blue-500 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-xl transition-colors"
-          >
-            <MdArrowBack size={13} /> All Orders
-          </button>
-        </div>
+        <PageHeading title={"Order #" + order.orderId} description={"Placed on " + formatDate(order.createdAt)}><button type="button" className="button button-outline" onClick={() => navigate("/orders")}><MdArrowBack aria-hidden="true" /> All orders</button></PageHeading>
 
         {/* Status banner */}
         <StatusBanner order={order} onRetrySuccess={() => fetchOrder(true)} />
 
         {/* Floating info bar */}
         {(order.orderStatus === "CONFIRMED" || order.orderStatus === "CREATED" || order.orderStatus === "CANCELLED") && (
-          <div className="bg-white border border-gray-100 rounded-xl mb-4 shadow-sm overflow-hidden">
+          <div className="bg-white border border-gray-100 rounded-xl mb-4  overflow-hidden">
 
             {/* Payment status row — CREATED only */}
             {order.orderStatus === "CREATED" && order.paymentSummary && (() => {
@@ -472,17 +437,17 @@ const OrderDetails = ({ orderId }) => {
                         {getPaymentMessage(order.paymentSummary.status, formatCurrency(order.paymentSummary.amount))}
                       </p>
                       {paymentStatus === "PENDING" && (
-                        <p className="text-[11px] text-gray-400 mt-0.5">
+                        <p className="text-xs text-gray-400 mt-0.5">
                           Already paid? Use "Check Status" to sync your payment.
                         </p>
                       )}
                       {(paymentStatus === "FAILED" || paymentStatus === "USER_DROPPED") && (
-                        <p className="text-[11px] text-gray-400 mt-0.5">
+                        <p className="text-xs text-gray-400 mt-0.5">
                           You can retry the payment to complete your order.
                         </p>
                       )}
                       {!["PENDING", "FAILED", "USER_DROPPED"].includes(paymentStatus) && (
-                        <p className="text-[11px] text-gray-400 mt-0.5">
+                        <p className="text-xs text-gray-400 mt-0.5">
                           Waiting for payment confirmation.
                         </p>
                       )}
@@ -502,7 +467,7 @@ const OrderDetails = ({ orderId }) => {
                 <MdTimer size={14} className={cancelWindowRemaining > 0 ? "text-amber-500 shrink-0" : "text-gray-400 shrink-0"} />
                 {cancelWindowRemaining > 0 ? (
                   <p className="text-xs text-amber-700 font-semibold">
-                    Cancel window closes in <span className="font-black">{formatTimeRemaining(cancelWindowRemaining)}</span>
+                    Cancel window closes in <span className="font-semibold">{formatTimeRemaining(cancelWindowRemaining)}</span>
                   </p>
                 ) : (
                   <p className="text-xs text-gray-500 font-semibold">Cancellation window has expired</p>
@@ -594,7 +559,7 @@ const OrderDetails = ({ orderId }) => {
             {order.refundSummary && (
               <SectionCard title="Refund Information" icon={MdAutorenew}>
                 <InfoRow label="Status" value={order.refundSummary.status} color={refundStyle.text} />
-                <InfoRow label="Amount" value={formatCurrency(order.refundSummary.amount)} color="text-green-600" />
+                <InfoRow label="Amount" value={formatCurrency(order.refundSummary.amount)} color="text-blue-700" />
                 <InfoRow label="Reason" value={order.refundSummary.reason} />
                 {order.refundSummary.gatewayReference && (
                   <InfoRow label="Refund ID" value={order.refundSummary.gatewayReference} mono copyable />
@@ -630,7 +595,7 @@ const OrderDetails = ({ orderId }) => {
               </div>
               <div className="flex justify-between items-center pt-3">
                 <span className="text-sm font-bold text-gray-900">Total</span>
-                <span className="text-2xl font-black text-gray-950">{formatCurrency(order.totalAmount)}</span>
+                <span className="text-2xl font-semibold text-gray-950">{formatCurrency(order.totalAmount)}</span>
               </div>
             </SectionCard>
 
@@ -639,7 +604,7 @@ const OrderDetails = ({ orderId }) => {
                 {canCancelOrder && (
                   <button
                     onClick={() => setShowCancelModal(true)}
-                    className="w-full flex items-center justify-center gap-2 py-2.5 text-sm font-bold text-red-500 bg-red-50 hover:bg-red-100 rounded-xl transition-colors cursor-pointer active:scale-[0.98]"
+                    className="w-full flex items-center justify-center gap-2 py-2.5 text-sm font-bold text-red-500 bg-red-50 hover:bg-red-100 rounded-xl transition-colors cursor-pointer "
                   >
                     <MdCancel size={15} /> Cancel Order
                   </button>
@@ -662,7 +627,7 @@ const OrderDetails = ({ orderId }) => {
           {canCancelOrder && (
             <button
               onClick={() => setShowCancelModal(true)}
-              className="flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-bold text-red-500 bg-red-50 hover:bg-red-100 rounded-xl transition-colors cursor-pointer active:scale-[0.98]"
+              className="flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-bold text-red-500 bg-red-50 hover:bg-red-100 rounded-xl transition-colors cursor-pointer "
             >
               <MdCancel size={15} /> Cancel
             </button>

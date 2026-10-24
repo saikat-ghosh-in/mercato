@@ -120,6 +120,32 @@ class OrderReservationServiceImplTest {
     }
 
     @Test
+    void transferKeepsAdditionalCartUnitsReserved() {
+        product.setReservedQty(5);
+        cartReservation.setReservedQty(5);
+        cartItem.setQuantity(5);
+
+        orderReservationService.finalizeInventoryForPaidOrder(order, cart);
+
+        assertEquals(5, product.getReservedQty());
+        assertEquals(3, cartReservation.getReservedQty());
+        assertEquals(2, storedOrderReservation.get().getReservedQty());
+        verify(cartReservationRepository, never()).delete(cartReservation);
+    }
+
+    @Test
+    void transferReservesTheDifferenceWhenCartWasReducedDuringPayment() {
+        product.setReservedQty(1);
+        cartReservation.setReservedQty(1);
+        cartItem.setQuantity(1);
+
+        orderReservationService.finalizeInventoryForPaidOrder(order, cart);
+
+        assertEquals(2, product.getReservedQty());
+        assertEquals(2, storedOrderReservation.get().getReservedQty());
+    }
+
+    @Test
     void reserveForOrder_incrementsReservedQtyAndPersistsReservation() {
         product.setReservedQty(1);
 
@@ -187,7 +213,7 @@ class OrderReservationServiceImplTest {
     }
 
     @Test
-    void finalizeInventory_returnsFalseWhenUniqueConstraintRaceIsLost() {
+    void uniqueConstraintFailureRollsBackInsteadOfContinuingAnAbortedPostgresTransaction() {
         AtomicBoolean peerCommitted = new AtomicBoolean(false);
 
         when(orderReservationRepository.findByOrderLine_Id(LINE_ID))
@@ -207,9 +233,8 @@ class OrderReservationServiceImplTest {
                     );
                 });
 
-        boolean owned = orderReservationService.finalizeInventoryForPaidOrder(order, cart);
-
-        assertFalse(owned);
+        org.junit.jupiter.api.Assertions.assertThrows(DataIntegrityViolationException.class,
+            () -> orderReservationService.finalizeInventoryForPaidOrder(order, cart));
         verify(orderReservationRepository, times(1)).save(any(OrderReservation.class));
     }
 }

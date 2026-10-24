@@ -1,0 +1,20 @@
+[Unit]
+Description=Verify Mercato remote WAL continuity and backup freshness
+Wants=network-online.target
+After=network-online.target postgresql.service
+
+[Service]
+Type=oneshot
+User=postgres
+Group=postgres
+UMask=0077
+WorkingDirectory=/var/lib/mercato-backup
+ExecStart=/usr/bin/python3 /usr/local/lib/mercato/backup_agent.py monitor
+TimeoutStartSec=5m
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/postgresql /var/lib/pgbackrest /var/spool/pgbackrest /var/log/pgbackrest /var/lib/mercato-backup /run/postgresql
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6

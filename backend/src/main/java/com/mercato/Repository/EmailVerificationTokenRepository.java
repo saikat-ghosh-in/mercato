@@ -10,6 +10,7 @@ import java.util.Optional;
 @Repository
 public interface EmailVerificationTokenRepository extends JpaRepository<EmailVerificationToken, Long> {
 
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
     Optional<EmailVerificationToken> findByToken(String token);
 
     Optional<EmailVerificationToken> findByUserIdAndVerifiedAtIsNull(Long userId);

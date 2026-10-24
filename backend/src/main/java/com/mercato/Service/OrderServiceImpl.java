@@ -39,16 +39,43 @@ public class OrderServiceImpl implements OrderService {
     private final CartReservationService cartReservationService;
     private final OrderLineUpdateService orderLineUpdateService;
     private final OrderRetryHoldService orderRetryHoldService;
+    private final CommissionService commissions;
+    private final com.mercato.Repository.SellerApplicationRepository sellerApplications;
+    private final org.springframework.transaction.PlatformTransactionManager transactions;
+    private final com.mercato.Commerce.RefundObligations refundObligations;
 
     @Override
-    @Transactional
     public OrderPlacementResponseDTO placeOrder(OrderCaptureRequestDTO request) {
+        var tx = new org.springframework.transaction.support.TransactionTemplate(transactions);
+        Order draft = tx.execute(status -> prepareOrder(request));
+        EcommUser buyer = authUtil.getLoggedInUser();
+        CashfreeOrderResponse gateway = cashfreeService.createOrder(draft, buyer);
+        return tx.execute(status -> {
+            Order order=orderRepository.lockByOrderId(draft.getOrderId()).orElseThrow();
+            if(order.getOrderStatus()==OrderStatus.CANCELLED) {
+                cashfreeService.terminateOrder(order.getOrderId());
+                throw new CustomBadRequestException("Order was cancelled while opening payment");
+            }
+            if(order.getPayment().getCapturedAt()==null)cashfreeService.initiatePayment(order,PaymentMethod.UNKNOWN,gateway);
+            return new OrderPlacementResponseDTO(order.getPayment().getPaymentSessionId(),OrderMapper.toDTO(order));
+        });
+    }
+
+    private Order prepareOrder(OrderCaptureRequestDTO request) {
         EcommUser user = authUtil.getLoggedInUser();
         Cart cart = cartService.getCartByUser(user);
 
         if (cart == null || cart.getCartItems() == null || cart.getCartItems().isEmpty()) {
             throw new CustomBadRequestException("Cart is empty");
         }
+        if ((request.getExpectedTotal() != null && request.getExpectedTotal().compareTo(cart.getTotal()) != 0)
+                || (request.getDeliveryMethod() != null && request.getDeliveryMethod() != cart.getDeliveryMethod()))
+            throw new CustomBadRequestException("Your bag or delivery price changed. Refresh your bag and review the latest total before paying.");
+
+        cart.getCartItems().forEach(item -> {
+            if (!item.getProduct().isPurchasable()) throw new CustomBadRequestException("An item in your cart is no longer available");
+            cartReservationService.validateHeld(item);
+        });
 
         Address address = addressRepository.findByAddressIdAndUser_UserId(
                         request.getAddressId(), user.getUserId())
@@ -57,35 +84,31 @@ public class OrderServiceImpl implements OrderService {
                 );
         Order order = buildOrder(cart, user, address);
 
-        CashfreeOrderResponse cashfreeOrder = cashfreeService.createOrder(order, user);
-        cashfreeService.initiatePayment(
-                order,
-                PaymentMethod.UNKNOWN,
-                cashfreeOrder
-        );
-
-        cart.getCartItems().forEach(cartReservationService::validateHeld);
-        orderRepository.save(order);
-
-        return new OrderPlacementResponseDTO(
-                order.getPayment().getPaymentSessionId(),
-                OrderMapper.toDTO(order)
-        );
+        // Commit a local payable aggregate before external I/O. Repeated gateway creation uses
+        // this immutable merchant order identity; callbacks can always find the payment.
+        Payment payment=new Payment();payment.setAmount(order.getTotalAmount());payment.setCurrency(order.getCurrency());
+        payment.setPaymentMethod(PaymentMethod.UNKNOWN);payment.setStatus(PaymentStatus.INITIATED);payment.setGatewayName("cashfree");payment.setInitiatedAt(Instant.now());
+        order.attachPayment(payment);order.setPaymentStatus(PaymentStatus.INITIATED);
+        return orderRepository.saveAndFlush(order);
     }
 
     @Override
-    @Transactional
     public String retryPayment(String orderId) {
         EcommUser currentUser = authUtil.getLoggedInUser();
-        Order order = orderRepository.findByOrderIdAndCustomerEmail(orderId, currentUser.getEmail())
+        var tx=new org.springframework.transaction.support.TransactionTemplate(transactions);
+        Order order = tx.execute(status -> {
+          Order found = orderRepository.lockByOrderId(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order", "orderId", orderId));
-
-        if (!OrderStatus.CREATED.equals(order.getOrderStatus())) {
+        if(!currentUser.getEmail().equals(found.getCustomerEmail()))throw new ResourceNotFoundException("Order", "orderId", orderId);
+        if (!OrderStatus.CREATED.equals(found.getOrderStatus())) {
             throw new CustomBadRequestException("Order is not in a payable state");
         }
-
-        orderRetryHoldService.ensureCartHoldsForRetry(order, currentUser);
-
+        orderRetryHoldService.ensureCartHoldsForRetry(found, currentUser);
+        // Gateway I/O runs after commit with OSIV disabled. Resolve the only lazy
+        // association needed by the detached payment snapshot before leaving here.
+        org.hibernate.Hibernate.initialize(found.getPayment());
+        return found;
+        });
         return cashfreeService.retryPayment(order, currentUser);
     }
 
@@ -93,15 +116,14 @@ public class OrderServiceImpl implements OrderService {
     @Transactional
     public OrderResponseDTO cancelOrder(OrderCancelRequestDTO request, TransitionTrigger trigger) {
 
-        Order order;
-        if (trigger == TransitionTrigger.ADMIN) {
-            order = orderRepository.findByOrderId(request.getOrderId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Order", "orderId", request.getOrderId()));
-        } else {
+        // Lock before loading mutable state/lines. Locking an already managed entity
+        // does not refresh a snapshot read before a concurrent allocation/shipment.
+        Order order=orderRepository.lockByOrderId(request.getOrderId())
+                .orElseThrow(()->new ResourceNotFoundException("Order","orderId",request.getOrderId()));
+        if (trigger != TransitionTrigger.ADMIN) {
             EcommUser currentUser = authUtil.getLoggedInUser();
-            order = orderRepository.findByOrderIdAndCustomerEmail(
-                            request.getOrderId(), currentUser.getEmail())
-                    .orElseThrow(() -> new ResourceNotFoundException("Order", "orderId", request.getOrderId()));
+            if(!currentUser.getEmail().equals(order.getCustomerEmail()))
+                throw new ResourceNotFoundException("Order", "orderId", request.getOrderId());
         }
 
         Payment payment = order.getPayment();
@@ -131,10 +153,13 @@ public class OrderServiceImpl implements OrderService {
         }
 
         if (order.getOrderStatus() == OrderStatus.CREATED) {
-            cashfreeService.terminateOrder(payment.getCfOrderId());
-            payment.setStatus(PaymentStatus.CANCELLED);
+            cashfreeService.terminateOrder(order.getOrderId());
+            if(payment.getCapturedAt()==null)payment.setStatus(PaymentStatus.CANCELLED);
             payment.setGatewayResponseMessage("Cancelled before payment");
             order.setOrderStatus(OrderStatus.CANCELLED);
+            order.getOrderLines().forEach(line->{line.cancel(line.getPendingQty());line.setOrderLineStatus(line.deriveStatus());});
+            if(payment.getCapturedAt()==null)order.setPaymentStatus(PaymentStatus.CANCELLED);
+            else refundObligations.full(order,"Captured order cancelled before allocation");
             orderRepository.save(order);
             return OrderMapper.toDTO(order);
         }
@@ -152,6 +177,7 @@ public class OrderServiceImpl implements OrderService {
         }
 
         List<OrderLine> lines = new ArrayList<>(order.getOrderLines());
+        cashfreeService.terminateOrder(order.getOrderId());
         lines.forEach(line -> {
             if (!line.isTerminal() && line.hasPendingQty()) {
                 OrderLineUpdateRequestDTO lineRequest = new OrderLineUpdateRequestDTO();
@@ -234,12 +260,21 @@ public class OrderServiceImpl implements OrderService {
         order.setDeliveryCity(address.getCity());
         order.setDeliveryState(address.getState());
         order.setDeliveryPincode(address.getPincode());
+        order.setDeliveryMethod(cart.getDeliveryMethod());
+        cart.getDeliveryOptions().stream().filter(option -> option.code() == cart.getDeliveryMethod())
+                .findFirst().ifPresent(option -> order.setDeliveryEstimate(option.estimate()));
 
         Map<String, String> sellerFulfillmentIds = new HashMap<>();
 
+        java.math.BigDecimal commissionRate = commissions.currentRate();
         int lineNumber = 1;
         for (CartItem cartItem : cartItems) {
             EcommUser seller = cartItem.getProduct().getSeller();
+            sellerApplications.findByUser_UserId(seller.getUserId()).ifPresent(application -> {
+                if ("ENROLLED_UNREGISTERED".equals(application.getTaxRegistrationType())
+                        && !application.getPickupState().trim().equalsIgnoreCase(address.getState().trim()))
+                    throw new CustomBadRequestException("This seller currently delivers only within " + application.getPickupState());
+            });
 
             String fulfillmentId = sellerFulfillmentIds.computeIfAbsent(
                     seller.getEmail(), k -> generateFulfillmentId()
@@ -255,6 +290,9 @@ public class OrderServiceImpl implements OrderService {
             orderLine.setLineTotal(cartItem.getLineTotal());
             orderLine.setSellerName(seller.getSellerDisplayName());
             orderLine.setSellerEmail(seller.getEmail());
+            orderLine.setCommissionRatePercent(commissionRate);
+            orderLine.setCommissionCapPerItem(com.mercato.Utils.CommissionMath.CAP_PER_ITEM);
+            orderLine.setSellerDeliveryCharge(cartItem.getSellerDeliveryCharge());
             orderLine.setOrderLineStatus(OrderLineStatus.CREATED);
 
             order.addOrderLine(orderLine);
@@ -263,6 +301,8 @@ public class OrderServiceImpl implements OrderService {
         order.setCurrency("INR");
         order.setSubtotal(cart.getSubtotal());
         order.setCharges(cart.getTotalCharges());
+        order.setShippingCharge(cart.getChargeAmount(com.mercato.Entity.cart.ChargeType.SHIPPING));
+        order.setPlatformFee(cart.getChargeAmount(com.mercato.Entity.cart.ChargeType.PLATFORM_FEE));
         order.setTotalAmount(order.getSubtotal().add(order.getCharges()));
 
         return order;

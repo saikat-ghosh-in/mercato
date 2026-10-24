@@ -1,30 +1,11 @@
+import Field from "../shared/AuthField";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { FiLock, FiEye, FiEyeOff, FiArrowLeft } from "react-icons/fi";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { useState } from "react";
-import toast from "react-hot-toast";
-import api from "../../backend/api";
+import toast from "../../utils/toastUtils.js";
+import api, { session } from "../../backend/api";
 import { passwordRules } from "../../utils/validationRules";
-
-const Field = ({ label, error, errors, icon: Icon, required = false, children }) => (
-    <div>
-        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1.5">
-            {label}
-            {required && <span className="text-red-400 ml-0.5">*</span>}
-        </label>
-        <div className={`flex items-center gap-2.5 border rounded-xl px-3 py-2.5 transition-colors focus-within:ring-1 ${error || errors?.length
-                ? "border-red-300 focus-within:ring-red-300 bg-red-50/30"
-                : "border-gray-200 focus-within:ring-blue-300"
-            }`}>
-            {Icon && <Icon size={15} className={error || errors?.length ? "text-red-400" : "text-gray-400"} />}
-            {children}
-        </div>
-        {error && <p className="text-[11px] text-red-500 mt-1 font-medium">{error}</p>}
-        {errors?.map((msg) => (
-            <p key={msg} className="text-[11px] text-red-500 mt-1 font-medium">{msg}</p>
-        ))}
-    </div>
-);
 
 const inputCls = "w-full text-sm text-gray-800 focus:outline-none bg-transparent placeholder-gray-300";
 
@@ -38,12 +19,13 @@ const ResetPassword = () => {
     const {
         register,
         handleSubmit,
-        watch,
+        control,
         trigger,
         formState: { errors, isSubmitting },
     } = useForm({ mode: "onTouched" });
 
-    const passwordValue = watch("password");
+    const passwordValue = useWatch({ control, name: "password", defaultValue: "" });
+    const confirmValue = useWatch({ control, name: "confirmPassword", defaultValue: "" });
     const passwordErrors = errors.password
         ? Object.values(errors.password.types ?? {})
         : [];
@@ -58,6 +40,7 @@ const ResetPassword = () => {
                 token,
                 password: data.password,
             });
+            await session.refresh({ broadcast: true });
             toast.success("Password updated. Please sign in.");
             navigate("/login");
         } catch (err) {
@@ -68,12 +51,12 @@ const ResetPassword = () => {
     if (!token) {
         return (
             <div className="bg-gray-50 min-h-screen flex items-center justify-center py-10 px-4">
-                <div className="w-full max-w-md bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center">
+                <div className="w-full max-w-md surface p-8 text-center">
                     <h1 className="text-lg font-bold text-gray-900 mb-2">Invalid reset link</h1>
                     <p className="text-sm text-gray-500 mb-6">Request a new password reset link to continue.</p>
                     <Link
                         to="/forgot-password"
-                        className="inline-block py-3 px-6 bg-blue-500 hover:bg-blue-600 text-white text-sm font-bold rounded-xl transition-colors"
+                        className="control inline-block py-3 px-6 bg-blue-500 hover:bg-blue-600 text-white text-sm font-bold rounded-xl transition-colors"
                     >
                         Request new link
                     </Link>
@@ -92,7 +75,7 @@ const ResetPassword = () => {
                     <FiArrowLeft size={14} /> Back to login
                 </Link>
 
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8">
+                <div className="surface p-8">
                     <h1 className="text-xl font-bold text-gray-900 mb-1">Set a new password</h1>
                     <p className="text-sm text-gray-500 mb-6">Choose a strong password for your account.</p>
 
@@ -109,15 +92,15 @@ const ResetPassword = () => {
                                     onChange: () => trigger("password"),
                                 })}
                                 type={showPassword ? "text" : "password"}
-                                placeholder="Enter a new password"
+                                placeholder="New password"
                                 autoComplete="new-password"
                                 className={inputCls}
                             />
                             {passwordValue?.length > 0 && (
                                 <button
                                     type="button"
-                                    onClick={() => setShowPassword((v) => !v)}
-                                    className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer shrink-0"
+                                    onClick={() => setShowPassword((v) => !v)} aria-label={showPassword ? "Hide password" : "Show password"}
+                                    className="icon-action text-gray-400 hover:text-gray-600 transition-colors cursor-pointer shrink-0"
                                 >
                                     {showPassword ? <FiEyeOff size={15} /> : <FiEye size={15} />}
                                 </button>
@@ -137,15 +120,15 @@ const ResetPassword = () => {
                                         value === passwordValue || "Passwords do not match",
                                 })}
                                 type={showConfirm ? "text" : "password"}
-                                placeholder="Confirm new password"
+                                placeholder="Repeat password"
                                 autoComplete="new-password"
                                 className={inputCls}
                             />
-                            {watch("confirmPassword")?.length > 0 && (
+                            {confirmValue.length > 0 && (
                                 <button
                                     type="button"
-                                    onClick={() => setShowConfirm((v) => !v)}
-                                    className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer shrink-0"
+                                    onClick={() => setShowConfirm((v) => !v)} aria-label={showConfirm ? "Hide confirmation password" : "Show confirmation password"}
+                                    className="icon-action text-gray-400 hover:text-gray-600 transition-colors cursor-pointer shrink-0"
                                 >
                                     {showConfirm ? <FiEyeOff size={15} /> : <FiEye size={15} />}
                                 </button>
@@ -155,7 +138,7 @@ const ResetPassword = () => {
                         <button
                             type="submit"
                             disabled={isSubmitting}
-                            className="w-full py-3 bg-gray-950 hover:bg-gray-800 disabled:opacity-50 text-white text-sm font-bold rounded-xl transition-all active:scale-[0.98]"
+                            className="control control-prominent w-full py-3 bg-gray-950 hover:bg-gray-800 disabled:opacity-50 text-white text-sm font-bold rounded-xl transition-[transform,opacity,background-color] "
                         >
                             {isSubmitting ? "Updating..." : "Update Password"}
                         </button>

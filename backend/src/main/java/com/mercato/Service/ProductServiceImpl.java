@@ -51,28 +51,41 @@ public class ProductServiceImpl implements ProductService {
     private final OrderReservationRepository orderReservationRepository;
     private final CartReservationRepository cartReservationRepository;
     private final FileService fileService;
+    private final ListingHistoryService listingHistory;
 
     @Override
     @Transactional
     public ProductResponseDTO addProduct(String categoryId, ProductRequestDTO productRequestDTO) {
         productRequestDTO.validate();
+        productRequestDTO.requirePackageMeasurements();
 
         Category category = getCategoryByCategoryId(categoryId);
         EcommUser seller = authUtil.getLoggedInUser();
+        requireSellingAccess(seller);
         validateIfAlreadyExists(productRequestDTO.getProductName(), seller.getUserId());
+
+        if (productRequestDTO.getPhysicalQty() == null) productRequestDTO.setPhysicalQty(0);
 
         Product product = productMapper.toEntity(productRequestDTO);
         product.setCategory(category);
         product.setSeller(seller);
+        product.setListingStatus(seller.isAdmin() ? "APPROVED" : "PENDING");
+        if (seller.isAdmin()) {
+            product.setListingReviewedAt(java.time.Instant.now());
+            product.setListingReviewedBy(seller.getUserId());
+            product.setListingReviewNote("Created directly by an administrator.");
+        }
 
         Product savedProduct = productRepository.save(product);
+        if (!seller.isAdmin()) listingHistory.submitted(savedProduct);
         return productMapper.toDTO(savedProduct);
     }
 
     @Override
     @Transactional(readOnly = true)
     public ProductResponse getActiveProducts(ProductFilterRequestDTO filter) {
-        Sort sort = buildSort(filter.getSortBy(), filter.getSortingOrder());
+        filter.validate();
+        Sort sort = buildSort(filter.getSortBy(), filter.getSortingOrder()).and(Sort.by("productId"));
         Specification<Product> spec = buildActiveSpec(filter);
 
         long totalElements = productRepository.count(spec);
@@ -105,6 +118,7 @@ public class ProductServiceImpl implements ProductService {
             throw new IllegalArgumentException("productId must not be null!");
         Product product = productRepository.findByProductIdAndActiveTrue(productId)
                 .orElseThrow(() -> new ResourceNotFoundException("Product", "productId", productId));
+        if (!product.isPurchasable()) throw new ResourceNotFoundException("Product", "productId", productId);
         return productMapper.toDTO(product);
     }
 
@@ -156,6 +170,7 @@ public class ProductServiceImpl implements ProductService {
         productRequestDTO.validate();
 
         EcommUser seller = authUtil.getLoggedInUser();
+        requireSellingAccess(seller);
         Product product = getProductByIdForUpdate(productId);
         validateAuthority(product, seller);
 
@@ -169,6 +184,10 @@ public class ProductServiceImpl implements ProductService {
             product.setCategory(category);
         }
 
+        if (productRequestDTO.getPhysicalQty() != null && productRequestDTO.getPhysicalQty() != product.getPhysicalQty()) {
+            forceSetInventory(product, productRequestDTO.getPhysicalQty());
+        }
+
         try {
             if (!productRequestDTO.getPrimaryImageUrl().equals(product.getPrimaryImageUrl())) {
                 fileService.deleteImage(product.getPrimaryImageUrl());
@@ -176,7 +195,7 @@ public class ProductServiceImpl implements ProductService {
 
             if (product.getSecondaryImageUrls() != null) {
                 for (String oldUrl : product.getSecondaryImageUrls()) {
-                    if (!productRequestDTO.getSecondaryImageUrls().contains(oldUrl)) {
+                    if (productRequestDTO.getSecondaryImageUrls() == null || !productRequestDTO.getSecondaryImageUrls().contains(oldUrl)) {
                         fileService.deleteImage(oldUrl);
                     }
                 }
@@ -186,6 +205,13 @@ public class ProductServiceImpl implements ProductService {
         }
 
         productMapper.updateEntity(product, productRequestDTO);
+        if (!seller.isAdmin()) {
+            product.setListingStatus("PENDING");
+            product.setListingReviewNote(null);
+            product.setListingReviewedAt(null);
+            product.setListingReviewedBy(null);
+            listingHistory.submitted(product);
+        }
 
         Product savedProduct = productRepository.save(product);
         return productMapper.toDTO(savedProduct);
@@ -209,12 +235,20 @@ public class ProductServiceImpl implements ProductService {
             log.warn("Failed to delete images for product: {}", productId, e);
         }
 
+        listingHistory.closeOpen(product,"WITHDRAWN","Product removed before review.");
         productRepository.delete(product);
     }
 
     @Override
     @Transactional
     public List<ProductSupplyUpdateResponseDTO> updateProductInventory(List<ProductSupplyUpdateRequestDTO> productSupplyUpdateRequestDTOs) {
+        if (productSupplyUpdateRequestDTOs == null || productSupplyUpdateRequestDTOs.isEmpty() || productSupplyUpdateRequestDTOs.size() > 100)
+            throw new IllegalArgumentException("Provide between 1 and 100 stock updates");
+        for (ProductSupplyUpdateRequestDTO dto : productSupplyUpdateRequestDTOs) {
+            if (dto == null || dto.getProductId() == null || dto.getProductId().isBlank()
+                    || dto.getQuantity() == null || dto.getSupplyType() == null)
+                throw new IllegalArgumentException("Each stock update requires a product, quantity and supply type");
+        }
         List<ProductSupplyUpdateResponseDTO> responses = new ArrayList<>();
         EcommUser seller = authUtil.getLoggedInUser();
 
@@ -245,7 +279,11 @@ public class ProductServiceImpl implements ProductService {
     }
 
     private Specification<Product> buildActiveSpec(ProductFilterRequestDTO filter) {
-        Specification<Product> activeOnly = (root, query, cb) -> cb.isTrue(root.get("active"));
+        Specification<Product> activeOnly = (root, query, cb) -> cb.and(cb.isTrue(root.get("active")),
+                cb.or(cb.isNull(root.get("listingStatus")), cb.equal(root.get("listingStatus"), "APPROVED")),
+                cb.isTrue(root.get("seller").get("enabled")), cb.isFalse(root.get("seller").get("accountLocked")),
+                cb.isFalse(root.get("seller").get("sellerSuspended")),
+                cb.or(cb.isNull(root.get("seller").get("sellerStatus")), cb.equal(root.get("seller").get("sellerStatus"), com.mercato.Entity.SellerStatus.APPROVED)));
         Specification<Product> filters = buildSpec(
                 filter.getCategory(), filter.getSellers(),
                 filter.getKeyword(), filter.getMinPrice(), filter.getMaxPrice(), filter.isInStock()
@@ -253,14 +291,25 @@ public class ProductServiceImpl implements ProductService {
         return activeOnly.and(filters);
     }
 
+    private void requireSellingAccess(EcommUser user) {
+        if (user.isSellerSuspended()) throw new org.springframework.security.access.AccessDeniedException("Selling is suspended. You can still manage existing orders and view your account");
+    }
+
     @Transactional
     private void forceSetInventory(Product product, int newPhysicalQty) {
         if (newPhysicalQty < 0)
             throw new IllegalArgumentException("Physical qty cannot be negative");
 
+        int paidReservedQty = orderReservationRepository
+                .findAllByProductIdOrderByCreatedAtDesc(product.getProductId()).stream()
+                .mapToInt(OrderReservation::getReservedQty).sum();
+        if (newPhysicalQty < paidReservedQty)
+            throw new IllegalArgumentException("Stock cannot be reduced below quantities reserved for paid orders");
+
         int excess = product.getReservedQty() - newPhysicalQty;
         if (excess > 0) excess = releaseCartReservations(product, excess);
-        if (excess > 0) releaseOrderReservations(product, excess);
+        if (excess > 0)
+            throw new IllegalArgumentException("Stock cannot be reduced while inventory reservations are inconsistent");
 
         product.setInventoryAbsolute(newPhysicalQty);
         productRepository.save(product);
@@ -269,6 +318,8 @@ public class ProductServiceImpl implements ProductService {
     private int releaseCartReservations(Product product, int excess) {
         List<CartReservation> cartReservations = cartReservationRepository
                 .findAllByProductIdOrderByCreatedAtDesc(product.getProductId());
+        if (cartReservations.stream().mapToInt(CartReservation::getReservedQty).sum() < excess)
+            throw new IllegalArgumentException("Inventory reservations are inconsistent; stock correction was not applied");
 
         for (CartReservation reservation : cartReservations) {
             if (excess <= 0) break;
@@ -284,25 +335,6 @@ public class ProductServiceImpl implements ProductService {
             }
         }
         return excess;
-    }
-
-    private void releaseOrderReservations(Product product, int excess) {
-        List<OrderReservation> orderReservations = orderReservationRepository
-                .findAllByProductIdOrderByCreatedAtDesc(product.getProductId());
-
-        for (OrderReservation reservation : orderReservations) {
-            if (excess <= 0) break;
-            int toRelease = Math.min(reservation.getReservedQty(), excess);
-            product.adjustReservedQty(-toRelease);
-            excess -= toRelease;
-
-            if (toRelease == reservation.getReservedQty()) {
-                orderReservationRepository.delete(reservation);
-            } else {
-                reservation.setReservedQty(reservation.getReservedQty() - toRelease);
-                orderReservationRepository.save(reservation);
-            }
-        }
     }
 
     @Transactional

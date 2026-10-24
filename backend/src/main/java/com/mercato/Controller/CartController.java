@@ -6,6 +6,7 @@ import com.mercato.Payloads.Response.CartResponseDTO;
 import com.mercato.Service.CartService;
 import com.mercato.Utils.CartContext;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,9 +21,15 @@ public class CartController {
 
     private final CartService cartService;
 
+    @PutMapping("/cart/delivery-method")
+    public CartResponseDTO selectDeliveryMethod(HttpServletRequest request,
+            @Valid @RequestBody com.mercato.Payloads.Request.DeliveryMethodRequest body) {
+        return cartService.selectDeliveryMethod(body.deliveryMethod(), CartContext.resolve(request));
+    }
+
     @PostMapping("/cart/add")
     public ResponseEntity<CartResponseDTO> addProductToCart(HttpServletRequest request,
-                                                            @RequestBody CartRequestDTO cartRequestDTO) {
+                                                            @Valid @RequestBody CartRequestDTO cartRequestDTO) {
         CartContext context = CartContext.resolve(request);
         CartResponseDTO cartResponseDTO = cartService.addProductToCart(cartRequestDTO, context);
         return new ResponseEntity<>(cartResponseDTO, HttpStatus.OK);
@@ -37,7 +44,7 @@ public class CartController {
 
     @PutMapping("/cart")
     public ResponseEntity<CartResponseDTO> updateProductQuantityInCart(HttpServletRequest request,
-                                                                       @RequestBody CartItemRequestDTO cartItemRequestDTO) {
+                                                                       @Valid @RequestBody CartItemRequestDTO cartItemRequestDTO) {
         CartContext context = CartContext.resolve(request);
         CartResponseDTO cartResponseDTO = cartService.updateProductQuantityInCart(cartItemRequestDTO, context);
         return new ResponseEntity<>(cartResponseDTO, HttpStatus.OK);

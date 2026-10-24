@@ -16,7 +16,8 @@ public class AddressMapper {
                 address.getCity(),
                 address.getState(),
                 address.getPincode(),
-                address.getCountry()
+                address.getCountry(),
+                address.isDefaultAddress()
         );
     }
 }

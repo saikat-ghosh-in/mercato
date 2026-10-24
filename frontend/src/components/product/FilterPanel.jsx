@@ -1,311 +1,44 @@
-import { useState, useRef, useEffect } from "react";
-import {
-    MdFilterList, MdClose, MdCategory, MdStorefront,
-    MdKeyboardArrowDown, MdKeyboardArrowUp, MdVerified,
-} from "react-icons/md";
+import { useId, useState } from "react";
+import { Dialog, DialogBackdrop, DialogPanel, DialogTitle } from "@headlessui/react";
+import { FiChevronDown, FiX } from "react-icons/fi";
+import SelectControl from "../shared/SelectControl";
+import { SORT_OPTIONS } from "../../utils/productUtils";
 
-const COLLAPSED_COUNT = 5;
+function FilterSection({ title, children }) {
+  const [open, setOpen] = useState(true);
+  const id = useId();
+  return <section className="filter-section"><button type="button" className="filter-section-toggle" aria-expanded={open} aria-controls={id} onClick={() => setOpen(value => !value)}>{title}<FiChevronDown aria-hidden="true" style={{ transform: open ? "rotate(180deg)" : undefined }} /></button><div id={id} hidden={!open}>{children}</div></section>;
+}
 
-const FilterSection = ({ title, children, defaultOpen = true }) => {
-    const [open, setOpen] = useState(defaultOpen);
-    return (
-        <div className="border-b border-gray-100 pb-4 mb-4 last:border-0 last:mb-0 last:pb-0">
-            <button
-                onClick={() => setOpen(v => !v)}
-                className="w-full flex items-center justify-between text-xs font-bold text-gray-700 uppercase tracking-widest mb-3 cursor-pointer"
-            >
-                {title}
-                {open ? <MdKeyboardArrowUp size={16} /> : <MdKeyboardArrowDown size={16} />}
-            </button>
-            {open && children}
+function FilterOptions({ items, selected, onChange, multiple = false }) {
+  const [expanded, setExpanded] = useState(false);
+  const visible = expanded ? items : items.slice(0, 5);
+  return <div className="filter-options">{!multiple && <button type="button" aria-pressed={!selected} className="filter-option" onClick={() => onChange("")}>All categories</button>}
+    {visible.map(item => multiple ? <label key={item} className="filter-option"><input type="checkbox" checked={selected.includes(item)} onChange={() => onChange(selected.includes(item) ? selected.filter(value => value !== item) : [...selected, item])} /><span>{item}</span></label> : <button type="button" key={item} className="filter-option" aria-pressed={selected === item} onClick={() => onChange(item)}>{item}</button>)}
+    {items.length > 5 && <button type="button" className="filter-more" onClick={() => setExpanded(value => !value)}>{expanded ? "Show less" : `Show ${items.length - 5} more`}</button>}
+  </div>;
+}
+
+export default function FilterPanel({ open, categories, sellers, draft, error, onChange, onClear, onApply, onClose }) {
+  const id = useId();
+  const priceError = error ? id + "-price-error" : undefined;
+  return <Dialog open={open} onClose={onClose} className="relative z-60">
+    <DialogBackdrop transition className="dialog-backdrop" />
+    <DialogPanel transition className="filter-drawer">
+      <div className="filter-drawer-heading"><DialogTitle>Filter &amp; sort</DialogTitle><button type="button" className="icon-button" aria-label="Close filters" onClick={onClose}><FiX /></button></div>
+      <form className="filter-form" noValidate onSubmit={event => { event.preventDefault(); onApply(); }}>
+        <div className="filter-drawer-body">
+          <section className="filter-section filter-sort"><label htmlFor={id + "-sort"}>Sort by</label><SelectControl id={id + "-sort"} value={(draft.sortBy || "createdAt") + ":" + (draft.sortingOrder || "desc")} onChange={event => { const [sortBy, sortingOrder] = event.target.value.split(":"); onChange({ sortBy, sortingOrder }); }}>{SORT_OPTIONS.map(option => <option key={option.label} value={option.sortBy + ":" + option.sortingOrder}>{option.label}</option>)}</SelectControl></section>
+          <FilterSection title="Category"><FilterOptions items={categories.map(category => category.categoryName)} selected={draft.category} onChange={category => onChange({ category })} /></FilterSection>
+          {sellers.length > 0 && <FilterSection title="Seller"><FilterOptions multiple items={sellers.map(seller => seller.sellerDisplayName)} selected={draft.sellers} onChange={values => onChange({ sellers: values })} /></FilterSection>}
+          <FilterSection title="Price range"><div className="filter-price-fields">
+            <label htmlFor={id + "-min"}>Min price (₹)<input id={id + "-min"} type="number" min="0" step="0.01" inputMode="decimal" placeholder="0" value={draft.minPrice} onChange={event => onChange({ minPrice: event.target.value })} aria-invalid={Boolean(error)} aria-describedby={priceError} /></label>
+            <label htmlFor={id + "-max"}>Max price (₹)<input id={id + "-max"} type="number" min="0" step="0.01" inputMode="decimal" placeholder="Any" value={draft.maxPrice} onChange={event => onChange({ maxPrice: event.target.value })} aria-invalid={Boolean(error)} aria-describedby={priceError} /></label>
+          </div>{error && <p id={priceError} className="filter-error" role="alert">{error}</p>}</FilterSection>
+          <FilterSection title="Availability"><label className="filter-option"><input type="checkbox" checked={draft.inStockOnly} onChange={event => onChange({ inStockOnly: event.target.checked })} />In stock only</label></FilterSection>
         </div>
-    );
-};
-
-const FilterBtn = ({ active, onClick, children }) => (
-    <button
-        onClick={onClick}
-        className={`w-full text-left text-xs px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 
-            ${active
-                ? "bg-blue-50 text-blue-600 font-semibold"
-                : "text-gray-600 hover:bg-gray-50"
-            }`}
-    >
-        {children}
-    </button>
-);
-
-const CollapsibleList = ({ items, renderItem, getKey, selected, onSelect }) => {
-    const [expanded, setExpanded] = useState(false);
-    const containerRef = useRef(null);
-    const hasMore = items.length > COLLAPSED_COUNT;
-    const visible = expanded ? items : items.slice(0, COLLAPSED_COUNT);
-
-    useEffect(() => {
-        const el = containerRef.current;
-        if (!el || !hasMore || expanded) return;
-        const handleWheel = (e) => { if (e.deltaY > 0) setExpanded(true); };
-        el.addEventListener("wheel", handleWheel, { passive: true });
-        return () => el.removeEventListener("wheel", handleWheel);
-    }, [hasMore, expanded]);
-
-    return (
-        <div ref={containerRef}>
-            <div className="space-y-1">
-                <FilterBtn active={!selected} onClick={() => onSelect("")}>All</FilterBtn>
-                {visible.map(item => {
-                    const key = getKey(item);
-                    return (
-                        <FilterBtn key={key} active={selected === key} onClick={() => onSelect(key)}>
-                            {renderItem(item)}
-                            {selected === key && (
-                                <MdClose size={11} className="ml-auto shrink-0"
-                                    onClick={e => { e.stopPropagation(); onSelect(""); }} />
-                            )}
-                        </FilterBtn>
-                    );
-                })}
-            </div>
-            {hasMore && (
-                <button
-                    onClick={() => setExpanded(v => !v)}
-                    className="mt-2 text-[11px] font-semibold text-blue-500 hover:text-blue-700 cursor-pointer flex items-center gap-1"
-                >
-                    {expanded
-                        ? <><MdKeyboardArrowUp size={13} />Show less</>
-                        : <><MdKeyboardArrowDown size={13} />{items.length - COLLAPSED_COUNT} more</>
-                    }
-                </button>
-            )}
-        </div>
-    );
-};
-
-const PriceFilter = ({ minPrice, maxPrice, setParam }) => (
-    <div className="space-y-3">
-        <div className="space-y-2">
-            <div>
-                <label className="text-[10px] text-gray-400 mb-1 block">Min</label>
-                <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden focus-within:ring-1 focus-within:ring-blue-400">
-                    <span className="px-2 text-xs text-gray-400 bg-gray-50 border-r border-gray-200 py-2 shrink-0">₹</span>
-                    <input type="number" placeholder="0" value={minPrice}
-                        onChange={e => setParam({ minPrice: e.target.value })}
-                        className="w-full px-2 py-2 text-xs text-gray-700 focus:outline-none"
-                    />
-                </div>
-            </div>
-            <div>
-                <label className="text-[10px] text-gray-400 mb-1 block">Max</label>
-                <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden focus-within:ring-1 focus-within:ring-blue-400">
-                    <span className="px-2 text-xs text-gray-400 bg-gray-50 border-r border-gray-200 py-2 shrink-0">₹</span>
-                    <input type="number" placeholder="Any" value={maxPrice}
-                        onChange={e => setParam({ maxPrice: e.target.value })}
-                        className="w-full px-2 py-2 text-xs text-gray-700 focus:outline-none"
-                    />
-                </div>
-            </div>
-        </div>
-        {(minPrice || maxPrice) && (
-            <button onClick={() => setParam({ minPrice: "", maxPrice: "" })}
-                className="text-[11px] text-blue-500 hover:text-blue-700 cursor-pointer">
-                Clear price filter
-            </button>
-        )}
-    </div>
-);
-
-const MultiCollapsibleList = ({ items, renderItem, getKey, selected, onToggle, onClearAll }) => {
-    const [expanded, setExpanded] = useState(false);
-    const containerRef = useRef(null);
-    const hasMore = items.length > COLLAPSED_COUNT;
-    const visible = expanded ? items : items.slice(0, COLLAPSED_COUNT);
-
-    useEffect(() => {
-        const el = containerRef.current;
-        if (!el || !hasMore || expanded) return;
-        const handleWheel = (e) => { if (e.deltaY > 0) setExpanded(true); };
-        el.addEventListener("wheel", handleWheel, { passive: true });
-        return () => el.removeEventListener("wheel", handleWheel);
-    }, [hasMore, expanded]);
-
-    const hasSelection = selected.length > 0;
-
-    return (
-        <div ref={containerRef}>
-            <div className="space-y-1">
-                <FilterBtn active={!hasSelection} onClick={onClearAll}>All</FilterBtn>
-                {visible.map(item => {
-                    const key = getKey(item);
-                    const isSelected = selected.includes(key);
-                    return (
-                        <FilterBtn key={key} active={isSelected} onClick={() => onToggle(key)}>
-                            {/* Checkbox indicator */}
-                            <span className={`w-3.5 h-3.5 rounded border shrink-0 flex items-center justify-center transition-colors ${isSelected ? "bg-blue-500 border-blue-500" : "border-gray-300"
-                                }`}>
-                                {isSelected && (
-                                    <svg viewBox="0 0 10 8" className="w-2 h-2">
-                                        <path d="M1 4l3 3 5-6" stroke="white" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-                                    </svg>
-                                )}
-                            </span>
-                            {renderItem(item)}
-                        </FilterBtn>
-                    );
-                })}
-            </div>
-            {hasMore && (
-                <button
-                    onClick={() => setExpanded(v => !v)}
-                    className="mt-2 text-[11px] font-semibold text-blue-500 hover:text-blue-700 cursor-pointer flex items-center gap-1"
-                >
-                    {expanded
-                        ? <><MdKeyboardArrowUp size={13} />Show less</>
-                        : <><MdKeyboardArrowDown size={13} />{items.length - COLLAPSED_COUNT} more</>
-                    }
-                </button>
-            )}
-        </div>
-    );
-};
-
-const FilterBody = ({ categories, sellers, filters, setParam }) => {
-    const { category, sellers: selectedSellers, minPrice, maxPrice, inStockOnly } = filters;
-
-    const toggleSeller = (sellerName) => {
-        if (!sellerName) {
-            setParam({ sellers: "" });
-            return;
-        }
-        const current = selectedSellers ?? [];
-        const next = current.includes(sellerName)
-            ? current.filter(s => s !== sellerName)
-            : [...current, sellerName];
-        setParam({ sellers: next.length ? next.join(",") : "" });
-    };
-
-    return (
-        <>
-            <FilterSection title="Category">
-                <CollapsibleList
-                    items={categories}
-                    selected={category}
-                    onSelect={v => setParam({ category: v })}
-                    getKey={c => c.categoryName}
-                    renderItem={c => <><MdCategory size={11} className="shrink-0" />{c.categoryName}</>}
-                />
-            </FilterSection>
-
-            {sellers.length > 0 && (
-                <FilterSection title="Seller">
-                    <MultiCollapsibleList
-                        items={sellers}
-                        selected={selectedSellers ?? []}
-                        onToggle={toggleSeller}
-                        onClearAll={() => setParam({ sellers: "" })}
-                        getKey={s => s.sellerDisplayName}
-                        renderItem={s => (
-                            <>
-                                {s.profileImageUrl
-                                    ? <img src={s.profileImageUrl} alt="" className="w-4 h-4 rounded-full object-cover shrink-0 border border-gray-100" />
-                                    : <MdStorefront size={11} className="text-gray-400 shrink-0" />}
-                                <span className="truncate">{s.sellerDisplayName}</span>
-                            </>
-                        )}
-                    />
-                </FilterSection>
-            )}
-
-            <FilterSection title="Price Range">
-                <PriceFilter minPrice={minPrice} maxPrice={maxPrice} setParam={setParam} />
-            </FilterSection>
-
-            <FilterSection title="Availability">
-                <label className="flex items-center gap-2.5 cursor-pointer group"
-                    onClick={() => setParam({ inStock: inStockOnly ? "" : "true" })}>
-                    <span className={`w-4 h-4 rounded flex items-center justify-center border shrink-0 transition-colors ${inStockOnly ? "bg-blue-500 border-blue-500" : "border-gray-300 group-hover:border-blue-300"
-                        }`}>
-                        {inStockOnly && (
-                            <svg viewBox="0 0 10 8" className="w-2.5 h-2.5">
-                                <path d="M1 4l3 3 5-6" stroke="white" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-                            </svg>
-                        )}
-                    </span>
-                    <span className="text-xs text-gray-600 flex items-center gap-1">
-                        <MdVerified size={12} className={inStockOnly ? "text-blue-500" : "text-gray-300"} />
-                        In Stock Only
-                    </span>
-                </label>
-            </FilterSection>
-        </>
-    );
-};
-
-const FilterHeader = ({ activeFilterCount, clearAllFilters, onClose }) => (
-    <div className="flex items-center justify-between mb-4">
-        <h2 className="text-sm font-bold text-gray-800 flex items-center gap-2">
-            <MdFilterList size={16} /> Filters
-            {activeFilterCount > 0 && (
-                <span className="text-[10px] font-bold bg-blue-500 text-white px-1.5 py-0.5 rounded-full">
-                    {activeFilterCount}
-                </span>
-            )}
-        </h2>
-        <div className="flex items-center gap-2">
-            {activeFilterCount > 0 && (
-                <button onClick={clearAllFilters}
-                    className="flex items-center gap-1 text-[11px] font-semibold text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 px-2 py-1 rounded-lg transition-colors cursor-pointer">
-                    <MdClose size={11} /> Clear
-                </button>
-            )}
-            {onClose && (
-                <button onClick={onClose} className="text-gray-400 hover:text-gray-700 cursor-pointer transition-colors">
-                    <MdClose size={20} />
-                </button>
-            )}
-        </div>
-    </div>
-);
-
-const FilterPanel = ({
-    categories, sellers,
-    filters, setParam, activeFilterCount, clearAllFilters,
-    asDrawer = false, onClose, open, totalElements,
-}) => {
-    const sharedProps = { categories, sellers, filters, setParam };
-
-    if (!asDrawer) return (
-        <aside className="hidden lg:block w-56 shrink-0 bg-white rounded-2xl border border-gray-100 shadow-sm p-5 sticky top-20">
-            <FilterHeader activeFilterCount={activeFilterCount} clearAllFilters={clearAllFilters} />
-            <FilterBody {...sharedProps} />
-        </aside>
-    );
-
-    if (!open) return null;
-
-    return (
-        <>
-            <div
-                className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 lg:hidden"
-                onClick={onClose}
-            />
-            <div className="fixed inset-y-0 right-0 z-50 w-72 bg-white shadow-2xl flex flex-col lg:hidden">
-                <div className="p-5 border-b border-gray-100">
-                    <FilterHeader activeFilterCount={activeFilterCount} clearAllFilters={clearAllFilters} onClose={onClose} />
-                </div>
-                <div className="flex-1 overflow-y-auto p-5">
-                    <FilterBody {...sharedProps} />
-                </div>
-                <div className="p-4 border-t border-gray-100">
-                    <button
-                        onClick={onClose}
-                        className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2.5 rounded-xl text-sm transition-colors cursor-pointer"
-                    >
-                        Show {totalElements} Results
-                    </button>
-                </div>
-            </div>
-        </>
-    );
-};
-
-export default FilterPanel;
+        <div className="filter-drawer-footer"><button type="button" className="filter-clear" onClick={onClear}>Clear filters</button><div><button type="button" className="button button-outline" onClick={onClose}>Cancel</button><button type="submit" className="button button-dark">Apply filters</button></div></div>
+      </form>
+    </DialogPanel>
+  </Dialog>;
+}

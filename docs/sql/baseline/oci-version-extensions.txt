@@ -1,0 +1,4 @@
+DATABASE mercato
+plpgsql|1.0
+DATABASE mercato_beta
+plpgsql|1.0

@@ -1,9 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useContentTransition } from "../../hooks/useContentTransition";
 import { useDispatch, useSelector } from "react-redux";
-import { Outlet, useLocation, useNavigate } from "react-router-dom";
-import toast from "react-hot-toast";
-import { MdShoppingCart } from "react-icons/md";
-import api from "../../backend/api";
+import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
+import toast from "../../utils/toastUtils.js";
+import { FiArrowLeft } from "react-icons/fi";
+import { checkoutIssue, currentDeliveryAddress, paymentHandoff } from "../../utils/checkout";
+import { useCartProducts } from "../../hooks/useCartProducts";
 import {
   selectCartItems,
   selectCartQty,
@@ -21,8 +23,7 @@ import AddressInfoModal from "../address/AddressInfoModal";
 import { DeleteModal } from "../address/DeleteModal";
 import ProgressBar from "./ProgressBar";
 import AddressStep from "./steps/AddressStep";
-import ReviewStep from "./steps/ReviewStep";
-import PaymentStep from "./steps/PaymentStep";
+import ReviewStep from "./steps/ReviewPaymentStep";
 import OrderSummary from "./OrderSummary";
 
 const Checkout = () => {
@@ -31,6 +32,7 @@ const Checkout = () => {
   const location = useLocation();
 
   const { user, addresses, selectedAddressForCheckout } = useSelector((s) => s.auth);
+  const { cartLoading, cartError, deliveryMethod } = useSelector(s => s.cart);
   const cartLoaded = useSelector(selectCartLoaded);
   const cartItems = useSelector(selectCartItems);
   const cartQty = useSelector(selectCartQty);
@@ -38,65 +40,45 @@ const Checkout = () => {
   const total = useSelector(selectTotal);
   const { shipping, platformFee, processingAndHandling } = useSelector(selectCharges);
 
-  const [cartWithProducts, setCartWithProducts] = useState([]);
-  const [loadingProducts, setLoadingProducts] = useState(false);
-  const [step, setStep] = useState(1);
+  const { items: cartWithProducts, loading: loadingProducts, failed: productsUnavailable } = useCartProducts(cartItems);
+
+  const [step, setStep] = useState(2);
   const [loadingAddresses, setLoadingAddresses] = useState(false);
   const [openAddressModal, setOpenAddressModal] = useState(false);
   const [editingAddress, setEditingAddress] = useState(null);
   const [openDeleteModal, setOpenDeleteModal] = useState(false);
+  const [deletingAddress, setDeletingAddress] = useState(false);
   const [deleteAddressId, setDeleteAddressId] = useState(null);
   const [placingOrder, setPlacingOrder] = useState(false);
+  const [paymentError, setPaymentError] = useState("");
+  const [addressError, setAddressError] = useState(false);
+  const paymentPending = useRef(false);
+  const previousStep = useRef(1);
+  const checkoutPanel = useRef(null);
+  const selectedAddress = currentDeliveryAddress(addresses, selectedAddressForCheckout);
+  const visibleStep = selectedAddress ? step : 1;
+  useContentTransition(checkoutPanel, visibleStep);
+  const bagIssue = checkoutIssue({ cartLoaded, cartLoading, cartError, loadingProducts, productsUnavailable, cartQty });
 
   const isChildRoute = location.pathname !== "/checkout";
-
-  // Fetch product details for all cart items
-  useEffect(() => {
-    if (cartItems.length === 0) {
-      setCartWithProducts([]);
-      return;
-    }
-
-    const fetchProducts = async () => {
-      setLoadingProducts(true);
-      try {
-        const products = await Promise.all(
-          cartItems.map(item =>
-            api.get(`/public/products/${item.productId}`)
-              .then(res => res.data)
-              .catch(() => null)
-          )
-        );
-
-        const productMap = {};
-        products.forEach(p => {
-          if (p) productMap[p.productId] = p;
-        });
-
-        const enriched = cartItems.map(item => ({
-          ...item,
-          product: productMap[item.productId] || null
-        }));
-
-        setCartWithProducts(enriched);
-      } catch (error) {
-        console.error("Failed to fetch product details:", error);
-        setCartWithProducts(cartItems);
-      } finally {
-        setLoadingProducts(false);
-      }
-    };
-
-    fetchProducts();
-  }, [cartItems]);
 
   useEffect(() => {
     if (cartLoaded && cartItems.length === 0 && !isChildRoute) {
       toast.error("Your cart is empty");
       navigate("/cart");
     }
-    dispatch(getUserAddresses(setLoadingAddresses));
-  }, [cartLoaded, cartItems.length, dispatch, navigate, isChildRoute]);
+  }, [cartLoaded, cartItems.length, navigate, isChildRoute]);
+  useEffect(() => {
+    dispatch(setSelectedAddressForCheckout(null));
+    dispatch(getUserAddresses(setLoadingAddresses, setAddressError));
+  }, [dispatch]);
+  useEffect(() => {
+    if (previousStep.current !== visibleStep) {
+      checkoutPanel.current?.querySelector("h2")?.focus({ preventScroll: true });
+      checkoutPanel.current?.closest(".site-container")?.querySelector(".checkout-steps")?.scrollIntoView({ block: "start", behavior: "instant" });
+      previousStep.current = visibleStep;
+    }
+  }, [visibleStep]);
 
   if (isChildRoute) return <Outlet />;
 
@@ -117,16 +99,20 @@ const Checkout = () => {
 
   const handleModalClose = () => {
     setOpenAddressModal(false);
-    setEditingAddress(null);
   };
 
-  const onDeleteHandler = () => {
+  const onDeleteHandler = async () => {
+    if (deletingAddress) return;
+    setDeletingAddress(true);
     const isSelected = deleteAddressId === selectedAddressForCheckout?.addressId;
-    dispatch(deleteUserAddress(deleteAddressId, isSelected, setOpenDeleteModal, setLoadingAddresses));
+    try { await dispatch(deleteUserAddress(deleteAddressId, isSelected, setOpenDeleteModal, setLoadingAddresses)); }
+    finally { setDeletingAddress(false); }
   };
 
   const handlePlaceOrder = async () => {
-    if (!selectedAddressForCheckout) {
+    if (paymentPending.current) return;
+    if (bagIssue || loadingAddresses || addressError) { setPaymentError(bagIssue || "Please refresh your delivery address before paying."); return; }
+    if (!selectedAddress) {
       toast.error("Please select a shipping address");
       setStep(1);
       return;
@@ -144,73 +130,58 @@ const Checkout = () => {
       return;
     }
 
+    paymentPending.current = true;
     setPlacingOrder(true);
+    setPaymentError("");
     try {
       const response = await dispatch(
-        placeOrder({ addressId: selectedAddressForCheckout.addressId })
+        placeOrder({ addressId: selectedAddress.addressId, expectedTotal: total, deliveryMethod })
       );
 
-      dispatch(setPaymentData({
-        totalAmount: total,
-        paymentStatus: "initiated",
-        timestamp: Date.now(),
-        paymentId: response?.order?.paymentSummary?.paymentId,
-        orderId: response?.order?.orderId,
-        paymentSessionId: response?.paymentSessionId,
-      }));
-      dispatch(setSelectedAddressForCheckout(selectedAddressForCheckout));
-      navigate("cashfree-payment");
+      const handoff = paymentHandoff(response);
+      dispatch(setPaymentData(handoff));
+      dispatch(setSelectedAddressForCheckout(selectedAddress));
+      navigate(`cashfree-payment?orderId=${encodeURIComponent(handoff.orderId)}`);
     } catch (err) {
-      toast.error("Failed to place order. Please try again.");
-      console.error("Order placement error:", err);
+      setPaymentError(err?.response?.data?.message || (err.response ? "The payment service is unavailable right now." : err.message) || "The payment service is unavailable right now.");
     } finally {
       setPlacingOrder(false);
+      paymentPending.current = false;
     }
   };
 
   return (
-    <div className="bg-gray-50 min-h-screen py-6">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-
-        {/* Header */}
-        <div className="flex items-center gap-3 mb-6">
-          <div className="p-2 bg-blue-50 rounded-xl">
-            <MdShoppingCart size={20} className="text-blue-500" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-gray-900">Checkout</h1>
-            <p className="text-xs text-gray-500 mt-0.5">Complete your purchase securely</p>
-          </div>
-        </div>
-
-        <ProgressBar step={step} setStep={setStep} />
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-          <div className="lg:col-span-2">
-            {step === 1 && (
+    <div className="checkout-shell">
+      <div className="site-container">
+        <div className="checkout-page-heading"><div><Link className="checkout-bag-link" to="/cart"><FiArrowLeft /> Your bag</Link><h1>Checkout</h1></div><span>{cartQty} {cartQty === 1 ? "item" : "items"}</span></div>
+        <ProgressBar step={visibleStep} setStep={setStep} disabled={placingOrder} />
+        <div className="checkout-layout">
+          <div className="checkout-panel" ref={checkoutPanel} aria-labelledby="checkout-step-heading">
+            {bagIssue && <div className="checkout-bag-notice" role="status">{bagIssue}{!cartLoading && !loadingProducts && <Link to="/cart">Return to bag</Link>}</div>}
+            {visibleStep === 1 && (
               <AddressStep
                 addresses={addresses}
-                selectedAddress={selectedAddressForCheckout}
+                selectedAddress={selectedAddress}
                 loadingAddresses={loadingAddresses}
+                addressError={addressError}
+                onRetry={() => dispatch(getUserAddresses(setLoadingAddresses, setAddressError))}
                 onAddAddress={handleAddAddress}
                 onEditAddress={handleEditAddress}
                 onDeleteAddress={handleDeleteAddress}
-                onNext={() => setStep(2)}
+                onNext={() => { if (selectedAddress && !loadingAddresses && !addressError) setStep(2); }}
               />
             )}
-            {step === 2 && (
+            {visibleStep === 2 && (
               <ReviewStep
-                selectedAddress={selectedAddressForCheckout}
+                selectedAddress={selectedAddress}
                 cartWithProducts={cartWithProducts}
                 onBack={() => setStep(1)}
-                onNext={() => setStep(3)}
-              />
-            )}
-            {step === 3 && (
-              <PaymentStep
-                onBack={() => setStep(2)}
+                onEditAddress={handleEditAddress}
                 onSubmit={handlePlaceOrder}
+                total={total}
+                error={paymentError}
                 loading={placingOrder}
+                disabled={Boolean(bagIssue) || loadingAddresses || addressError}
               />
             )}
           </div>
@@ -240,7 +211,7 @@ const Checkout = () => {
         setOpen={setOpenDeleteModal}
         title="Delete Address"
         onDeleteHandler={onDeleteHandler}
-        loader={false}
+        loader={deletingAddress}
       />
     </div>
   );

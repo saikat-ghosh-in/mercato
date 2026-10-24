@@ -1,11 +1,13 @@
 package com.mercato;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 
 @SpringBootTest
-@Disabled("Full context requires external PostgreSQL; covered by focused unit tests")
+@ActiveProfiles("demo")
+@AutoConfigureMockMvc
 class EcommerceDbConfigBackendApplicationTests {
 
 	@Test

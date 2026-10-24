@@ -35,6 +35,9 @@ class PasswordResetServiceImplTest {
     @Mock private UserRepository userRepository;
     @Mock private EmailService emailService;
     @Mock private PasswordEncoder passwordEncoder;
+    @Mock private com.mercato.Session.SessionRevocation sessions;
+    @Mock private com.mercato.Jobs.DurableJobs jobs;
+    @Mock private jakarta.persistence.EntityManager entityManager;
 
     @InjectMocks
     private PasswordResetServiceImpl passwordResetService;
@@ -45,6 +48,8 @@ class PasswordResetServiceImplTest {
     @BeforeEach
     void setUp() {
         ReflectionTestUtils.setField(passwordResetService, "expiryHours", 1);
+        ReflectionTestUtils.setField(passwordResetService, "entityManager", entityManager);
+        ReflectionTestUtils.setField(passwordResetService, "frontendUrl", "http://localhost:5173");
 
         user = new EcommUser();
         user.setId(1L);
@@ -70,6 +75,8 @@ class PasswordResetServiceImplTest {
 
         verify(userRepository).save(user);
         assertTrue(token.isUsed());
+        org.junit.jupiter.api.Assertions.assertEquals(1,user.getAccessVersion());
+        verify(sessions).revokeAll("USR-1");
         verify(tokenRepository).save(token);
     }
 
@@ -90,6 +97,7 @@ class PasswordResetServiceImplTest {
 
         verify(tokenRepository).deleteByUser_Id(1L);
         verify(tokenRepository).save(any(PasswordResetToken.class));
-        verify(emailService).sendPasswordResetEmail(eq("user@example.com"), eq("Test"), any());
+        verify(jobs).enqueue(eq("AUTH_EMAIL"), org.mockito.ArgumentMatchers.startsWith("password-reset:"), org.mockito.ArgumentMatchers.argThat(payload -> "user@example.com".equals(payload.get("to")) && payload.get("text").toString().contains("/reset-password?token=")));
+        org.mockito.Mockito.verifyNoInteractions(emailService);
     }
 }

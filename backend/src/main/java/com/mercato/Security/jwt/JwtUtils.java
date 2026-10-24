@@ -39,6 +39,7 @@ public class JwtUtils {
         return Jwts.builder()
                 .subject(userPrincipal.getUsername())
                 .claim("userId", userPrincipal.getUserId())
+                .claim("accessVersion", Long.toString(userPrincipal.getAccessVersion()))
                 .issuedAt(new Date())
                 .expiration(new Date((new Date()).getTime() + jwtExpirationMs))
                 .signWith(key())
@@ -47,6 +48,7 @@ public class JwtUtils {
 
     public String generateGuestTokenValue() {
         return Jwts.builder()
+                .id(java.util.UUID.randomUUID().toString())
                 .subject("guest")
                 .claim("type", "guest")
                 .issuedAt(new Date())

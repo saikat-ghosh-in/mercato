@@ -25,4 +25,8 @@ public class EcommUserResponseDTO {
     private final boolean isSeller;
     private final String sellerDisplayName;
     private final List<String> roles;
+    private final com.mercato.Entity.SellerStatus sellerStatus;
+    private final boolean sellerSuspended;
+    private final long accessVersion;
+    private final boolean selfDeactivated;
 }

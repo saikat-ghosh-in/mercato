@@ -1,129 +1,19 @@
-import { useState, useEffect, useRef } from "react";
-import { createPortal } from "react-dom";
-import { MdAdd, MdClose, MdSave, MdInventory, MdSearch } from "react-icons/md";
-import { FiMinus, FiPlus } from "react-icons/fi";
-import toast from "react-hot-toast";
+import ModalFrame from "./ModalFrame";
+import { useState } from "react";
+import { Combobox, ComboboxInput, ComboboxOptions, ComboboxOption, ComboboxButton } from "@headlessui/react";
+import { MdAdd, MdClose, MdInventory } from "react-icons/md";
+import { FiMinus, FiPlus, FiChevronDown } from "react-icons/fi";
+import toast from "../../utils/toastUtils.js";
 import api from "../../backend/api";
 
-const ProductCombobox = ({
-    products = [],
-    value,
-    onChange,
-    placeholder = "Search by name or ID...",
-    showAvailability = false,
-    clearable = true,
-}) => {
-    const [query, setQuery] = useState("");
-    const [open, setOpen] = useState(false);
-    const [dropdownStyle, setDropdownStyle] = useState({});
-    const inputRef = useRef(null);
-    const ref = useRef(null);
-
-    const selected = products.find(p => p.productId === value);
-
-    const filtered = query.trim() === ""
-        ? products
-        : products.filter(p =>
-            p.productName.toLowerCase().includes(query.toLowerCase()) ||
-            p.productId.toLowerCase().includes(query.toLowerCase())
-        );
-
-    const updateDropdownPosition = () => {
-        if (!ref.current) return;
-        const rect = ref.current.getBoundingClientRect();
-        setDropdownStyle({
-            position: "fixed",
-            top: rect.bottom + 4,
-            left: rect.left,
-            width: rect.width,
-            zIndex: 9999,
-        });
-    };
-
-    useEffect(() => { if (open) updateDropdownPosition(); }, [open]);
-
-    useEffect(() => {
-        if (!open) return;
-        window.addEventListener("scroll", updateDropdownPosition, true);
-        window.addEventListener("resize", updateDropdownPosition);
-        return () => {
-            window.removeEventListener("scroll", updateDropdownPosition, true);
-            window.removeEventListener("resize", updateDropdownPosition);
-        };
-    }, [open]);
-
-    useEffect(() => {
-        const handler = (e) => {
-            if (
-                ref.current && !ref.current.contains(e.target) &&
-                !document.getElementById("supply-product-portal")?.contains(e.target)
-            ) setOpen(false);
-        };
-        document.addEventListener("mousedown", handler);
-        return () => document.removeEventListener("mousedown", handler);
-    }, []);
-
-    const handleSelect = (p) => { onChange(p.productId); setQuery(""); setOpen(false); };
-    const handleClear = (e) => { e.stopPropagation(); onChange(""); setQuery(""); };
-
-    return (
-        <>
-            <div ref={ref} className="relative w-full">
-                <div
-                    onClick={() => { setOpen(true); updateDropdownPosition(); }}
-                    className={`flex items-center gap-2 border rounded-xl px-3 py-2.5 cursor-text transition-colors bg-white ${open ? "border-blue-300 ring-1 ring-blue-300" : "border-gray-200"
-                        }`}
-                >
-                    <MdSearch size={13} className="text-gray-400 shrink-0" />
-                    <input
-                        ref={inputRef}
-                        type="text"
-                        value={open ? query : (selected ? selected.productName : "")}
-                        onChange={e => { setQuery(e.target.value); setOpen(true); }}
-                        onFocus={() => { setOpen(true); updateDropdownPosition(); }}
-                        placeholder={placeholder}
-                        className="text-xs text-gray-700 focus:outline-none w-full bg-transparent placeholder-gray-300"
-                    />
-                    {clearable && value && !open && (
-                        <button onClick={handleClear} className="text-gray-300 hover:text-gray-500 cursor-pointer shrink-0 transition-colors">
-                            <MdClose size={12} />
-                        </button>
-                    )}
-                </div>
-            </div>
-
-            {open && createPortal(
-                <div
-                    id="supply-product-portal"
-                    style={dropdownStyle}
-                    className="bg-white border border-gray-100 rounded-xl shadow-lg overflow-hidden"
-                >
-                    <div className="max-h-48 overflow-y-auto">
-                        {filtered.length === 0 ? (
-                            <p className="text-xs text-gray-400 px-3 py-3 text-center">No products found</p>
-                        ) : filtered.map(p => (
-                            <button
-                                key={p.productId}
-                                onMouseDown={e => e.preventDefault()}
-                                onClick={() => handleSelect(p)}
-                                className={`w-full text-left px-3 py-2.5 hover:bg-blue-50 transition-colors cursor-pointer border-b border-gray-50 last:border-0 ${p.productId === value ? "bg-blue-50" : ""
-                                    }`}
-                            >
-                                <p className="text-xs font-semibold text-gray-800 truncate">{p.productName}</p>
-                                <p className="text-[10px] text-gray-400 mt-0.5 flex items-center gap-2">
-                                    <span className="font-mono">{p.productId}</span>
-                                    {showAvailability && (
-                                        <><span>·</span><span>{p.availableQty} avail.</span></>
-                                    )}
-                                </p>
-                            </button>
-                        ))}
-                    </div>
-                </div>,
-                document.body
-            )}
-        </>
-    );
+const ProductCombobox = ({ products = [], value, onChange, placeholder = "Product name or ID", showAvailability = false }) => {
+  const [query, setQuery] = useState("");
+  const selected = products.find(p => p.productId === value);
+  const filtered = products.filter(p => !query.trim() || (p.productName + " " + p.productId).toLowerCase().includes(query.toLowerCase()));
+  return <Combobox value={value} onChange={id => { onChange(id); setQuery(""); }} onClose={() => setQuery("")}>
+    <div className="supply-product-picker"><ComboboxInput aria-label="Choose product" title={selected?.productName} displayValue={() => selected?.productName ?? ""} onChange={e => setQuery(e.target.value)} placeholder={placeholder} /><ComboboxButton aria-label="Show products"><FiChevronDown aria-hidden="true" /></ComboboxButton></div>
+    <ComboboxOptions transition anchor="bottom start" className="supply-options">{filtered.length ? filtered.map(p => <ComboboxOption key={p.productId} value={p.productId} className="supply-option"><p>{p.productName}</p><small>{p.productId}{showAvailability ? " · " + p.availableQty + " available" : ""}</small></ComboboxOption>) : <p className="p-4">No products found</p>}</ComboboxOptions>
+  </Combobox>;
 };
 
 const SupplyQtyStepper = ({ value, onChange, min, supplyType }) => {
@@ -154,30 +44,30 @@ const SupplyQtyStepper = ({ value, onChange, min, supplyType }) => {
     const borderColor = isNegative
         ? "border-red-200 focus-within:ring-red-200"
         : isPositive
-            ? "border-green-200 focus-within:ring-green-200"
+            ? "border-blue-200 focus-within:ring-blue-200"
             : "border-gray-200 focus-within:ring-blue-200";
 
-    const textColor = isNegative ? "text-red-600" : isPositive ? "text-green-600" : "text-gray-700";
+    const textColor = isNegative ? "text-red-600" : isPositive ? "text-blue-700" : "text-gray-700";
 
     return (
         <div className={`flex items-center border rounded-xl overflow-hidden focus-within:ring-1 transition-colors ${borderColor}`}>
             <button
-                onClick={decrement}
+                aria-label="Decrease stock quantity" onClick={decrement}
                 disabled={qty <= min}
-                className="w-8 h-9 flex items-center justify-center text-gray-400 hover:bg-gray-50 hover:text-gray-700 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-gray-400 transition-colors shrink-0"
+                className="icon-action w-8 h-9 flex items-center justify-center text-gray-400 hover:bg-gray-50 hover:text-gray-700 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-gray-400 transition-colors shrink-0"
             >
                 <FiMinus size={12} />
             </button>
             <input
                 type="text"
-                inputMode="numeric"
+                aria-label="Stock quantity" inputMode="numeric"
                 value={value}
                 onChange={handleInput}
                 className={`w-full text-center text-xs font-bold focus:outline-none bg-transparent py-2 ${textColor}`}
             />
             <button
-                onClick={increment}
-                className="w-8 h-9 flex items-center justify-center text-gray-400 hover:bg-gray-50 hover:text-gray-700 transition-colors shrink-0"
+                aria-label="Increase stock quantity" onClick={increment}
+                className="icon-action w-8 h-9 flex items-center justify-center text-gray-400 hover:bg-gray-50 hover:text-gray-700 transition-colors shrink-0"
             >
                 <FiPlus size={12} />
             </button>
@@ -223,10 +113,10 @@ const SupplyUpdateModal = ({ products, onClose, onSave }) => {
             );
             const errors = data.filter(r => r.error);
             const success = data.filter(r => !r.error);
-            errors.forEach(e => toast.error(`${e.productId}: ${e.errorMessage}`));
+            if (errors.length) toast.error(`${errors.length} stock update${errors.length === 1 ? "" : "s"} failed. ${errors[0].productId}: ${errors[0].errorMessage}`);
             if (success.length > 0)
                 toast.success(`Updated ${success.length} product${success.length !== 1 ? "s" : ""}`);
-            onSave();
+            if (errors.length === 0) onSave();
         } catch (err) {
             toast.error(err?.response?.data?.message || "Supply update failed");
         } finally {
@@ -235,8 +125,8 @@ const SupplyUpdateModal = ({ products, onClose, onSave }) => {
     };
 
     return (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl shadow-xl w-full max-w-xl max-h-[90vh] flex flex-col">
+        <ModalFrame title="Supply Update" onClose={onClose}>
+            <div className="supply-update bg-white rounded-2xl shadow-xl w-full max-w-xl max-h-[90vh] flex flex-col">
 
                 {/* Header */}
                 <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 shrink-0">
@@ -246,28 +136,28 @@ const SupplyUpdateModal = ({ products, onClose, onSave }) => {
                         </div>
                         <div>
                             <h2 className="text-sm font-bold text-gray-800">Supply Update</h2>
-                            <p className="text-[11px] text-gray-400 mt-0.5">Adjust inventory levels</p>
+                            <p className="text-xs text-gray-400 mt-0.5">Adjust inventory levels</p>
                         </div>
                     </div>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 cursor-pointer transition-colors">
+                    <button aria-label="Close dialog" onClick={onClose} className="icon-action text-gray-400 hover:text-gray-600 cursor-pointer transition-colors">
                         <MdClose size={18} />
                     </button>
                 </div>
 
                 {/* Global type toggle */}
                 <div className="px-5 py-3.5 border-b border-gray-100 shrink-0">
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">
+                    <p className="text-xs font-bold text-gray-400  mb-2">
                         Update Mode — applies to all rows
                     </p>
                     <div className="flex gap-2">
                         {[
-                            { value: "DELTA", label: "Delta", desc: "Add or subtract from current stock" },
-                            { value: "ABSOLUTE", label: "Absolute", desc: "Set to an exact quantity" },
+                            { value: "DELTA", label: "Add or remove", desc: "Add or subtract from current stock" },
+                            { value: "ABSOLUTE", label: "Set quantity", desc: "Set to an exact quantity" },
                         ].map(t => (
                             <button
                                 key={t.value}
                                 onClick={() => handleTypeChange(t.value)}
-                                className={`flex-1 px-4 py-2.5 rounded-xl border text-left transition-all cursor-pointer ${supplyType === t.value
+                                className={`supply-mode-option flex-1 px-4 py-2.5 rounded-xl border text-left transition-[transform,opacity,background-color] cursor-pointer ${supplyType === t.value
                                     ? "bg-gray-950 border-gray-950 text-white"
                                     : "border-gray-200 text-gray-600 hover:bg-gray-50"
                                     }`}
@@ -275,23 +165,23 @@ const SupplyUpdateModal = ({ products, onClose, onSave }) => {
                                 <p className={`text-xs font-bold ${supplyType === t.value ? "text-white" : "text-gray-800"}`}>
                                     {t.label}
                                 </p>
-                                <p className={`text-[10px] mt-0.5 ${supplyType === t.value ? "text-gray-300" : "text-gray-400"}`}>
+                                <p className={`text-xs mt-0.5 ${supplyType === t.value ? "text-gray-300" : "text-gray-400"}`}>
                                     {t.desc}
                                 </p>
                             </button>
                         ))}
                     </div>
                     {isDelta && (
-                        <p className="text-[11px] text-blue-500 mt-2 font-medium">
-                            💡 Use negative values to reduce stock (e.g. -5 removes 5 units)
+                        <p className="text-xs text-blue-500 mt-2 font-medium">
+                            Use negative values to reduce stock (e.g. -5 removes 5 units).
                         </p>
                     )}
                 </div>
 
                 {/* Column headers */}
-                <div className="grid grid-cols-[1fr_120px_28px] gap-3 px-5 pt-4 pb-1 shrink-0">
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Product</p>
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                <div className="supply-column-headings px-5 pt-4 pb-1 shrink-0">
+                    <p className="text-xs font-bold text-gray-400 ">Product</p>
+                    <p className="text-xs font-bold text-gray-400 ">
                         {isDelta ? "Qty (±)" : "Set Qty"}
                     </p>
                     <p />
@@ -302,7 +192,7 @@ const SupplyUpdateModal = ({ products, onClose, onSave }) => {
                     {rows.map((row, i) => {
                         const min = getMin(row);
                         return (
-                            <div key={i} className="grid grid-cols-[1fr_120px_28px] gap-3 items-center">
+                            <div key={i} className="supply-entry">
                                 <ProductCombobox
                                     products={products}
                                     value={row.productId}
@@ -316,7 +206,7 @@ const SupplyUpdateModal = ({ products, onClose, onSave }) => {
                                     supplyType={supplyType}
                                 />
                                 <button
-                                    onClick={() => removeRow(i)}
+                                    aria-label="Remove supply row" onClick={() => removeRow(i)}
                                     disabled={rows.length === 1}
                                     className="flex items-center justify-center text-gray-300 hover:text-red-500 transition-colors cursor-pointer disabled:opacity-20 disabled:cursor-not-allowed"
                                 >
@@ -338,21 +228,21 @@ const SupplyUpdateModal = ({ products, onClose, onSave }) => {
                 <div className="flex gap-3 px-5 py-4 border-t border-gray-100 shrink-0">
                     <button
                         onClick={onClose}
-                        className="flex-1 px-3 py-2.5 text-sm border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer font-medium"
+                        className="control flex-1 px-3 py-2.5 text-sm border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer font-medium"
                     >
                         Cancel
                     </button>
                     <button
                         onClick={handleSave}
                         disabled={saving}
-                        className="flex-1 px-3 py-2.5 text-sm bg-gray-950 hover:bg-gray-800 text-white rounded-xl cursor-pointer font-bold disabled:opacity-50 active:scale-[0.98] flex items-center justify-center gap-2 transition-all"
+                        className="control flex-1 px-3 py-2.5 text-sm bg-gray-950 hover:bg-gray-800 text-white rounded-xl cursor-pointer font-bold disabled:opacity-50  flex items-center justify-center gap-2 transition-[transform,opacity,background-color]"
                     >
-                        <MdSave size={14} />
-                        {saving ? "Updating..." : "Apply Updates"}
+
+                        {saving ? "Updating..." : "Apply updates"}
                     </button>
                 </div>
             </div>
-        </div>
+        </ModalFrame>
     );
 };
 

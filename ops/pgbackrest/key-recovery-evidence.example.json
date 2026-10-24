@@ -1,0 +1,7 @@
+{
+  "verifiedAt": "REPLACE_WITH_REAL_INDEPENDENT_RECOVERY_TIME",
+  "cipherPassSha256": "REPLACE_WITH_SHA256_OF_RECOVERED_PASSPHRASE",
+  "recoveredSeparately": false,
+  "recoveryMachineId": "REPLACE_WITH_FRESH_RECOVERY_HOST_MACHINE_ID",
+  "operatorEvidenceReference": "REPLACE_WITH_PRIVATE_VAULT_RECOVERY_DRILL_REFERENCE"
+}

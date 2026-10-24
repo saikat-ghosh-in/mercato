@@ -1,4 +1,5 @@
-import { useDispatch, useSelector } from "react-redux";
+import { Spinner } from "../shared/Spinner";
+import { useDispatch } from "react-redux";
 import { useForm, Controller } from "react-hook-form";
 import { MdLocationOn } from "react-icons/md";
 import { addUpdateUserAddress } from "../../reduxStore/actions/addressActions";
@@ -11,7 +12,7 @@ const Label = ({ children, required }) => (
 );
 
 const InputField = ({ field, placeholder, error, type = "text", prefix, maxLength, inputMode }) => (
-  <div className={`flex items-center border rounded-xl overflow-hidden transition-all
+  <div className={`flex items-center border rounded-xl overflow-hidden transition-[transform,opacity,background-color]
         ${error ? "border-red-300 bg-red-50 focus-within:ring-1 focus-within:ring-red-400" : "border-gray-200 bg-white focus-within:border-blue-400 focus-within:ring-1 focus-within:ring-blue-400"}`}
   >
     {prefix && (
@@ -21,6 +22,8 @@ const InputField = ({ field, placeholder, error, type = "text", prefix, maxLengt
     )}
     <input
       {...field}
+      aria-label={{ recipientName: "Recipient name", recipientPhone: "Phone number", addressLine1: "Address line 1", addressLine2: "Address line 2", city: "City", state: "State", pincode: "Pincode", country: "Country" }[field.name]}
+      aria-invalid={Boolean(error)}
       type={type}
       placeholder={placeholder}
       maxLength={maxLength}
@@ -31,14 +34,13 @@ const InputField = ({ field, placeholder, error, type = "text", prefix, maxLengt
 );
 
 const FieldError = ({ message }) =>
-  message ? <p className="mt-1 text-[11px] text-red-500">{message}</p> : null;
+  message ? <p className="mt-1 text-xs text-red-500">{message}</p> : null;
 
 
 const AddAddressForm = ({ address, setOpenAddressModal, setLoadingAddresses }) => {
   const dispatch = useDispatch();
-  const { isLoading } = useSelector((s) => s.status || { isLoading: false });
 
-  const { control, handleSubmit, formState: { errors } } = useForm({
+  const { control, handleSubmit, formState: { errors, isSubmitting: isLoading } } = useForm({
     mode: "onTouched",
     defaultValues: {
       recipientName: address?.recipientName || "",
@@ -48,12 +50,12 @@ const AddAddressForm = ({ address, setOpenAddressModal, setLoadingAddresses }) =
       city: address?.city || "",
       state: address?.state || "",
       pincode: address?.pincode || "",
-      country: address?.country || "",
+      country: address?.country || "India",
     },
   });
 
   const onSubmit = (data) => {
-    dispatch(addUpdateUserAddress(data, address?.addressId, setOpenAddressModal, setLoadingAddresses));
+    return dispatch(addUpdateUserAddress(data, address?.addressId, setOpenAddressModal, setLoadingAddresses));
   };
 
   const isEditing = !!address?.addressId;
@@ -171,7 +173,7 @@ const AddAddressForm = ({ address, setOpenAddressModal, setLoadingAddresses }) =
             <Controller
               name="pincode"
               control={control}
-              rules={{ required: "Pincode is required" }}
+              rules={{ required: "Pincode is required", pattern: { value: /^[1-9][0-9]{5}$/, message: "Enter a valid 6-digit pincode" } }}
               render={({ field }) => (
                 <InputField field={field} placeholder="Postal code" error={errors.pincode} inputMode="numeric" />
               )}
@@ -179,19 +181,7 @@ const AddAddressForm = ({ address, setOpenAddressModal, setLoadingAddresses }) =
             <FieldError message={errors.pincode?.message} />
           </div>
 
-          {/* Country */}
-          <div>
-            <Label required>Country</Label>
-            <Controller
-              name="country"
-              control={control}
-              rules={{ required: "Country is required" }}
-              render={({ field }) => (
-                <InputField field={field} placeholder="Country" error={errors.country} />
-              )}
-            />
-            <FieldError message={errors.country?.message} />
-          </div>
+          <Controller name="country" control={control} render={({ field }) => <input {...field} type="hidden" />} />
         </div>
 
         {/* Actions */}
@@ -199,21 +189,18 @@ const AddAddressForm = ({ address, setOpenAddressModal, setLoadingAddresses }) =
           <button
             type="button"
             onClick={() => setOpenAddressModal(false)}
-            className="px-5 py-2.5 text-sm font-semibold text-gray-600 bg-white border border-gray-200 hover:border-gray-300 rounded-xl transition-colors"
+            className="control px-5 py-2.5 text-sm font-semibold text-gray-600 bg-white border border-gray-200 hover:border-gray-300 rounded-xl transition-colors"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={isLoading}
-            className="flex items-center gap-2 px-6 py-2.5 text-sm font-bold text-white bg-blue-500 hover:bg-blue-600 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed rounded-xl transition-all shadow-sm"
+            className="control control-prominent flex items-center gap-2 px-6 py-2.5 text-sm font-bold text-white bg-blue-500 hover:bg-blue-600  disabled:opacity-50 disabled:cursor-not-allowed rounded-xl transition-[transform,opacity,background-color] "
           >
             {isLoading ? (
               <>
-                <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-                </svg>
+                <Spinner />
                 Saving...
               </>
             ) : isEditing ? "Update Address" : "Save Address"}

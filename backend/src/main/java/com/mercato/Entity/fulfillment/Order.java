@@ -77,6 +77,13 @@ public class Order {
     @Column(nullable = false, updatable = false)
     private String deliveryPincode;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "delivery_method", updatable = false, length = 20)
+    private com.mercato.Entity.cart.DeliveryMethod deliveryMethod;
+
+    @Column(name = "delivery_estimate", updatable = false, length = 100)
+    private String deliveryEstimate;
+
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     @BatchSize(size = 30)
     private List<OrderLine> orderLines = new ArrayList<>();
@@ -89,6 +96,10 @@ public class Order {
 
     @Column(nullable = false, precision = 15, scale = 2, updatable = false)
     private BigDecimal charges;
+    @Column(name = "shipping_charge", precision = 15, scale = 2, updatable = false)
+    private BigDecimal shippingCharge;
+    @Column(name = "platform_fee", precision = 15, scale = 2, updatable = false)
+    private BigDecimal platformFee;
 
     @Column(nullable = false, precision = 15, scale = 2, updatable = false)
     private BigDecimal totalAmount;
@@ -111,10 +122,17 @@ public class Order {
 
     @Column(name = "shipment_email_sent_at")
     private Instant shipmentEmailSentAt;
+    private Instant shipmentEmailQueuedAt;
 
     @Column(name = "inventory_finalization_failed", nullable = false)
     @ColumnDefault("false")
     private boolean inventoryFinalizationFailed = false;
+
+    @Column(name="allocation_completed_at")
+    private Instant allocationCompletedAt;
+    @Column(name="automatic_full_refund",nullable=false)
+    @ColumnDefault("false")
+    private boolean automaticFullRefund;
 
 
     @Transient

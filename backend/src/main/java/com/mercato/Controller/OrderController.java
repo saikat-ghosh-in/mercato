@@ -26,6 +26,8 @@ public class OrderController {
     private final CashfreeService cashfreeService;
     private final OrderLineUpdateService orderLineUpdateService;
     private final AuthUtil authUtil;
+    private final com.mercato.Commerce.PaymentInbox paymentInbox;
+    private final com.mercato.Commerce.PaymentSessionRecovery recovery;
 
     @PostMapping("/orders/capture")
     public ResponseEntity<OrderPlacementResponseDTO> placeOrder(
@@ -35,13 +37,20 @@ public class OrderController {
         return new ResponseEntity<>(order, HttpStatus.CREATED);
     }
 
-    @PostMapping(value = "/public/cashfree/webhook", consumes = "application/json")
+    @PostMapping(value = {"/public/cashfree/webhook","/public/cashfree/webhook-v2"}, consumes = "application/json")
     public ResponseEntity<String> handleWebhook(
-            @RequestBody String payload,
+            @RequestBody byte[] payload,
             @RequestHeader("x-webhook-signature") String signature,
             @RequestHeader("x-webhook-timestamp") String timestamp) {
-        cashfreeService.handleWebhookEvent(payload, signature, timestamp);
+        paymentInbox.receive(payload, signature, timestamp);
         return ResponseEntity.ok("Webhook received");
+    }
+
+    @org.springframework.beans.factory.annotation.Value("${frontend.base.url}") private String frontendOrigin;
+    @GetMapping("/public/cashfree/return")
+    public ResponseEntity<Void> legacyReturn(@RequestParam(name="order_id")String orderId){
+        if(!orderId.matches("[A-Za-z0-9][A-Za-z0-9-]{0,29}"))throw new IllegalArgumentException("Invalid order identity");
+        return ResponseEntity.status(303).location(java.net.URI.create(frontendOrigin+"/checkout/payment-confirmation?order_id="+orderId)).build();
     }
 
     @PostMapping("/orders/{orderId}/retry-payment")
@@ -75,6 +84,9 @@ public class OrderController {
         OrderResponseDTO order = orderService.getCurrentUserOrder(orderId);
         return new ResponseEntity<>(order, HttpStatus.OK);
     }
+
+    @GetMapping("/user/orders/{orderId}/payment-session")
+    public Object paymentSession(@PathVariable String orderId) {return recovery.recover(orderId);}
 
     @PutMapping("/user/orders/{orderId}")
     public ResponseEntity<OrderResponseDTO> editCurrentUserOrder(@PathVariable String orderId) {

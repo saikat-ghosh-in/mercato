@@ -1,6 +1,7 @@
 export const SORT_OPTIONS = [
     { label: "Newest First", sortBy: "createdAt", sortingOrder: "desc" },
     { label: "Oldest First", sortBy: "createdAt", sortingOrder: "asc" },
+    { label: "Biggest savings", sortBy: "discountPercent", sortingOrder: "desc" },
     { label: "Price: Low → High", sortBy: "sellingPrice", sortingOrder: "asc" },
     { label: "Price: High → Low", sortBy: "sellingPrice", sortingOrder: "desc" },
     { label: "Name: A → Z", sortBy: "productName", sortingOrder: "asc" },
@@ -33,10 +34,10 @@ export const buildQueryString = ({
 export const parseParams = (searchParams) => ({
     sortBy: searchParams.get("sortBy") || "createdAt",
     sortingOrder: searchParams.get("sortingOrder") || "desc",
-    pageNumber: parseInt(searchParams.get("pageNumber") || "0"),
+    pageNumber: /^\d{1,8}$/.test(searchParams.get("pageNumber") || "0") ? Number(searchParams.get("pageNumber") || 0) : 0,
     category: searchParams.get("category") || "",
     sellers: searchParams.get("sellers")
-        ? searchParams.get("sellers").split(",").map(decodeURIComponent)
+        ? searchParams.get("sellers").split(",").filter(Boolean)
         : [],
     keyword: searchParams.get("keyword") || "",
     minPrice: searchParams.get("minPrice") || "",

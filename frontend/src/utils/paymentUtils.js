@@ -1,12 +1,13 @@
-import api from "../backend/api";
-import toast from "react-hot-toast";
+import api, { session } from "../backend/api.js";
+import toast from "./toastUtils.js";
 import { setPaymentData } from "../reduxStore/actions/paymentActions";
 
 export const syncPayment = async ({ orderId, onSuccess, setLoading }) => {
+  const epoch = session.getSnapshot().epoch;
   setLoading(true);
   try {
     await api.post(`/orders/${orderId}/sync-payment-refund`);
-    toast.success("Payment status synced");
+    session.assertCurrent({ sessionEpoch: epoch });
     onSuccess?.();
   } catch (err) {
     toast.error(err?.response?.data?.message || "Failed to sync payment");
@@ -16,9 +17,11 @@ export const syncPayment = async ({ orderId, onSuccess, setLoading }) => {
 };
 
 export const retryPayment = async ({ order, dispatch, navigate, setLoading }) => {
+  const epoch = session.getSnapshot().epoch;
   setLoading(true);
   try {
     const { data } = await api.post(`/orders/${order.orderId}/retry-payment`);
+    session.assertCurrent({ sessionEpoch: epoch });
     dispatch(
       setPaymentData({
         paymentSessionId: data.paymentSessionId,
@@ -26,7 +29,7 @@ export const retryPayment = async ({ order, dispatch, navigate, setLoading }) =>
         totalAmount: order.totalAmount,
       })
     );
-    navigate("/checkout/cashfree-payment");
+    navigate(`/checkout/cashfree-payment?orderId=${encodeURIComponent(order.orderId)}`);
   } catch (err) {
     const data = err?.response?.data;
     const message = data?.productId

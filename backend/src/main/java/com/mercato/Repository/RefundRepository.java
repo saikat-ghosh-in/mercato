@@ -15,4 +15,5 @@ public interface RefundRepository extends JpaRepository<Refund, Long> {
     Optional<Refund> findByRefundId(String refundId);
 
     boolean existsByPayment_Id(Long paymentId);
+    java.util.List<Refund> findByPayment_IdOrderByIdAsc(Long paymentId);
 }

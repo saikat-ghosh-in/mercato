@@ -84,6 +84,7 @@ public class OrderLine {
     private BigDecimal lineTotal;
 
     @Column(nullable = false, precision = 15, scale = 2)
+    @Builder.Default
     private BigDecimal revenue = BigDecimal.valueOf(0);
 
     @Column(updatable = false, length = 100)
@@ -91,6 +92,14 @@ public class OrderLine {
 
     @Column(updatable = false, length = 100)
     private String sellerEmail;
+
+    @Column(name = "commission_rate_percent", precision = 5, scale = 2, updatable = false)
+    private BigDecimal commissionRatePercent;
+    @Column(name = "commission_cap_per_item", precision = 10, scale = 2, updatable = false)
+    private BigDecimal commissionCapPerItem;
+    // Full-line standard-delivery contribution captured at checkout. Legacy null means no contribution.
+    @Column(name = "seller_delivery_charge", precision = 12, scale = 2, updatable = false)
+    private BigDecimal sellerDeliveryCharge;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)

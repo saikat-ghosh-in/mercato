@@ -5,11 +5,11 @@ export const fetchCategories = () => async (dispatch) => {
         dispatch({ type: "CATEGORY_LOADER" });
         const { data } = await api.get(`/public/categories`);
         dispatch({ type: "FETCH_CATEGORIES", payload: Array.isArray(data) ? data : [] });
-        dispatch({ type: "IS_SUCCESS" });
+        dispatch({ type: "CATEGORY_SUCCESS" });
     } catch (error) {
         console.error(error);
         dispatch({
-            type: "IS_ERROR",
+            type: "CATEGORY_ERROR",
             payload: error?.response?.data?.message || "Oops! Something went wrong!",
         });
     }

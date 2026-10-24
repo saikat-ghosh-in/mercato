@@ -1,0 +1,12 @@
+[Unit]
+Description=Mercato weekly full backup
+
+[Timer]
+OnCalendar=Sun *-*-* 02:00:00 UTC
+RandomizedDelaySec=10m
+AccuracySec=1m
+Persistent=true
+Unit=mercato-backup@full.service
+
+[Install]
+WantedBy=timers.target
