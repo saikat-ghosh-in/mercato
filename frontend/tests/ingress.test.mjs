@@ -2,7 +2,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import ingress, { config } from '../../netlify/edge-functions/trusted-ingress.js';
 import { proxyPaths } from '../../netlify/proxy-paths.mjs';
-import { configureIngress } from '../../netlify/plugins/secure-ingress/index.mjs';
+import { configureIngress } from '../../netlify/plugins/secure-ingress/config.mjs';
+import * as buildPlugin from '../../netlify/plugins/secure-ingress/index.mjs';
+
+test('the Netlify plugin entry point exports only supported lifecycle events', () => {
+  const events = new Set(['onPreBuild', 'onBuild', 'onPostBuild', 'onSuccess', 'onError', 'onEnd']);
+  assert.deepEqual(Object.keys(buildPlugin).filter(name => !events.has(name)), []);
+  assert.equal(typeof buildPlugin.onPreBuild, 'function');
+});
 
 test('a main-branch build cannot publish cookie authentication before the coordinated origin cutover', () => {
   const env = { MERCATO_ORIGIN: 'https://review.example.test', NETLIFY_PROXY_SIGNING_KEY: 'a'.repeat(40) };
