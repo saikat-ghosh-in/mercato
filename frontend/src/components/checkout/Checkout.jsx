@@ -25,6 +25,8 @@ import ProgressBar from "./ProgressBar";
 import AddressStep from "./steps/AddressStep";
 import ReviewStep from "./steps/ReviewPaymentStep";
 import OrderSummary from "./OrderSummary";
+import PaymentAction from "./PaymentAction";
+import { formatCurrency } from "../../utils/formatCurrency";
 
 const Checkout = () => {
   const dispatch = useDispatch();
@@ -151,7 +153,7 @@ const Checkout = () => {
   };
 
   return (
-    <div className="checkout-shell">
+    <div className={`checkout-shell${visibleStep === 2 ? " checkout-with-payment-action" : ""}${paymentError ? " checkout-with-payment-error" : ""}`}>
       <div className="site-container">
         <div className="checkout-page-heading"><div><Link className="checkout-bag-link" to="/cart"><FiArrowLeft /> Your bag</Link><h1>Checkout</h1></div><span>{cartQty} {cartQty === 1 ? "item" : "items"}</span></div>
         <ProgressBar step={visibleStep} setStep={setStep} disabled={placingOrder} />
@@ -177,11 +179,7 @@ const Checkout = () => {
                 cartWithProducts={cartWithProducts}
                 onBack={() => setStep(1)}
                 onEditAddress={handleEditAddress}
-                onSubmit={handlePlaceOrder}
-                total={total}
-                error={paymentError}
                 loading={placingOrder}
-                disabled={Boolean(bagIssue) || loadingAddresses || addressError}
               />
             )}
           </div>
@@ -194,9 +192,20 @@ const Checkout = () => {
             platformFee={platformFee}
             processingAndHandling={processingAndHandling}
             total={total}
+            onPay={visibleStep === 2 ? handlePlaceOrder : undefined}
+            paymentLoading={placingOrder}
+            paymentDisabled={Boolean(bagIssue) || loadingAddresses || addressError}
+            paymentError={paymentError}
           />
         </div>
       </div>
+
+      {visibleStep === 2 && <div className="checkout-payment-bar" aria-label="Payment action"><div className="site-container checkout-payment-bar-inner">
+        {paymentError && <p className="checkout-action-error checkout-payment-bar-error" id="checkout-mobile-payment-error" role="alert">{paymentError}</p>}
+        <div className="checkout-payment-bar-total"><span>Total</span><strong>{formatCurrency(total)}</strong></div>
+        <PaymentAction onSubmit={handlePlaceOrder} loading={placingOrder} disabled={Boolean(bagIssue) || loadingAddresses || addressError} describedBy={paymentError ? "checkout-mobile-payment-error" : undefined} />
+      </div></div>}
+      <p className="sr-only" role="status">{placingOrder ? "Preparing your secure payment…" : ""}</p>
 
       <AddressInfoModal open={openAddressModal} setOpen={handleModalClose}>
         <AddAddressForm

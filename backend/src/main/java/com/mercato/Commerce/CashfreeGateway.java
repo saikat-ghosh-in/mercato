@@ -13,7 +13,17 @@ import java.util.*;
 @Component
 public class CashfreeGateway {
     private final RestTemplate http;private final ObjectMapper json;private final String base,id,secret,version;
-    public CashfreeGateway(RestTemplate http,ObjectMapper json,@Value("${cashfree.base.url}") String base,@Value("${cashfree.app.id}")String id,@Value("${cashfree.secret.key}")String secret,@Value("${cashfree.api.version}")String version){this.http=http;this.json=json;this.base=base;this.id=id;this.secret=secret;this.version=version;}
+    public CashfreeGateway(RestTemplate http,ObjectMapper json,@Value("${cashfree.base.url}") String base,@Value("${cashfree.app.id}")String id,@Value("${cashfree.secret.key}")String secret,@Value("${cashfree.api.version}")String version){this.http=http;this.json=json;this.base=sandboxBase(base);this.id=id;this.secret=secret;this.version=version;}
+    /** This marketplace uses sandbox payments only. Loopback remains available for disabled demo/test adapters. */
+    private static String sandboxBase(String value){
+        try{
+            var uri=java.net.URI.create(value);
+            boolean clean=uri.getHost()!=null&&uri.getRawUserInfo()==null&&uri.getRawQuery()==null&&uri.getRawFragment()==null;
+            if(clean&&"https".equals(uri.getScheme())&&"sandbox.cashfree.com".equalsIgnoreCase(uri.getHost())&&uri.getPort()==-1&&Set.of("/pg","/pg/").contains(uri.getRawPath()))return "https://sandbox.cashfree.com/pg";
+            if(clean&&Set.of("http","https").contains(uri.getScheme())&&Set.of("localhost","127.0.0.1","::1","[::1]").contains(uri.getHost()))return value.replaceAll("/+$","");
+        }catch(IllegalArgumentException ignored){/* Never include a configured URL or credentials in the failure. */}
+        throw new IllegalArgumentException("Only the Cashfree sandbox API or a loopback test adapter is supported");
+    }
     public JsonNode get(String path){return call(HttpMethod.GET,path,null,null);}
     public JsonNode post(String path,Object body,String businessKey){return call(HttpMethod.POST,path,body,businessKey);}
     public JsonNode patch(String path,Object body,String businessKey){return call(HttpMethod.PATCH,path,body,businessKey);}

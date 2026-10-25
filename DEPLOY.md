@@ -150,7 +150,7 @@ CASHFREE_RETURN_URL=https://mercato-in-beta.netlify.app/checkout/payment-confirm
 CASHFREE_NOTIFY_URL=https://mercato-in-beta.netlify.app/api/public/cashfree/webhook-v2
 ```
 
-Start with Cashfree **sandbox** credentials. The frontend defaults to sandbox too. Before real payments, validate the integration against your configured API version and switch both backend credentials/base URL and frontend `VITE_CASHFREE_MODE=production` together, then rebuild Netlify. Never place gateway/SMTP/database secrets in a `VITE_` variable. [Cashfree integration guidance](https://www.cashfree.com/blog/building-cashfree-agent-skills-a-task-aware-knowledge-layer-for-ai-coding-assistants/).
+Use Cashfree **sandbox only**: set `CASHFREE_BASE_URL=https://sandbox.cashfree.com/pg` with sandbox credentials. The frontend SDK is fixed to sandbox and the backend rejects production gateway URLs; loopback remains available only for disabled demo/test adapters. `VITE_CASHFREE_MODE` cannot enable live payments. Never place gateway/SMTP/database secrets in a `VITE_` variable. [Cashfree integration guidance](https://www.cashfree.com/blog/building-cashfree-agent-skills-a-task-aware-knowledge-layer-for-ai-coding-assistants/).
 
 The admin is created on the first successful startup using `ADMIN_*`. Do not use `reviewer`, `ReviewOnly!2026`, the demo profile or an MFA-bypass setting: deployed startup rejects them. Changing `ADMIN_PASSWORD` later does not reset an account already created.
 
@@ -333,7 +333,7 @@ Set these **production-context** variables in Netlify's environment settings:
 - `MERCATO_COOKIE_CUTOVER_READY=yes` — Builds; set now, after the fresh beta backend/schema, Nginx HTTPS origin and matching signing key are ready. Without it the build deliberately fails.
 - `MERCATO_CSP_MODE=enforce` — Builds. If a third-party integration needs investigation, use `report-only` during pre-launch testing, resolve the exact allowance, then restore `enforce` before public acceptance.
 - `MERCATO_HSTS_SECONDS=300` — Builds initially; increase to `31536000` after HTTPS/certificate behavior is verified.
-- `VITE_CASHFREE_MODE=sandbox` — Builds; public SDK mode, not a secret.
+- Cashfree SDK mode is fixed to sandbox; no `VITE_CASHFREE_MODE` variable is needed. Remove any old production-mode value.
 
 Remove the old direct-origin `VITE_API_BASE_URL` setting if present; the browser now calls same-origin `/api`. Keep secrets out of Git and client-prefixed variables.
 
