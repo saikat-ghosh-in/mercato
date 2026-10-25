@@ -19,6 +19,20 @@ Four tests against disposable PostgreSQL databases failed against the old code a
 
 The full backend suite passed 212 tests with zero failures, errors or skips. A separate code review found no concrete blocker in the reacquisition and cleanup changes. Frontend code is unchanged; its 82 regression tests, lint and production build passed. The pre-existing large-bundle advisory remains a build warning.
 
+## Beta deployment and original-case validation
+
+Staging commit `799d9ceecfe9785ad63a52d4b9b908d56bb8f9a5` passed GitHub Application checks. Prerelease [`v0.1.0-beta.4`](https://github.com/saikat-ghosh-in/mercato/releases/tag/v0.1.0-beta.4) passed its backend/PostgreSQL, frontend, operations and dependency checks before publishing the JAR. The beta redeploy wrapper verified its checksum and completed the joined Netlify session readiness check. Installed JAR SHA-256: `dc8d3502b41639f6a018968de7d99370ec4081e0df2e726e6b4248a4bc01101b`.
+
+Before and immediately after deployment, beta retained 2 users, 7 products, 4 categories, 1 order, Flyway rank 8 and zero cart reservations. The beta service restarted from PID 3676177 to 3682039. Production stayed active at PID 1098123. No migration or direct data repair was required.
+
+In the signed-in Browser, the original one-lamp/four-bowl bag was reloaded without changing its quantities. Clicking **Continue to payment** successfully created a new unpaid sandbox order at ₹1,763 and opened Cashfree's sandbox checkout. The database then showed:
+
+- Lamp: physical quantity 12, reserved quantity 1, bag quantity 1, live hold quantity 1.
+- Bowls: physical quantity 40, reserved quantity 4, bag quantity 4, live hold quantity 4.
+- Both the older pending order and the new test order remained `CREATED` / `INITIATED`, with no captured payment.
+
+The extra order is an intentional unpaid test of the previously failing capture endpoint. No payment was submitted and no funds were captured. [Sanitized sandbox screenshot](screenshots/payment/checkout-renewed-holds-sandbox.png).
+
 ## Scope
 
 The stock-hold lifetime remains 45 minutes. This change renews reservations when a customer deliberately continues checkout, rather than keeping abandoned bags reserved indefinitely. Payment capture, allocation, refund, pricing, shipping and commission rules are unchanged. The README and local configuration edits that existed before this task remain outside its commits.
