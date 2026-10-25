@@ -1,4 +1,6 @@
-Latest beta follow-up — 25 October 2026: [Cashfree sandbox handoff and reachable checkout action](docs/PAYMENT_SANDBOX_REVIEW.md). The sandbox checkout opens under enforced CSP; checkout uses a sticky desktop summary and a phone bottom action. Beta Browser, responsive screenshots, 82 frontend tests/lint/build, 208 backend tests and exact-commit GitHub checks are recorded there.
+Latest beta follow-up — 25 October 2026: [Checkout reservation expiry and cleanup race repair](docs/CHECKOUT_HOLD_REVIEW.md). Saved bags reacquire expired stock holds atomically; cleanup rechecks expiry after locking to preserve concurrent renewal. Four PostgreSQL regressions, 212 backend tests, 82 frontend tests, lint/build and the beta validation are recorded there.
+
+Previous beta follow-up — 25 October 2026: [Cashfree sandbox handoff and reachable checkout action](docs/PAYMENT_SANDBOX_REVIEW.md). The sandbox checkout opens under enforced CSP; checkout uses a sticky desktop summary and a phone bottom action. Beta Browser, responsive screenshots, 82 frontend tests/lint/build, 208 backend tests and exact-commit GitHub checks are recorded there.
 
 Previous beta follow-up — 25 October 2026: [Email reliability, monthly reports and branded messages](docs/EMAIL_REVIEW.md). Safe administrator email activity, truthful verification feedback, stale-auth-email guards, scoped monthly seller/admin reports, embedded Mercato branding and clickable email actions. Additive V8 migration; beta-only delivery.
 

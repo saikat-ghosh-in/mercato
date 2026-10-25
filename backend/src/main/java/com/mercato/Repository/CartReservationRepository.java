@@ -13,13 +13,19 @@ public interface CartReservationRepository extends JpaRepository<CartReservation
 
     Optional<CartReservation> findByCartItem_CartItemId(Long cartItemId);
 
+    interface ExpiredHold {
+        Long getId();
+        String getProductId();
+    }
+
+    // Candidate identifiers only: loading entities here would retain stale expiry
+    // values while cleanup waits for a concurrent checkout's product lock.
     @Query("""
-            SELECT r FROM CartReservation r
-            LEFT JOIN FETCH r.product
-            LEFT JOIN FETCH r.cartItem
-            WHERE r.expiresAt < :now
+            SELECT r.id AS id, r.product.productId AS productId FROM CartReservation r
+            WHERE r.expiresAt <= :now
+            ORDER BY r.product.productId, r.id
             """)
-    List<CartReservation> findAllExpired(Instant now);
+    List<ExpiredHold> findExpiredCandidates(Instant now);
 
     @Query("""
             SELECT r FROM CartReservation r

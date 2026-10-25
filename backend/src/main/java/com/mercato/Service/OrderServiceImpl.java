@@ -72,9 +72,11 @@ public class OrderServiceImpl implements OrderService {
                 || (request.getDeliveryMethod() != null && request.getDeliveryMethod() != cart.getDeliveryMethod()))
             throw new CustomBadRequestException("Your bag or delivery price changed. Refresh your bag and review the latest total before paying.");
 
-        cart.getCartItems().forEach(item -> {
+        // A saved bag outlives its temporary holds. Reacquire them atomically before
+        // persisting a payable order; a genuine shortage rolls this transaction back.
+        cart.getCartItems().stream().sorted(Comparator.comparing(item -> item.getProduct().getProductId())).forEach(item -> {
             if (!item.getProduct().isPurchasable()) throw new CustomBadRequestException("An item in your cart is no longer available");
-            cartReservationService.validateHeld(item);
+            cartReservationService.reserve(item);
         });
 
         Address address = addressRepository.findByAddressIdAndUser_UserId(
