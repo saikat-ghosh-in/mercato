@@ -40,3 +40,13 @@ SMTP acceptance is not inbox-delivery evidence. Downstream delivery/bounce event
 Monthly reporting only maintains key activity when a message successfully sends. It does not purchase credits or bypass Brevo's free quota. Demo/local defaults disable scheduled reports. Paid backup/monitoring services remain unconfigured, as requested.
 
 Deploy the checked beta prerelease with `bash ~/redeploy-beta.sh v0.1.0-beta.2` once its release checks and assets are complete. Keep beta's database and existing encryption/session keys; do not run the fresh-launch deletion/bootstrap steps again. Production and `main` remain unchanged. [Deployment guide](../DEPLOY.md).
+
+## Beta deployment evidence
+
+Backend application revision `4ef12d05967c0d1e73cd3ff59f05ce3311591158` passed [Application checks](https://github.com/saikat-ghosh-in/mercato/actions/runs/40190613740) and the [release workflow](https://github.com/saikat-ghosh-in/mercato/actions/runs/40190764589), including the mandatory PostgreSQL 14 Testcontainers and Linux deployment checks. [Prerelease v0.1.0-beta.2](https://github.com/saikat-ghosh-in/mercato/releases/tag/v0.1.0-beta.2) was installed successfully using the existing beta wrapper. Its installed JAR SHA-256 is `324353671e3e8b2ee2ce89dbf22f2581b4b726c60852f5852cb12095e8da7cfb`.
+
+Flyway is at V8; postflight checks preserved two accounts, seven products and four categories. The production service PID stayed unchanged. The matching Netlify beta deployment was ready at `6added3cbe2cd6add2d8b67c`, with signed Edge handling present and its secret scan clean.
+
+One fresh verification request was exercised through Browser on the deployed Netlify HTTPS site. Both that branded verification message and the scheduler's first monthly administrator report reached SMTP `ACCEPTED` / job `SUCCEEDED`; Brevo independently recorded both as delivered at 17:31 local time on 25 October 2026. Provider screenshots containing real recipient information remain outside the public repository.
+
+A frontend-only follow-up removes the initial unconfirmed-request claim, shows the server's generic request acknowledgement only after submission, and retains browser-bound detailed status. Its 80 tests, lint and build pass. This does not change the backend API or require another JAR release.

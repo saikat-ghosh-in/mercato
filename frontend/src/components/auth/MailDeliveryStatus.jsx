@@ -5,7 +5,7 @@ const copy = {
   FAILED: "We couldn’t send your verification email. Our team can see the failure. Please try again later.",
   RETRYING: "We couldn’t send your email yet. We’ll retry automatically.",
   SKIPPED: "This verification link is no longer active. Use the latest email or request another link.",
-  UNKNOWN: "Your email request has been recorded. Delivery status is available only in the browser used to register.",
+  UNKNOWN: "Request a verification link below. Detailed delivery status is available in the browser used to register.",
 };
 export default function MailDeliveryStatus({ delivery }) {
   const state = delivery?.state || "QUEUED";

@@ -9,7 +9,8 @@ import "./email-delivery.css";
 export default function EmailVerificationPending() {
   const location = useLocation();
   const [email, setEmail] = useState(location.state?.email || "");
-  const [delivery, setDelivery] = useState({ state: "QUEUED" });
+  const [delivery, setDelivery] = useState({ state: location.state?.email ? "QUEUED" : "UNKNOWN" });
+  const [requestMessage, setRequestMessage] = useState("");
   const [error, setError] = useState("");
   const [resending, setResending] = useState(false);
   const [cooldown, setCooldown] = useState(0);
@@ -33,9 +34,10 @@ export default function EmailVerificationPending() {
     return () => { controller.abort(); clearTimeout(timer); };
   }, [revision]);
   const resend = async event => {
-    event.preventDefault(); if (resending || cooldown > 0) return; setResending(true); setError("");
+    event.preventDefault(); if (resending || cooldown > 0) return; setResending(true); setError(""); setRequestMessage("");
     try {
-      await api.post(`/auth/resend-verification?email=${encodeURIComponent(email.trim())}`);
+      const { data } = await api.post(`/auth/resend-verification?email=${encodeURIComponent(email.trim())}`);
+      setRequestMessage(data.message || "If your account needs verification, an email is queued. Delivery is not yet confirmed.");
       setCooldown(30); setRevision(value => value + 1);
     } catch (err) {
       setError(err?.response?.data?.message || "Your request couldn’t be processed. Please try again.");
@@ -49,6 +51,7 @@ export default function EmailVerificationPending() {
       <h1 className="text-xl font-semibold mb-3">Verify your email</h1>
       <p className="text-sm text-gray-500 leading-relaxed mb-5">Open the latest verification link to finish creating your account.</p>
       <MailDeliveryStatus delivery={delivery} />
+      {requestMessage && delivery.state === "UNKNOWN" && <p role="status" className="text-sm text-gray-600 mt-4">{requestMessage}</p>}
       {error && <p role="alert" className="text-sm text-red-700 mt-4">{error}</p>}
       <button className="text-sm underline mt-4" onClick={() => setRevision(value => value + 1)}>Refresh status</button>
       <form onSubmit={resend} className="mt-6 space-y-3">

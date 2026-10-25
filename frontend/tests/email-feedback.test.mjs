@@ -14,5 +14,6 @@ test('verification feedback distinguishes queued, accepted and failed delivery w
     assert.match(markup,/role="status"/);assert.doesNotMatch(markup,/email delivered|email sent!|we sent/i);
     if(state==='FAILED')assert.match(markup,/couldn’t send/i);
     if(state==='ACCEPTED')assert.match(markup,/not.*confirmed/i);
+    if(state==='UNKNOWN')assert.doesNotMatch(markup,/request has been recorded/i);
   }
 });
