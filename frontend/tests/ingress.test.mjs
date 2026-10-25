@@ -1,5 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readdirSync, statSync } from 'node:fs';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import ingress, { config } from '../../netlify/edge-functions/trusted-ingress.js';
 import { proxyPaths } from '../../netlify/proxy-paths.mjs';
 import { configureIngress } from '../../netlify/plugins/secure-ingress/config.mjs';
@@ -9,6 +12,15 @@ test('the Netlify plugin entry point exports only supported lifecycle events', (
   const events = new Set(['onPreBuild', 'onBuild', 'onPostBuild', 'onSuccess', 'onError', 'onEnd']);
   assert.deepEqual(Object.keys(buildPlugin).filter(name => !events.has(name)), []);
   assert.equal(typeof buildPlugin.onPreBuild, 'function');
+});
+
+test('static storefront assets never collide with forced backend proxy paths', () => {
+  const publicDir = fileURLToPath(new URL('../public/', import.meta.url));
+  const collisions = readdirSync(publicDir, { recursive: true })
+    .filter(name => statSync(join(publicDir, name)).isFile())
+    .map(name => '/' + name.replaceAll('\\', '/'))
+    .filter(path => proxyPaths.some(from => from.endsWith('*') ? path.startsWith(from.slice(0, -1)) : path === from));
+  assert.deepEqual(collisions, []);
 });
 
 test('a main-branch build cannot publish cookie authentication before the coordinated origin cutover', () => {

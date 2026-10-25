@@ -21,4 +21,3 @@ export function configureIngress(env) {
     headers:[{for:'/*',values}]
   };
 }
-
