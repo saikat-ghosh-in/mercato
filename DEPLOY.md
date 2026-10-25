@@ -390,10 +390,10 @@ Validate with `sudo visudo -c`. Do not grant unrestricted passwordless sudo. The
 
 ## 11. Subsequent releases: your usual redeploy command
 
-For each update, publish a **new tag from tested main** and wait for its **Release backend** job/assets, then run on OCI:
+For each beta update, publish a **new prerelease tag from tested `stg`** and wait for its **Release backend** job/assets, then run on OCI:
 
 ```bash
-bash ~/redeploy-beta.sh v0.1.0-beta.2
+bash ~/redeploy-beta.sh v0.1.0-beta.3
 sudo journalctl -u mercato-beta -n 100 --no-pager
 ```
 
