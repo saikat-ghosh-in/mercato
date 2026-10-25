@@ -19,8 +19,10 @@ SSH inventory on 25 October 2026 confirmed both old services are active, Postgre
 
 ## 1. Publish a new GitHub release
 
-1. Wait for **Application checks** on `main` to pass. Verify beta's frontend branch `stg` contains the same application tree as the release commit; do not deploy a frontend/backend mismatch.
-2. Create a release with a **new, unused version tag targeting main**, for example `v0.1.0-beta.1`. Do not reuse `v0.0.1` or move an existing tag.
+For the email-delivery repair and monthly admin/seller reports, see [Email operations](docs/email-operations.md). The additive `V8` migration runs during the normal release upgrade; keep the existing beta database and MFA keys. Production-profile releases enable monthly reports by default (`EMAIL_REPORTS_ENABLED=false` disables them).
+
+1. Wait for **Application checks** on the exact release commit to pass. Beta prereleases target `stg`; stable production releases target `main`. Beta's frontend and backend must use the same application revision.
+2. For beta, create a **GitHub prerelease** with a new tag such as `v0.1.0-beta.2` targeting the checked `stg` commit. Stable releases use a tag such as `v0.1.0`, must not be marked prerelease, and must descend from `main`. The release workflow enforces tag type and branch ancestry. Never move or reuse a tag.
 3. Publish it and wait for **Release backend** to finish successfully. It reruns the frontend, PostgreSQL/backend, Linux operations and dependency checks, then attaches:
    - `mercato-backend.jar`
    - `mercato-backend.jar.sha256`

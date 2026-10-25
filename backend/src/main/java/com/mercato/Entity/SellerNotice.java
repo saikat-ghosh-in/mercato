@@ -17,4 +17,5 @@ public class SellerNotice {
     private Instant nextAttemptAt;
     private int attempts;
     private boolean superseded;
+    @Column(name="email_failure_code",length=64) private String emailFailureCode;
 }

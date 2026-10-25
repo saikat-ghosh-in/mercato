@@ -46,8 +46,9 @@ public class CustomerStepUpService {
         challenge.setCodeHash(AuthHash.digest(id.userId() + ":" + code));
         challenge.setSessionHash(AuthHash.digest(request.getSession().getId()));
         challenge.setExpiresAt(Instant.now().plusSeconds(300));
+        UUID deliveryId=UUID.randomUUID();challenge.setDeliveryId(deliveryId);
         challenges.save(challenge);
-        jobs.enqueue("AUTH_EMAIL", "step-up:" + UUID.randomUUID(), Map.of("to", user.getEmail(),
+        jobs.enqueue("AUTH_EMAIL", "step-up:" + deliveryId, Map.of("to", user.getEmail(),"userId",user.getUserId(),"challengeId",deliveryId.toString(),
                 "subject", "Mercato sign-in verification", "text", "Your Mercato verification code is "
                         + code + ". It expires in 5 minutes."));
     }

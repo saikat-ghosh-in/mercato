@@ -47,6 +47,16 @@ public class MarketplaceFinanceService {
         LocalDate end=through==null?today:through, start=from==null?end.minusDays(89):from;
         if(start.isAfter(end) || ChronoUnit.DAYS.between(start,end)>365 || end.isAfter(today)) throw new IllegalArgumentException("Choose up to 366 days, ending no later than today (UTC)");
         Instant a=start.atStartOfDay(ZoneOffset.UTC).toInstant(), b=end.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant();
+        return calculate(actor,admin,start,end,a,b);
+    }
+    /** Internal worker entry: the persisted recipient determines scope, never a caller-supplied admin flag. */
+    @Transactional(readOnly=true)
+    public Map<String,Object> monthlyReport(String userId,YearMonth month,ZoneId zone){
+        var actor=users.findByUserId(userId).orElseThrow();
+        if(!com.mercato.Mail.MonthlyReports.eligible(actor))throw new AccessDeniedException("Report recipient is no longer eligible");
+        return calculate(actor,actor.isAdmin(),month.atDay(1),month.atEndOfMonth(),month.atDay(1).atStartOfDay(zone).toInstant(),month.plusMonths(1).atDay(1).atStartOfDay(zone).toInstant());
+    }
+    private Map<String,Object> calculate(EcommUser actor,boolean admin,LocalDate start,LocalDate end,Instant a,Instant b){
         Bucket total=new Bucket(); Map<String,Bucket> sellers=new LinkedHashMap<>();List<Map<String,Object>> ledger=new ArrayList<>();
         BigDecimal captured=BigDecimal.ZERO,refunded=BigDecimal.ZERO,platform=BigDecimal.ZERO,shipping=BigDecimal.ZERO,unknownCharges=BigDecimal.ZERO,pendingRefunds=BigDecimal.ZERO,unverifiedLegacyCollections=BigDecimal.ZERO;
         for(var order:orders.financialOrders(a,b,admin?null:actor.getEmail())) {

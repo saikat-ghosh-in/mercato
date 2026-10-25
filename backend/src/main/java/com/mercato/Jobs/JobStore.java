@@ -39,6 +39,11 @@ public class JobStore {
         // Compare parsed JSON so object-key ordering and numeric serialization do not create false conflicts.
         if(!result.type().equals(type) || !sameJson(result.payload(),encoded))
             throw new IllegalArgumentException("Business key already exists with different type or payload");
+        if(Set.of("AUTH_EMAIL","SHIPMENT_EMAIL","MONTHLY_REPORT").contains(type)) {
+            String purpose=businessKey.startsWith("verify-email:")?"VERIFICATION":businessKey.startsWith("password-reset:")?"PASSWORD_RESET":type;
+            jdbc.update("UPDATE durable_jobs SET email_recipient=?,email_purpose=?,email_state='QUEUED' WHERE id=? AND email_purpose IS NULL",
+                payload.get("to") instanceof String to?to:null,purpose,result.id());
+        }
         return result;
     }
 
@@ -97,6 +102,8 @@ public class JobStore {
         jdbc.update("INSERT INTO durable_job_retry_audit (id,job_id,actor,reason,previous_status,created_at) VALUES (?,?,?,?,?,?)",
             UUID.randomUUID(),id,actor,reason,before.status().name(),ts(now));
         jdbc.update("UPDATE durable_jobs SET status='READY',due_at=?,failure_fingerprint=NULL,failure_count=0,last_failure=NULL,"
+            +"email_state=CASE WHEN email_purpose IS NULL THEN NULL WHEN email_accepted_at IS NOT NULL THEN 'ACCEPTED' ELSE 'QUEUED' END,"
+            +"email_code=NULL,email_smtp_code=NULL,"
             +"lease_owner=NULL,lease_token=NULL,lease_expires_at=NULL,updated_at=? WHERE id=?",ts(now),ts(now),id);
         return get(id);
     }

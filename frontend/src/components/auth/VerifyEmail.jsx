@@ -46,8 +46,8 @@ const VerifyEmail = () => {
         if (!email) { toast.error("Enter your email to resend"); return; }
         setResending(true);
         try {
-            await api.post(`/auth/resend-verification?email=${email}`);
-            toast.success("Verification email sent!");
+            await api.post(`/auth/resend-verification?email=${encodeURIComponent(email)}`);
+            toast.info("If your account needs verification, an email is queued. Delivery is not yet confirmed.");
             setCooldown(30);
         } catch (err) {
             toast.error(err?.response?.data?.message || "Failed to resend email");

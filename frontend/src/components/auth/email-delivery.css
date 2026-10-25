@@ -1,0 +1,7 @@
+.mail-delivery-status { font-size: .875rem; line-height: 1.65; color: #4b5563; background: #f5f7fa; border: 1px solid #e5e7eb; border-radius: 8px; padding: 14px 16px; }
+.mail-delivery-error { color: #9f2424; background: #fff7f7; border-color: #f0d4d4; }
+.email-summary-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; }
+.email-activity-list { border-block: 1px solid #e6e6e6; }
+.email-activity-row { display: grid; grid-template-columns: minmax(0,1fr) minmax(140px,220px); gap: 24px; padding: 22px 0; }
+.email-activity-row + .email-activity-row { border-top: 1px solid #eee; }
+@media(max-width:640px) { .email-summary-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }.email-summary-grid > :last-child { grid-column: 1/-1; }.email-activity-row { grid-template-columns: minmax(0,1fr); gap:12px; } }

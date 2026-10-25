@@ -25,5 +25,12 @@ public class JobEntity {
     @Column(name="last_failure",length=512) String lastFailure;
     @Column(name="created_at",nullable=false) Instant createdAt;
     @Column(name="updated_at",nullable=false) Instant updatedAt;
+    @Column(name="email_recipient",length=320) String emailRecipient;
+    @Column(name="email_purpose",length=80) String emailPurpose;
+    @Column(name="email_state",length=24) String emailState;
+    @Column(name="email_code",length=64) String emailCode;
+    @Column(name="email_smtp_code") Integer emailSmtpCode;
+    @Column(name="email_accepted_at") Instant emailAcceptedAt;
+    @Column(name="email_attempt_at") Instant emailAttemptAt;
     protected JobEntity() {}
 }

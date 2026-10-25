@@ -32,6 +32,8 @@ public class EmailVerificationServiceImpl implements EmailVerificationService {
     @Transactional
     @Override
     public void createAndSendVerificationToken(EcommUser user) {
+        user=userRepository.findByUserIdForUpdate(user.getUserId()).orElseThrow();
+        if(user.isEmailVerified())return;
         tokenRepository.findByUserIdAndVerifiedAtIsNull(user.getId())
                 .ifPresent(tokenRepository::delete);
 

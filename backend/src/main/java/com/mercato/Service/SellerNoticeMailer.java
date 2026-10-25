@@ -2,8 +2,8 @@ package com.mercato.Service;
 import com.mercato.Entity.SellerNotice;
 import com.mercato.Repository.*;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
+import com.mercato.Mail.BrandedMailSender;
+import com.mercato.Mail.BrandedEmail;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -12,9 +12,8 @@ import java.time.*;
 /** Existing notice outbox: short claim/accept transactions around bounded SMTP work. */
 @Service
 public class SellerNoticeMailer {
- private final SellerNoticeRepository notices;private final CommissionSettingsRepository settings;private final CommissionService commissions;private final JavaMailSender mail;private final TransactionTemplate tx;
- @Value("${mercato.email.from}")private String from;
- public SellerNoticeMailer(SellerNoticeRepository notices,CommissionSettingsRepository settings,CommissionService commissions,JavaMailSender mail,PlatformTransactionManager transactions){this.notices=notices;this.settings=settings;this.commissions=commissions;this.mail=mail;this.tx=new TransactionTemplate(transactions);}
+ private final SellerNoticeRepository notices;private final CommissionSettingsRepository settings;private final CommissionService commissions;private final BrandedMailSender mail;private final TransactionTemplate tx;
+ public SellerNoticeMailer(SellerNoticeRepository notices,CommissionSettingsRepository settings,CommissionService commissions,BrandedMailSender mail,PlatformTransactionManager transactions){this.notices=notices;this.settings=settings;this.commissions=commissions;this.mail=mail;this.tx=new TransactionTemplate(transactions);}
  private record Delivery(Long id,Long changeId,String to,String subject,String text){}
  public void send(Long id){
   Delivery delivery=tx.execute(t->{
@@ -26,8 +25,7 @@ public class SellerNoticeMailer {
    return new Delivery(id,change.getId(),notice.getEmail(),cancelled?"Mercato commission change cancelled":"Mercato commission notice — at least 60 days before any change",cancelled?"The proposed Mercato commission of "+change.getRate()+"% has been cancelled. Your current rate is unchanged. See Seller Dashboard → Notices.":"Mercato proposes changing commission from "+change.getPreviousRate()+"% to "+change.getRate()+"%.\n\nReason: "+change.getReason()+"\n\nThe change will take effect no earlier than 60 full days after all required email notices have been accepted by the mail service. Delayed notices extend the notice period. Existing orders keep their captured rate. See Seller Dashboard → Notices for the effective date. You may stop new listings before then; contact marketplace Help with questions.");
   });
   if(delivery==null)return;
-  SimpleMailMessage message=new SimpleMailMessage();message.setFrom(from);message.setTo(delivery.to());message.setSubject(delivery.subject());message.setText(delivery.text());
-  try{mail.send(message);tx.executeWithoutResult(t->{settings.lockSettings().orElseThrow();var notice=notices.findById(id).orElseThrow();if(notice.getEmailSentAt()==null){notice.setEmailSentAt(Instant.now());commissions.finishNotifying(notice.getChange());}});}
-  catch(org.springframework.mail.MailException e){tx.executeWithoutResult(t->{var notice=notices.findById(id).orElseThrow();notice.setNextAttemptAt(Instant.now().plusSeconds(Math.min(21600,60L*(1L<<Math.min(notice.getAttempts(),8)))));});}
+  try{mail.send(delivery.to(),delivery.subject(),delivery.text(),new BrandedEmail.Action("View seller notices","/seller/dashboard?tab=notices"));tx.executeWithoutResult(t->{settings.lockSettings().orElseThrow();var notice=notices.findById(id).orElseThrow();if(notice.getEmailSentAt()==null){notice.setEmailSentAt(Instant.now());notice.setEmailFailureCode(null);commissions.finishNotifying(notice.getChange());}});}
+  catch(org.springframework.mail.MailException e){var failure=com.mercato.Mail.MailFailure.classify(e);tx.executeWithoutResult(t->{var notice=notices.findById(id).orElseThrow();notice.setEmailFailureCode(failure.code());notice.setNextAttemptAt(Instant.now().plusSeconds(Math.min(21600,60L*(1L<<Math.min(notice.getAttempts(),8)))));});}
  }
 }

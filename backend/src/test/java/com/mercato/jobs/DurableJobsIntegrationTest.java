@@ -24,7 +24,34 @@ import static org.junit.jupiter.api.Assertions.*;
 @TestExecutionListeners(listeners=DependencyInjectionTestExecutionListener.class,mergeMode=TestExecutionListeners.MergeMode.REPLACE_DEFAULTS)
 class DurableJobsIntegrationTest {
     @Configuration @EnableAutoConfiguration @EntityScan(basePackageClasses=JobEntity.class)
-    @Import({JobStore.class, DurableJobs.class}) static class Config {}
+    @Import({JobStore.class, DurableJobs.class,com.mercato.Mail.MailActivity.class}) static class Config {}
+    @Autowired com.mercato.Mail.MailActivity mailActivity;
+    @Test void smtpFailureIsVisibleAndPermanentAuthenticationFailureStopsRetries() {
+        var job=jobs.enqueue("AUTH_EMAIL","verify-email:test",Map.of("to","recipient@example.test","subject","Verify","text","private-link-token"));
+        var sender=new org.springframework.mail.javamail.JavaMailSenderImpl(){@Override public void send(jakarta.mail.internet.MimeMessage message){throw new org.springframework.mail.MailAuthenticationException("525 Unauthorized IP address password=hidden");}};
+        var tracked=new com.mercato.Mail.TrackedMailSender(new com.mercato.Mail.BrandedMailSender(sender,"noreply@example.test","http://127.0.0.1:5175"),mailActivity);
+        var handler=new JobHandler(){public String type(){return "AUTH_EMAIL";}public void handle(JobRecord record){tracked.send(record,"recipient@example.test","Verify","private-link-token");}};
+        new JobProcessor(store,List.of(handler)).process(store.claim("mail-worker",1,Duration.ofSeconds(60)).get(0));
+        assertEquals(JobStatus.NEEDS_ATTENTION,store.get(job.id()).status());
+        assertEquals("SMTP_IP_NOT_AUTHORIZED",jdbc.queryForObject("SELECT email_code FROM durable_jobs WHERE id=?",String.class,job.id()));
+        assertEquals("FAILED",mailActivity.verificationStatus(job.id()).get("state"));
+        assertFalse(mailActivity.verificationStatus(job.id()).toString().contains("private-link-token"));
+        assertFalse(store.get(job.id()).lastFailure().contains("hidden"));
+    }
+    @Test void smtpAcceptanceIsNotInboxDeliveryAndStaleWorkersCannotOverwriteIt() {
+        var original=jobs.enqueue("AUTH_EMAIL","verify-email:acceptance",Map.of("to","recipient@example.test","subject","Verify","text","private"));
+        var stale=store.claim("old",1,Duration.ofSeconds(30)).get(0);
+        jdbc.update("UPDATE durable_jobs SET lease_expires_at=? WHERE id=?",java.sql.Timestamp.from(Instant.now().minusSeconds(1)),original.id());
+        var replacement=store.claim("new",1,Duration.ofSeconds(30)).get(0);
+        assertTrue(mailActivity.record(replacement,"ACCEPTED",null));
+        assertFalse(mailActivity.record(stale,"FAILED",new com.mercato.Mail.MailFailure("SMTP_AUTH_FAILED",535,false,"fixed")));
+        assertEquals("ACCEPTED",mailActivity.verificationStatus(original.id()).get("state"));
+        assertTrue(mailActivity.verificationStatus(original.id()).get("message").toString().contains("not yet confirmed"));
+        var sends=new AtomicInteger();
+        var sender=new org.springframework.mail.javamail.JavaMailSenderImpl(){@Override public void send(jakarta.mail.internet.MimeMessage message){sends.incrementAndGet();}};
+        new com.mercato.Mail.TrackedMailSender(new com.mercato.Mail.BrandedMailSender(sender,"noreply@example.test","http://127.0.0.1:5175"),mailActivity).send(replacement,"recipient@example.test","Verify","private");
+        assertEquals(0,sends.get(),"A recorded SMTP acceptance must not be sent again during completion recovery");
+    }
     @Autowired DurableJobs jobs;
     @Autowired JobStore store;
     @Autowired JdbcTemplate jdbc;

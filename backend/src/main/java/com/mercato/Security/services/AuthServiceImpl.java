@@ -151,7 +151,7 @@ public class AuthServiceImpl implements AuthService {
 
         emailVerificationService.createAndSendVerificationToken(savedUser);
 
-        return "User registered successfully! Please check your email to verify your account.";
+        return "Account created. Your verification email is queued; delivery is not yet confirmed.";
     }
 
     @Override

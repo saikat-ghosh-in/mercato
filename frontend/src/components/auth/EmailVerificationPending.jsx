@@ -1,108 +1,62 @@
 import { Spinner } from "../shared/Spinner";
-import ActionArrow from "../shared/ActionArrow";
 import { useEffect, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
-import { MdEmail, MdRefresh, MdCheckCircle } from "react-icons/md";
-import toast from "../../utils/toastUtils.js";
+import { useLocation, Link } from "react-router-dom";
+import { MdEmail } from "react-icons/md";
 import api from "../../backend/api";
+import MailDeliveryStatus from "./MailDeliveryStatus";
+import "./email-delivery.css";
 
-const RESEND_COOLDOWN = 30;
-
-const EmailVerificationPending = () => {
-    const navigate = useNavigate();
-    const location = useLocation();
-
-    const email = location.state?.email ?? "";
-
-    const [cooldown, setCooldown] = useState(0);
-    const [resending, setResending] = useState(false);
-    const [resendCount, setResendCount] = useState(0);
-
-    useEffect(() => {
-        if (cooldown <= 0) return;
-        const t = setInterval(() => setCooldown(c => c - 1), 1000);
-        return () => clearInterval(t);
-    }, [cooldown]);
-
-    const handleResend = async () => {
-        if (!email) { toast.error("Email address not found. Please register again."); return; }
-        setResending(true);
-        try {
-            await api.post(`/auth/resend-verification?email=${encodeURIComponent(email)}`);
-            toast.success("Verification email sent!");
-            setCooldown(RESEND_COOLDOWN);
-            setResendCount(c => c + 1);
-        } catch (err) {
-            toast.error(err?.response?.data?.message || "Failed to resend email");
-        } finally {
-            setResending(false);
-        }
+export default function EmailVerificationPending() {
+  const location = useLocation();
+  const [email, setEmail] = useState(location.state?.email || "");
+  const [delivery, setDelivery] = useState({ state: "QUEUED" });
+  const [error, setError] = useState("");
+  const [resending, setResending] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
+  const [revision, setRevision] = useState(0);
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const timer = setTimeout(() => setCooldown(value => Math.max(0, value - 1)), 1000);
+    return () => clearTimeout(timer);
+  }, [cooldown]);
+  useEffect(() => {
+    const controller = new AbortController(); let timer; let attempts = 0;
+    const poll = async () => {
+      try {
+        const { data } = await api.get("/auth/verification-delivery", { signal: controller.signal });
+        if (controller.signal.aborted) return;
+        setDelivery(data); setError("");
+        if (["QUEUED", "SENDING", "RETRYING"].includes(data.state) && ++attempts < 60) timer = setTimeout(poll, 5000);
+      } catch { if (!controller.signal.aborted) setError("Delivery status couldn’t load. Please refresh the status."); }
     };
-
-    const canResend = cooldown <= 0 && !resending;
-
-    return (
-        <div className="bg-gray-50 min-h-screen flex items-center justify-center px-4">
-            <div className="surface p-8 max-w-md w-full text-center">
-
-                {/* Icon */}
-                <div className="w-16 h-16 rounded-2xl bg-blue-50 flex items-center justify-center mx-auto mb-5">
-                    <MdEmail size={30} className="text-blue-400" />
-                </div>
-
-                <h1 className="text-xl font-semibold text-gray-900 mb-2">Check your inbox</h1>
-                <p className="text-sm text-gray-500 leading-relaxed mb-1">
-                    We sent a verification link to
-                </p>
-                {email && (
-                    <p className="text-sm font-bold text-gray-900 mb-5">{email}</p>
-                )}
-                <p className="text-xs text-gray-400 mb-8 leading-relaxed">
-                    Click the link in the email to verify your account.
-                    If you don't see it, check your spam folder.
-                </p>
-
-                {/* Resend button */}
-                <button
-                    onClick={handleResend}
-                    disabled={!canResend}
-                    className="w-full flex items-center justify-center gap-2 py-3 text-sm font-bold rounded-xl transition-[transform,opacity,background-color]  disabled:cursor-not-allowed
-                        bg-gray-950 hover:bg-gray-800 text-white disabled:bg-gray-100 disabled:text-gray-400"
-                >
-                    {resending ? <Spinner size={16} /> : <MdRefresh size={16} />}
-                    {resending ? "Sending..." : cooldown > 0 ? `Resend in ${cooldown}s` : "Resend Verification Email"}
-                </button>
-
-                {/* Cooldown hint */}
-                {cooldown > 0 && (
-                    <div className="mt-3 flex items-center justify-center gap-1.5">
-                        <div className="h-1 bg-gray-100 rounded-full flex-1 overflow-hidden">
-                            <div
-                                className="h-full bg-blue-400 rounded-full "
-                                style={{ width: `${((RESEND_COOLDOWN - cooldown) / RESEND_COOLDOWN) * 100}%` }}
-                            />
-                        </div>
-                        <span className="text-xs text-gray-400 shrink-0 font-medium">{cooldown}s</span>
-                    </div>
-                )}
-
-                {resendCount > 0 && (
-                    <p className="text-xs text-blue-700 font-medium mt-3 flex items-center justify-center gap-1">
-                        <MdCheckCircle size={13} /> Email sent {resendCount} time{resendCount > 1 ? "s" : ""}
-                    </p>
-                )}
-
-                <div className="mt-8 pt-6 border-t border-gray-100">
-                    <button
-                        onClick={() => navigate("/login")}
-                        className="flex items-center gap-1.5 text-sm text-blue-500 hover:text-blue-700 font-semibold cursor-pointer transition-colors mx-auto"
-                    >
-                        Go to Login <ActionArrow size={15} />
-                    </button>
-                </div>
-            </div>
-        </div>
-    );
-};
-
-export default EmailVerificationPending;
+    poll();
+    return () => { controller.abort(); clearTimeout(timer); };
+  }, [revision]);
+  const resend = async event => {
+    event.preventDefault(); if (resending || cooldown > 0) return; setResending(true); setError("");
+    try {
+      await api.post(`/auth/resend-verification?email=${encodeURIComponent(email.trim())}`);
+      setCooldown(30); setRevision(value => value + 1);
+    } catch (err) {
+      setError(err?.response?.data?.message || "Your request couldn’t be processed. Please try again.");
+      const retryAfter = Number(err?.response?.headers?.["retry-after"]);
+      if (Number.isFinite(retryAfter) && retryAfter > 0) setCooldown(Math.min(3600, Math.ceil(retryAfter)));
+    } finally { setResending(false); }
+  };
+  return <div className="bg-gray-50 min-h-screen flex items-center justify-center px-4 py-10">
+    <div className="surface p-6 sm:p-8 max-w-md w-full">
+      <div className="w-12 h-12 rounded-lg bg-blue-50 flex items-center justify-center mb-5"><MdEmail size={22} aria-hidden="true" /></div>
+      <h1 className="text-xl font-semibold mb-3">Verify your email</h1>
+      <p className="text-sm text-gray-500 leading-relaxed mb-5">Open the latest verification link to finish creating your account.</p>
+      <MailDeliveryStatus delivery={delivery} />
+      {error && <p role="alert" className="text-sm text-red-700 mt-4">{error}</p>}
+      <button className="text-sm underline mt-4" onClick={() => setRevision(value => value + 1)}>Refresh status</button>
+      <form onSubmit={resend} className="mt-6 space-y-3">
+        <label className="block text-sm font-medium">Email address<input className="w-full border rounded-md p-3 mt-2" type="email" autoComplete="email" value={email} onChange={event => setEmail(event.target.value)} required maxLength={100} /></label>
+        <button className="button button-dark w-full" disabled={resending || cooldown > 0 || !email.trim()}>{resending && <Spinner size={14} />}{resending ? "Requesting email…" : cooldown > 0 ? `Try again in ${cooldown}s` : "Request another link"}</button>
+      </form>
+      <p className="text-xs text-gray-500 leading-relaxed mt-4">Once accepted by the email service, delivery can take a few minutes. Check spam too. Repeated requests replace earlier links.</p>
+      <Link className="text-link inline-block mt-6 text-sm" to="/login">Go to sign in</Link>
+    </div>
+  </div>;
+}
