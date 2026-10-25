@@ -9,7 +9,7 @@ export function configureIngress(env) {
   if (!['enforce','report-only'].includes(mode)) throw new Error('Invalid CSP mode');
   const hsts = env.MERCATO_HSTS_SECONDS || '300';
   if (!/^\d+$/.test(hsts) || Number(hsts)>31536000) throw new Error('Invalid HSTS duration');
-  const policy = "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' https://sdk.cashfree.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://images.unsplash.com; connect-src 'self' https://sdk.cashfree.com https://api.cashfree.com https://sandbox.cashfree.com; frame-src https://sdk.cashfree.com https://api.cashfree.com https://sandbox.cashfree.com https://payments.cashfree.com https://payments-test.cashfree.com; upgrade-insecure-requests";
+  const policy = "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self' https://sandbox.cashfree.com https://payments-test.cashfree.com; script-src 'self' https://sdk.cashfree.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://images.unsplash.com; connect-src 'self' https://sdk.cashfree.com https://sandbox.cashfree.com; frame-src https://sdk.cashfree.com https://sandbox.cashfree.com https://payments-test.cashfree.com; upgrade-insecure-requests";
   const values = {
     [mode==='enforce'?'Content-Security-Policy':'Content-Security-Policy-Report-Only']: policy,
     'Strict-Transport-Security': `max-age=${hsts}`,

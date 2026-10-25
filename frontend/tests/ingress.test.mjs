@@ -46,6 +46,17 @@ test('ingress refuses absent/invalid upstream configuration and insecure CSP rel
   assert.doesNotMatch(headers['Content-Security-Policy'].split(';').find(x=>x.includes('script-src')),/unsafe-inline|unsafe-eval|\*/);
   assert.equal(headers['X-Content-Type-Options'],'nosniff');
 });
+
+test('Cashfree sandbox checkout forms work in enforced and report-only CSP without broad form destinations', () => {
+  for (const mode of ['enforce', 'report-only']) {
+    const c=configureIngress({MERCATO_COOKIE_CUTOVER_READY:'yes',MERCATO_ORIGIN:'https://review.example.test',NETLIFY_PROXY_SIGNING_KEY:'a'.repeat(40),MERCATO_CSP_MODE:mode});
+    const policy=c.headers[0].values[mode==='enforce'?'Content-Security-Policy':'Content-Security-Policy-Report-Only'];
+    const form=policy.split(';').map(part=>part.trim()).find(part=>part.startsWith('form-action ')).split(/\s+/).slice(1);
+    assert.deepEqual(form,["'self'",'https://sandbox.cashfree.com','https://payments-test.cashfree.com']);
+    assert.doesNotMatch(policy,/unsafe-eval|script-src[^;]*\*/);
+    assert.match(policy,/frame-ancestors 'none'/);
+  }
+});
 test('edge replaces caller metadata while preserving exact body bytes and cookies', async () => {
   const raw = Buffer.from('{"amount": 12.00,"name":"म"}\r\n');
   const request=new Request('https://shop.example.test/api/public/cashfree/webhook-v2', {method:'POST',headers:{'X-Mercato-Client-IP':'1.2.3.4','Forwarded':'for=forged;proto=http','X-Forwarded-For':'forged','x-nf-sign':'forged','cookie':'session=opaque'},body:raw});
