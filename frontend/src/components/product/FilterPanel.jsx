@@ -1,14 +1,9 @@
+import Accordion from "../shared/Accordion";
 import { useId, useState } from "react";
 import { Dialog, DialogBackdrop, DialogPanel, DialogTitle } from "@headlessui/react";
-import { FiChevronDown, FiX } from "react-icons/fi";
+import { FiX } from "react-icons/fi";
 import SelectControl from "../shared/SelectControl";
 import { SORT_OPTIONS } from "../../utils/productUtils";
-
-function FilterSection({ title, children }) {
-  const [open, setOpen] = useState(true);
-  const id = useId();
-  return <section className="filter-section"><button type="button" className="filter-section-toggle" aria-expanded={open} aria-controls={id} onClick={() => setOpen(value => !value)}>{title}<FiChevronDown aria-hidden="true" style={{ transform: open ? "rotate(180deg)" : undefined }} /></button><div id={id} hidden={!open}>{children}</div></section>;
-}
 
 function FilterOptions({ items, selected, onChange, multiple = false }) {
   const [expanded, setExpanded] = useState(false);
@@ -29,13 +24,14 @@ export default function FilterPanel({ open, categories, sellers, draft, error, o
       <form className="filter-form" noValidate onSubmit={event => { event.preventDefault(); onApply(); }}>
         <div className="filter-drawer-body">
           <section className="filter-section filter-sort"><label htmlFor={id + "-sort"}>Sort by</label><SelectControl id={id + "-sort"} value={(draft.sortBy || "createdAt") + ":" + (draft.sortingOrder || "desc")} onChange={event => { const [sortBy, sortingOrder] = event.target.value.split(":"); onChange({ sortBy, sortingOrder }); }}>{SORT_OPTIONS.map(option => <option key={option.label} value={option.sortBy + ":" + option.sortingOrder}>{option.label}</option>)}</SelectControl></section>
-          <FilterSection title="Category"><FilterOptions items={categories.map(category => category.categoryName)} selected={draft.category} onChange={category => onChange({ category })} /></FilterSection>
-          {sellers.length > 0 && <FilterSection title="Seller"><FilterOptions multiple items={sellers.map(seller => seller.sellerDisplayName)} selected={draft.sellers} onChange={values => onChange({ sellers: values })} /></FilterSection>}
-          <FilterSection title="Price range"><div className="filter-price-fields">
+          <Accordion multiple defaultValue={["category", "seller", "price", "availability"]}><Accordion.Item className="filter-section" value="category"><Accordion.Trigger className="filter-section-toggle">Category</Accordion.Trigger><Accordion.Content><FilterOptions items={categories.map(category => category.categoryName)} selected={draft.category} onChange={category => onChange({ category })} /></Accordion.Content></Accordion.Item>
+          {sellers.length > 0 && <Accordion.Item className="filter-section" value="seller"><Accordion.Trigger className="filter-section-toggle">Seller</Accordion.Trigger><Accordion.Content><FilterOptions multiple items={sellers.map(seller => seller.sellerDisplayName)} selected={draft.sellers} onChange={values => onChange({ sellers: values })} /></Accordion.Content></Accordion.Item>}
+          <Accordion.Item className="filter-section" value="price"><Accordion.Trigger className="filter-section-toggle">Price range</Accordion.Trigger><Accordion.Content><div className="filter-price-fields">
             <label htmlFor={id + "-min"}>Min price (₹)<input id={id + "-min"} type="number" min="0" step="0.01" inputMode="decimal" placeholder="0" value={draft.minPrice} onChange={event => onChange({ minPrice: event.target.value })} aria-invalid={Boolean(error)} aria-describedby={priceError} /></label>
             <label htmlFor={id + "-max"}>Max price (₹)<input id={id + "-max"} type="number" min="0" step="0.01" inputMode="decimal" placeholder="Any" value={draft.maxPrice} onChange={event => onChange({ maxPrice: event.target.value })} aria-invalid={Boolean(error)} aria-describedby={priceError} /></label>
-          </div>{error && <p id={priceError} className="filter-error" role="alert">{error}</p>}</FilterSection>
-          <FilterSection title="Availability"><label className="filter-option"><input type="checkbox" checked={draft.inStockOnly} onChange={event => onChange({ inStockOnly: event.target.checked })} />In stock only</label></FilterSection>
+          </div>{error && <p id={priceError} className="filter-error" role="alert">{error}</p>}</Accordion.Content></Accordion.Item>
+          <Accordion.Item className="filter-section" value="availability"><Accordion.Trigger className="filter-section-toggle">Availability</Accordion.Trigger><Accordion.Content><label className="filter-option"><input type="checkbox" checked={draft.inStockOnly} onChange={event => onChange({ inStockOnly: event.target.checked })} />In stock only</label></Accordion.Content></Accordion.Item>
+          </Accordion>
         </div>
         <div className="filter-drawer-footer"><button type="button" className="filter-clear" onClick={onClear}>Clear filters</button><div><button type="button" className="button button-outline" onClick={onClose}>Cancel</button><button type="submit" className="button button-dark">Apply filters</button></div></div>
       </form>
