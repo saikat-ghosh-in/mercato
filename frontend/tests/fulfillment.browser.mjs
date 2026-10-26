@@ -272,3 +272,31 @@ test('a dual-role customer can cancel an eligible whole order only through the e
     assert.equal(await page.getByLabel('Reason',{exact:true}).inputValue(),'Please cancel this order');
   } finally {await browser.close();}
 });
+
+
+test('admin initial detail failure shows recovery, retries successfully and can return to the list',async()=>{
+  const {browser,page}=await fixture('admin',()=>{
+    const get=window.fixtureGet;
+    window.adminDetailReads=0;
+    window.fixtureGet=async(url)=>{
+      if(url==='/admin/orders/O1' && ++window.adminDetailReads%2===1){
+        throw {response:{data:{message:'Order service temporarily unavailable.'}}};
+      }
+      return get(url);
+    };
+  });
+  try {
+    await page.getByRole('row').filter({hasText:'O1'}).click();
+    await page.getByRole('alert').filter({hasText:'Order service temporarily unavailable.'}).waitFor();
+    assert.equal(await page.getByRole('button',{name:'Back to orders',exact:true}).isEnabled(),true);
+    await page.getByRole('button',{name:'Try again',exact:true}).click();
+    await page.getByText('Order #O1',{exact:true}).waitFor();
+    await page.getByText('Ceramic cup',{exact:true}).waitFor();
+    assert.equal(await page.evaluate(()=>window.adminDetailReads),2);
+    await page.getByRole('button',{name:'Back',exact:true}).click();
+    await page.getByRole('row').filter({hasText:'O1'}).click();
+    await page.getByRole('alert').filter({hasText:'Order service temporarily unavailable.'}).waitFor();
+    await page.getByRole('button',{name:'Back to orders',exact:true}).click();
+    await page.getByRole('row').filter({hasText:'O1'}).waitFor();
+  } finally {await browser.close();}
+});

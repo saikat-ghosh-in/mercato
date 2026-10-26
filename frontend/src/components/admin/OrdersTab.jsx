@@ -63,7 +63,12 @@ const OrderDetail = ({ orderId, onBack }) => {
     const {data:order, loading, error, refresh:fetchOrder, epoch} = useWorkflowResource(`/admin/orders/${encodeURIComponent(orderId)}`);
 
     if (loading && !order) return <DetailSkeleton />;
-    if (!order) return null;
+    if (!order) return <div className="state-panel" role="alert">
+        <h2>Order details could not load.</h2>
+        <p>{error || "Check your connection and try again."}</p>
+        <button type="button" className="button button-dark" onClick={fetchOrder}>Try again</button>
+        <button type="button" className="text-link" onClick={onBack}>Back to orders</button>
+    </div>;
 
     const { icon: StatusIcon } = getStatus(order.orderStatus);
 
