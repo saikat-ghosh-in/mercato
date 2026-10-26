@@ -15,9 +15,9 @@ import java.util.*;
 @Service
 public class FulfillmentDeadlines implements JobHandler {
     private final DurableJobs jobs;private final OrderRepository orders;private final FulfillmentWorkflow workflow;
-    private final OrderLineUpdateService updates;private final JdbcTemplate jdbc;private final FulfillmentSlaMetrics slaMetrics;
-    public FulfillmentDeadlines(DurableJobs jobs,OrderRepository orders,FulfillmentWorkflow workflow,@Lazy OrderLineUpdateService updates,JdbcTemplate jdbc,FulfillmentSlaMetrics slaMetrics) {
-        this.jobs=jobs;this.orders=orders;this.workflow=workflow;this.updates=updates;this.jdbc=jdbc;this.slaMetrics=slaMetrics;
+    private final OrderLineUpdateService updates;private final JdbcTemplate jdbc;private final FulfillmentSlaMetrics slaMetrics;private final FulfillmentNoticeGuard notices;
+    public FulfillmentDeadlines(DurableJobs jobs,OrderRepository orders,FulfillmentWorkflow workflow,@Lazy OrderLineUpdateService updates,JdbcTemplate jdbc,FulfillmentSlaMetrics slaMetrics,FulfillmentNoticeGuard notices) {
+        this.jobs=jobs;this.orders=orders;this.workflow=workflow;this.updates=updates;this.jdbc=jdbc;this.slaMetrics=slaMetrics;this.notices=notices;
     }
     public String type(){return "FULFILLMENT_DEADLINE";}
     public void schedule(Order order) {
@@ -45,8 +45,8 @@ public class FulfillmentDeadlines implements JobHandler {
         } else if("PREPARATION_REVIEW".equals(kind)) {
             affected=order.getOrderLines().stream().mapToInt(l->l.getOrderedQty()-l.getCancelledQty()-l.getShippedQty()).sum();
         } else {
-            for(String seller:order.getOrderLines().stream().filter(l->l.getPendingQty()>0 && (!"REMINDER".equals(kind)||l.getOrderedQty()-l.getCancelledQty()-l.getAcceptedQty()>0)).map(OrderLine::getSellerEmail).distinct().toList()) {
-                jobs.enqueue("AUTH_EMAIL","fulfillment-mail:"+order.getOrderId()+":"+kind+":"+seller,Map.of("to",seller,"subject","Mercato order "+("RELEASE".equals(kind)?"ready for action":"acceptance reminder"),"text","Review order "+order.getOrderId()+". Acceptance deadline: "+workflow.deadline(order)));
+            for(String seller:order.getOrderLines().stream().map(OrderLine::getSellerEmail).distinct().filter(seller->notices.eligible(order,seller,kind)).toList()) {
+                jobs.enqueue("AUTH_EMAIL",FulfillmentNoticeGuard.businessKey(order.getOrderId(),seller,kind),Map.of("to",seller,"orderId",order.getOrderId(),"sellerEmail",seller,"fulfillmentNotificationKind",kind,"acceptDeadline",workflow.deadline(order).toString(),"subject","Mercato order "+("RELEASE".equals(kind)?"ready for action":"acceptance reminder"),"text","Review order "+order.getOrderId()+". Acceptance deadline: "+workflow.deadline(order)));
             }
         }
         jdbc.update("INSERT INTO fulfillment_work_items(order_id,kind,due_at,observed_at,affected_qty) VALUES(?,?,?,?,?) ON CONFLICT DO NOTHING",order.getOrderId(),kind,Timestamp.from(due),Timestamp.from(workflow.now()),affected);

@@ -32,7 +32,7 @@ class CashfreeFinalizeConcurrencyTest {
  private static final String database=PostgresTestSupport.database();
  @Configuration @EnableAutoConfiguration @EntityScan(basePackages={"com.mercato.Entity","com.mercato.Commerce","com.mercato.Jobs"})
  @EnableJpaRepositories(basePackages={"com.mercato.Repository","com.mercato.Commerce"})
- @Import({com.mercato.Config.WorkflowClockConfig.class,FulfillmentFunding.class,FulfillmentWorkflow.class,FulfillmentDeadlines.class,FulfillmentSlaMetrics.class,JobStore.class,DurableJobs.class,PaymentInbox.class,PaymentReconciler.class,RefundObligations.class,PaidOrderAllocation.class,AllocationHandler.class,OrderReservationServiceImpl.class,CashfreeServiceImpl.class,OrderServiceImpl.class})
+ @Import({com.mercato.Config.WorkflowClockConfig.class,FulfillmentFunding.class,FulfillmentWorkflow.class,FulfillmentDeadlines.class,FulfillmentSlaMetrics.class,FulfillmentNoticeGuard.class,JobStore.class,DurableJobs.class,PaymentInbox.class,PaymentReconciler.class,RefundObligations.class,PaidOrderAllocation.class,AllocationHandler.class,OrderReservationServiceImpl.class,CashfreeServiceImpl.class,OrderServiceImpl.class})
  static class Config {
   @Bean WorkflowCommands workflowCommands(){return org.mockito.Mockito.mock(WorkflowCommands.class);}
   @Bean FulfillmentCancellation cancellation(){return org.mockito.Mockito.mock(FulfillmentCancellation.class);}

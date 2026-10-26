@@ -45,7 +45,7 @@ class PostgresQuantityWorkflowTest {
     @Configuration @EnableAutoConfiguration
     @EntityScan(basePackages={"com.mercato.Entity","com.mercato.Commerce","com.mercato.Jobs"})
     @EnableJpaRepositories(basePackages={"com.mercato.Repository","com.mercato.Commerce"})
-    @Import({com.mercato.Controller.FulfillmentWorkflowController.class,WorkflowAdoption.class,OrderServiceImpl.class,OrderLineUpdateServiceImpl.class,FulfillmentWorkflow.class,FulfillmentFunding.class,WorkflowCommands.class,FulfillmentCancellation.class,FulfillmentDeadlines.class,FulfillmentSlaMetrics.class,OrderReservationServiceImpl.class,DurableJobs.class,JobStore.class})
+    @Import({com.mercato.Auth.AuthEmailJobHandler.class,com.mercato.Mail.AuthenticationMailGuard.class,com.mercato.Mail.MailActivity.class,com.mercato.Mail.TrackedMailSender.class,com.mercato.Mail.BrandedMailSender.class,com.mercato.Controller.FulfillmentWorkflowController.class,WorkflowAdoption.class,OrderServiceImpl.class,OrderLineUpdateServiceImpl.class,FulfillmentWorkflow.class,FulfillmentFunding.class,WorkflowCommands.class,FulfillmentCancellation.class,FulfillmentDeadlines.class,FulfillmentSlaMetrics.class,FulfillmentNoticeGuard.class,OrderReservationServiceImpl.class,DurableJobs.class,JobStore.class})
     static class Config {
         @Bean CartService carts(){return mock(CartService.class);}
         @Bean CashfreeService gateway(){return mock(CashfreeService.class);}
@@ -58,6 +58,14 @@ class PostgresQuantityWorkflowTest {
         @Bean AuthUtil auth(){var a=mock(AuthUtil.class);when(a.getLoggedInUser()).thenAnswer(c->{var user=new EcommUser();user.setEmail(IDENTITY.get());return user;});return a;}
         @Bean RefundService refunds(){return mock(RefundService.class);}
         @Bean ShipmentNotificationService mail(){return mock(ShipmentNotificationService.class);}
+        @Bean TestMailbox smtpMailbox(){return new TestMailbox();}
+        @Bean @SuppressWarnings("unchecked") org.springframework.session.FindByIndexNameSessionRepository<org.springframework.session.Session> sessionRepository(){return mock(org.springframework.session.FindByIndexNameSessionRepository.class);}
+    }
+    static class TestMailbox extends org.springframework.mail.javamail.JavaMailSenderImpl {
+        final List<jakarta.mail.internet.MimeMessage> sent=new CopyOnWriteArrayList<>();
+        @Override public void send(jakarta.mail.internet.MimeMessage message){
+            assertFalse(org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive(),"SMTP must execute after the eligibility read transaction ends");sent.add(message);
+        }
     }
     static class AuditEvents {
         final List<FulfillmentCancellationRecorded> events=new CopyOnWriteArrayList<>();
@@ -73,10 +81,14 @@ class PostgresQuantityWorkflowTest {
     @Autowired OrderReservationRepository reservations;@Autowired OrderLineUpdateService updates;
     @Autowired FulfillmentDeadlines deadlines;@Autowired FulfillmentCancellation cancellation;@Autowired JobStore jobs;@Autowired DurableJobs queue;
     @Autowired JdbcTemplate jdbc;@Autowired PlatformTransactionManager transactions;@Autowired MutableClock clock;
+    @Autowired RefundService refundService;
+    @Autowired TestMailbox smtpMailbox;@Autowired com.mercato.Auth.AuthEmailJobHandler authEmailHandler;
     String orderId,fulfillment;TransactionTemplate tx;
     @BeforeEach void fixture(){
         jdbc.update("UPDATE order_snapshot SET workflow_review_required=true");
         jdbc.update("DELETE FROM durable_job_retry_audit");jdbc.update("DELETE FROM durable_jobs");
+        reset(refundService);
+        smtpMailbox.sent.clear();
         auditEvents.events.clear();auditEvents.reject=false;clock.value.set(CONFIRMED.plusSeconds(7200));IDENTITY.set("seller@test.invalid");tx=new TransactionTemplate(transactions);
         orderId="QTY-"+UUID.randomUUID().toString().substring(0,12);fulfillment=orderId+"-F";
         tx.executeWithoutResult(t->{
@@ -272,5 +284,116 @@ class PostgresQuantityWorkflowTest {
         updates.updateOrderLine(request(OrderLineAction.ACCEPT,10,0,"accept"),TransitionTrigger.SELLER);IDENTITY.set("buyer@test.invalid");
         updates.updateOrderLine(request(OrderLineAction.CANCEL,3,1,"customer"),TransitionTrigger.CUSTOMER);clock.value.set(CONFIRMED.plusSeconds(200000));
         var a=json.valueToTree(deadlines.metrics()).get("acceptance");assertEquals(7,a.get("onTimeAcceptedQty").asInt());assertEquals(7,a.get("acceptanceDenominatorQty").asInt());assertEquals(1.0,a.get("onTimeAcceptanceRate").asDouble());
+    }
+    void assertCancellationReconciliationRollback(int reservationQty,int requestedQty){
+        if(reservationQty<0)jdbc.update("DELETE FROM order_reservations WHERE order_fk=(SELECT id FROM order_snapshot WHERE order_id=?)",orderId);
+        else jdbc.update("UPDATE order_reservations SET reserved_qty=? WHERE order_fk=(SELECT id FROM order_snapshot WHERE order_id=?)",reservationQty,orderId);
+        int productBalance=reservationQty<0?10:reservationQty;
+        jdbc.update("UPDATE products SET reserved_qty=? WHERE product_id=?",productBalance,orderId+"-P");
+        assertThrows(com.mercato.ExceptionHandler.CustomBadRequestException.class,()->updates.updateOrderLine(request(OrderLineAction.CANCEL,requestedQty,0,"reconcile-first"),TransitionTrigger.SELLER));
+        assertEquals(0,snapshot().getCancelledQty());assertEquals(0L,tx.execute(t->orders.findByOrderId(orderId).orElseThrow().getWorkflowRevision()).longValue());
+        assertEquals(productBalance,jdbc.queryForObject("SELECT reserved_qty FROM products WHERE product_id=?",Integer.class,orderId+"-P"));
+        assertEquals(0,jdbc.queryForObject("SELECT count(*) FROM fulfillment_commands WHERE order_id=?",Integer.class,orderId));
+        assertTrue(auditEvents.events.isEmpty());verifyNoInteractions(refundService);
+        if(reservationQty>=0)assertEquals(reservationQty,jdbc.queryForObject("SELECT reserved_qty FROM order_reservations WHERE order_fk=(SELECT id FROM order_snapshot WHERE order_id=?)",Integer.class,orderId));
+    }
+    @Test void allocatedCancellationRejectsMissingReservation(){assertCancellationReconciliationRollback(-1,5);}
+    @Test void terminalCancellationRejectsOversizedReservationInsteadOfOrphaningStock(){assertCancellationReconciliationRollback(12,10);}
+    @Test void cancellationRejectsUndersizedReservationEvenWhenItCoversRequestedUnits(){assertCancellationReconciliationRollback(5,2);}
+    @Test void genuinelyUnallocatedUnpaidCancellationDoesNotConsumeAnotherAllocation(){
+        String unpaidId="UNPAID-"+UUID.randomUUID().toString().substring(0,8);String unpaidFulfillment=unpaidId+"-F";
+        tx.executeWithoutResult(t->{
+            var o=new Order();o.setOrderId(unpaidId);o.setCustomerName("Buyer");o.setCustomerEmail("buyer@test.invalid");o.setOrderStatus(OrderStatus.CREATED);o.setPaymentStatus(PaymentStatus.INITIATED);o.setCurrency("INR");o.setSubtotal(new BigDecimal("100"));o.setCharges(BigDecimal.ZERO);o.setTotalAmount(new BigDecimal("100"));o.setRecipientName("Buyer");o.setRecipientPhone("9999999999");o.setDeliveryAddressLine1("Synthetic unpaid address");o.setDeliveryCity("City");o.setDeliveryState("State");o.setDeliveryPincode("123456");
+            o.addOrderLine(OrderLine.builder().fulfillmentId(unpaidFulfillment).orderLineNumber(1).productId(orderId+"-P").productName("Unpaid product").unitPrice(BigDecimal.TEN).orderedQty(10).lineTotal(new BigDecimal("100")).sellerEmail("seller@test.invalid").sellerName("Seller").orderLineStatus(OrderLineStatus.CREATED).build());orders.saveAndFlush(o);
+        });
+        var r=request(OrderLineAction.CANCEL,5,0,"unpaid-cancel");r.setFulfillmentId(unpaidFulfillment);IDENTITY.set("buyer@test.invalid");
+        assertEquals(5,updates.updateOrderLine(r,TransitionTrigger.CUSTOMER).getCancelledQty());
+        assertEquals(10,jdbc.queryForObject("SELECT reserved_qty FROM products WHERE product_id=?",Integer.class,orderId+"-P"));
+        assertEquals(0,jdbc.queryForObject("SELECT count(*) FROM order_reservations r JOIN order_snapshot o ON r.order_fk=o.id WHERE o.order_id=?",Integer.class,unpaidId));
+    }
+    JobRecord fulfillmentMail(String seller,String kind){
+        return jobs.get(jdbc.queryForObject("SELECT id FROM durable_jobs WHERE business_key LIKE ? AND email_recipient=?",UUID.class,"fulfillment-mail:"+orderId+":"+kind+":%",seller));
+    }
+    List<JobRecord> claimFulfillmentMail(String owner,int limit){
+        var claimed=jobs.claim(owner,limit,Duration.ofMinutes(1));
+        // Business eligibility uses a fixed Clock; SMTP tracking deliberately fences with DB time.
+        // Keep test-owned leases valid on both clocks without depending on today's calendar date.
+        Instant databaseNow=jdbc.queryForObject("SELECT CURRENT_TIMESTAMP",(r,n)->r.getTimestamp(1).toInstant());
+        Instant leaseUntil=(databaseNow.isAfter(clock.instant())?databaseNow:clock.instant()).plusSeconds(60);
+        for(var job:claimed)assertEquals(1,jdbc.update("UPDATE durable_jobs SET lease_expires_at=? WHERE id=? AND lease_token=? AND lease_owner=? AND status='RUNNING'",java.sql.Timestamp.from(leaseUntil),job.id(),job.leaseToken(),job.leaseOwner()));
+        return claimed.stream().map(job->jobs.get(job.id())).toList();
+    }
+    void deliverQueuedFulfillmentMail(){
+        for(var job:claimFulfillmentMail("fulfillment-smtp",10))new JobProcessor(jobs,List.of(authEmailHandler)).process(job);
+    }
+    void assertSkippedMail(String seller,String kind){
+        var job=fulfillmentMail(seller,kind);assertEquals(JobStatus.SUCCEEDED,job.status());
+        var row=jdbc.queryForMap("SELECT email_state,email_code,email_accepted_at FROM durable_jobs WHERE id=?",job.id());
+        assertEquals("SKIPPED",row.get("email_state"));assertEquals("FULFILLMENT_NOTICE_INELIGIBLE",row.get("email_code"));assertNull(row.get("email_accepted_at"));
+    }
+    @Test void lateReminderDoesNotAdvertiseAcceptanceAfterItsDeadline(){
+        clock.value.set(CONFIRMED.plusSeconds(200000));deadlines.handle(deadline("REMINDER"));
+        assertEquals(0,jdbc.queryForObject("SELECT count(*) FROM durable_jobs WHERE business_key LIKE ?",Integer.class,"fulfillment-mail:"+orderId+":REMINDER:%"));assertEquals(0,snapshot().getCancelledQty());
+    }
+    @Test void queuedReleaseAndReminderAreSkippedAfterWholeCustomerCancellation(){
+        clock.value.set(CONFIRMED.plusSeconds(172800));deadlines.handle(deadline("RELEASE"));deadlines.handle(deadline("REMINDER"));
+        IDENTITY.set("buyer@test.invalid");updates.updateOrderLine(request(OrderLineAction.CANCEL,10,0,"customer-closed"),TransitionTrigger.CUSTOMER);deliverQueuedFulfillmentMail();
+        assertTrue(smtpMailbox.sent.isEmpty());assertSkippedMail("seller@test.invalid","RELEASE");assertSkippedMail("seller@test.invalid","REMINDER");
+    }
+    @Test void queuedNoticesSkipTimedOutSellerButReleaseAcceptedSurvivors()throws Exception{
+        addSecondLine(true,"survivor@test.invalid");clock.value.set(CONFIRMED.plusSeconds(172800));deadlines.handle(deadline("RELEASE"));deadlines.handle(deadline("REMINDER"));
+        clock.value.set(CONFIRMED.plusSeconds(200000));deadlines.handle(deadline("ACCEPT_TIMEOUT"));deliverQueuedFulfillmentMail();
+        assertEquals(1,smtpMailbox.sent.size());assertEquals("survivor@test.invalid",com.mercato.mail.MimeContent.recipient(smtpMailbox.sent.get(0)));
+        assertSkippedMail("seller@test.invalid","RELEASE");assertSkippedMail("seller@test.invalid","REMINDER");
+        assertEquals("ACCEPTED",jdbc.queryForObject("SELECT email_state FROM durable_jobs WHERE id=?",String.class,fulfillmentMail("survivor@test.invalid","RELEASE").id()));
+    }
+    @Test void queuedReminderExpiresEvenBeforeTheTimeoutWorkerRuns(){
+        clock.value.set(CONFIRMED.plusSeconds(172800));deadlines.handle(deadline("REMINDER"));clock.value.set(CONFIRMED.plusSeconds(176400));deliverQueuedFulfillmentMail();
+        assertTrue(smtpMailbox.sent.isEmpty());assertEquals(0,snapshot().getCancelledQty());assertSkippedMail("seller@test.invalid","REMINDER");
+    }
+    @Test void queuedReleaseAndReminderOnlySkipSellerWhoseOwnUnitsWereCancelled()throws Exception{
+        addSecondLine(false,"survivor@test.invalid");clock.value.set(CONFIRMED.plusSeconds(172800));deadlines.handle(deadline("RELEASE"));deadlines.handle(deadline("REMINDER"));
+        updates.updateOrderLine(request(OrderLineAction.CANCEL,10,0,"seller-closed"),TransitionTrigger.SELLER);deliverQueuedFulfillmentMail();
+        assertEquals(2,smtpMailbox.sent.size());for(var message:smtpMailbox.sent)assertEquals("survivor@test.invalid",com.mercato.mail.MimeContent.recipient(message));
+        assertSkippedMail("seller@test.invalid","RELEASE");assertSkippedMail("seller@test.invalid","REMINDER");
+    }
+    @Test void lateReleaseStillNotifiesAcceptedSurvivorsAfterTimeout(){
+        updates.updateOrderLine(request(OrderLineAction.ACCEPT,4,0,"accepted-survivors"),TransitionTrigger.SELLER);clock.value.set(CONFIRMED.plusSeconds(200000));
+        deadlines.handle(deadline("ACCEPT_TIMEOUT"));deadlines.handle(deadline("RELEASE"));deliverQueuedFulfillmentMail();
+        assertEquals(1,smtpMailbox.sent.size());assertEquals(4,snapshot().getAcceptedQty());assertEquals(6,snapshot().getCancelledQty());
+        assertEquals("ACCEPTED",jdbc.queryForObject("SELECT email_state FROM durable_jobs WHERE id=?",String.class,fulfillmentMail("seller@test.invalid","RELEASE").id()));
+    }
+    @Test void acceptedNoticeIsNotRelabelledSkippedWhenCancellationPrecedesCompletionRetry(){
+        deadlines.handle(deadline("RELEASE"));var claimed=claimFulfillmentMail("smtp-uncertain-completion",1).get(0);authEmailHandler.handle(claimed);
+        IDENTITY.set("buyer@test.invalid");updates.updateOrderLine(request(OrderLineAction.CANCEL,10,0,"customer-closed"),TransitionTrigger.CUSTOMER);authEmailHandler.handle(claimed);
+        assertEquals(1,smtpMailbox.sent.size());assertEquals("ACCEPTED",jdbc.queryForObject("SELECT email_state FROM durable_jobs WHERE id=?",String.class,claimed.id()));
+    }
+    @Test void releaseNotificationCarriesStructuredSellerOrderKindAndDeadline(){
+        deadlines.handle(deadline("RELEASE"));var payload=fulfillmentMail("seller@test.invalid","RELEASE").payload();
+        assertEquals(orderId,payload.get("orderId"));assertEquals("seller@test.invalid",payload.get("sellerEmail"));assertEquals("RELEASE",payload.get("fulfillmentNotificationKind"));assertEquals(CONFIRMED.plusSeconds(176400).toString(),payload.get("acceptDeadline"));
+    }
+    @Test void legacyQueuedFulfillmentMailRechecksCancellationBeforeDelivery(){
+        queue.enqueue("AUTH_EMAIL","fulfillment-mail:"+orderId+":RELEASE:seller@test.invalid",Map.of("to","seller@test.invalid","subject","Old fulfillment notice","text","Review the order"));
+        IDENTITY.set("buyer@test.invalid");updates.updateOrderLine(request(OrderLineAction.CANCEL,10,0,"customer-closed"),TransitionTrigger.CUSTOMER);deliverQueuedFulfillmentMail();
+        assertTrue(smtpMailbox.sent.isEmpty());assertSkippedMail("seller@test.invalid","RELEASE");
+    }
+    @Test void legacyQueuedReleasePreservesLegitimateAcceptedSurvivorsAfterTimeout(){
+        updates.updateOrderLine(request(OrderLineAction.ACCEPT,4,0,"accepted-survivors"),TransitionTrigger.SELLER);
+        queue.enqueue("AUTH_EMAIL","fulfillment-mail:"+orderId+":RELEASE:seller@test.invalid",Map.of("to","seller@test.invalid","subject","Old fulfillment notice","text","Review the order"));
+        clock.value.set(CONFIRMED.plusSeconds(200000));deadlines.handle(deadline("ACCEPT_TIMEOUT"));deliverQueuedFulfillmentMail();
+        assertEquals(1,smtpMailbox.sent.size());assertEquals("ACCEPTED",jdbc.queryForObject("SELECT email_state FROM durable_jobs WHERE id=?",String.class,fulfillmentMail("seller@test.invalid","RELEASE").id()));
+    }
+    @Test void validLongSellerEmailKeepsFulfillmentNotificationKeyBounded()throws Exception{
+        String email="a".repeat(64)+"@"+"b".repeat(63)+"."+"c".repeat(63)+"."+"d".repeat(56)+".test";
+        new jakarta.mail.internet.InternetAddress(email,true).validate();assertEquals(254,email.length());
+        // Exercise the enqueue boundary independently of the unrelated legacy snapshot email column width.
+        var detached=tx.execute(t->{var o=orders.findByOrderId(orderId).orElseThrow();o.getPayment().getCapturedAt();return o;});detached.getOrderLines().get(0).setSellerEmail(email);
+        var repository=mock(OrderRepository.class);when(repository.lockByOrderId(orderId)).thenReturn(Optional.of(detached));
+        var policy=new FulfillmentWorkflow(clock,new FulfillmentFunding());
+        var handler=new FulfillmentDeadlines(queue,repository,policy,updates,jdbc,mock(FulfillmentSlaMetrics.class),new FulfillmentNoticeGuard(repository,policy));
+        assertDoesNotThrow(()->tx.executeWithoutResult(t->handler.handle(deadline("RELEASE"))));
+        var id=jdbc.queryForObject("SELECT id FROM durable_jobs WHERE email_recipient=?",UUID.class,email);var job=jobs.get(id);
+        assertTrue(job.businessKey().length()<=255);assertEquals(email,job.payload().get("sellerEmail"));
+        tx.executeWithoutResult(t->handler.handle(deadline("RELEASE")));assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM durable_jobs WHERE email_recipient=?",Integer.class,email));
     }
 }

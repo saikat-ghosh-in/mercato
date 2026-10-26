@@ -185,8 +185,16 @@ public class OrderReservationServiceImpl implements OrderReservationService {
                         "Product", "productId", orderLine.getProductId()
                 ));
 
-        if(reservation!=null && (reservation.getReservedQty()<qty || !reservation.getOrder().getOrderId().equals(orderLine.getOrder().getOrderId())))
-            throw new com.mercato.ExceptionHandler.CustomBadRequestException("Reservation quantity or ownership requires reconciliation");
+        // Workflow counters have already advanced inside this transaction; reconstruct the
+        // complete allocation immediately before this cancellation/shipment, not just this request.
+        int outstandingBeforeMutation=orderLine.getPendingQty()+qty;
+        if(reservation==null && orderLine.getOrder().getAllocationCompletedAt()!=null)
+            throw new com.mercato.ExceptionHandler.CustomBadRequestException("Allocated line reservation requires reconciliation");
+        if(reservation!=null && (reservation.getReservedQty()!=outstandingBeforeMutation
+                || !reservation.getOrder().getOrderId().equals(orderLine.getOrder().getOrderId())
+                || !reservation.getOrderLine().getId().equals(orderLine.getId())
+                || !reservation.getProduct().getProductId().equals(orderLine.getProductId())))
+            throw new com.mercato.ExceptionHandler.CustomBadRequestException("Reservation must match the full outstanding quantity and ownership");
         switch (action) {
             case SHIP -> {
                 if(reservation==null || reservation.getReservedQty()<qty
