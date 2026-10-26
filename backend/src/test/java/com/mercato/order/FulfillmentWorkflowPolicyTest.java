@@ -10,7 +10,9 @@ class FulfillmentWorkflowPolicyTest {
     static final Instant CONFIRMED=Instant.parse("2026-10-26T00:00:00Z");
     static OrderLine line() {
         var o=new Order();o.setOrderStatus(OrderStatus.CONFIRMED);o.establishConfirmation(CONFIRMED);o.setAllocationCompletedAt(CONFIRMED);
+        o.setTotalAmount(BigDecimal.TEN);o.setCurrency("INR");
         var p=new Payment();p.setCapturedAt(CONFIRMED);p.setCapturedAmount(BigDecimal.TEN);o.setPayment(p);
+        p.setAmount(BigDecimal.TEN);p.setCurrency("INR");
         var l=new OrderLine();l.setOrderedQty(10);l.setUnitPrice(BigDecimal.ONE);o.addOrderLine(l);return l;
     }
     FulfillmentWorkflow policy(Instant now){return new FulfillmentWorkflow(Clock.fixed(now,ZoneOffset.UTC),new FulfillmentFunding());}

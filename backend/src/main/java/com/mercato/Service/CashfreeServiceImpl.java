@@ -21,6 +21,7 @@ import java.util.*;
 
 /** Browser operations and gateway transport. Capture/fulfillment are durable worker operations. */
 @Service
+@org.springframework.context.annotation.Import(PaymentPolicyGuard.class)
 public class CashfreeServiceImpl implements CashfreeService {
     private final CashfreeGateway gateway;private final PaymentInbox inbox;private final OrderRepository orders;
     private final AuthUtil auth;private final DurableJobs jobs;private final TransactionTemplate tx;

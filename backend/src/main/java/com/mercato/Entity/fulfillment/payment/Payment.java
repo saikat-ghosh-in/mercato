@@ -92,6 +92,29 @@ public class Payment {
     @Column
     private Instant capturedAt;
 
+    @Enumerated(EnumType.STRING)
+    @Column(length=30)
+    private com.mercato.Commerce.PaymentPolicy paymentPolicy = com.mercato.Commerce.PaymentPolicy.CAPTURE_ON_AUTH;
+    /** NULL in historical rows; version 1 is the safe new-payment snapshot. */
+    private Integer paymentPolicyVersion = 1;
+    @Column(length=64)
+    private String captureEvidenceId;
+    /** Existing compatibility anchor; never a provider capture date. */
+    @Column(length=30) private String capturedAtProvenance;
+    private Instant captureVerifiedAt;
+    private Instant providerCapturedAt;
+    @Column(length=30) private String providerCaptureTimeSource;
+    @Column(length=100)
+    private String authorizationId;
+    @Column(precision=15,scale=2)
+    private BigDecimal authorizedAmount;
+    private Instant authorizedAt;
+    private Instant authorizationExpiresAt;
+    @Column(nullable=false)
+    private boolean financialHalt;
+    @Column(length=255)
+    private String financialHaltReason;
+
     @PrePersist
     private void prePersist() {
         if (this.paymentId == null) {

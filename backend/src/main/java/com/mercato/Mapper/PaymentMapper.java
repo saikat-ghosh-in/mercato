@@ -17,7 +17,20 @@ public class PaymentMapper {
                 payment.getGatewayResponseMessage(),
                 payment.getCfOrderId(),
                 payment.getInitiatedAt(),
-                payment.getCompletedAt()
+                payment.getCompletedAt(),
+                payment.getPaymentPolicy()==null?null:payment.getPaymentPolicy().name(),
+                payment.getCapturedAmount(),
+                payment.getCapturedAt(),
+                payment.getAuthorizedAmount(),
+                payment.getAuthorizedAt(),
+                payment.getAuthorizationExpiresAt(),
+                payment.isFinancialHalt(),
+                payment.getFinancialHaltReason(),
+                payment.getCaptureVerifiedAt(),
+                payment.getProviderCapturedAt(),
+                payment.getProviderCaptureTimeSource(),
+                payment.getCapturedAtProvenance(),
+                payment.getPaymentPolicyVersion()
         );
     }
 }

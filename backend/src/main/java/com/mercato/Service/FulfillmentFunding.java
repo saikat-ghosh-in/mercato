@@ -7,7 +7,10 @@ import org.springframework.stereotype.Service;
 @Service
 public class FulfillmentFunding {
     public boolean verified(Order order) {
-        return order.getPayment() != null && order.getPayment().getCapturedAt() != null
-            && order.getPayment().getCapturedAmount() != null && order.getPayment().getCapturedAmount().signum() > 0;
+        return order != null && order.getTotalAmount() != null && order.getTotalAmount().signum() > 0
+            && order.getPayment() != null && order.getPayment().getCapturedAt() != null
+            && order.getPayment().getCapturedAmount() != null && order.getPayment().getCapturedAmount().signum() > 0
+            && !order.getPayment().isFinancialHalt()
+            && order.getPayment().getCapturedAmount().compareTo(order.getTotalAmount()) >= 0;
     }
 }

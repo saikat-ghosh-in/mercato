@@ -17,4 +17,19 @@ public class GatewayAttempt {
     @Column(length=3) private String currency;
     private Instant capturedAt;
     @Column(nullable=false) private Instant updatedAt;
+    @Column(length=30) private String evidenceState;
+    @Column(length=64) private String latestEvidenceId;
+    @Column(length=64) private String captureEvidenceId;
+    @Column(length=30) private String capturedAtProvenance;
+    private Instant captureVerifiedAt;
+    private Instant providerCapturedAt;
+    @Column(length=30) private String providerCaptureTimeSource;
+    @Column(length=30) private String evidenceSource;
+    @Column(length=30) private String apiVersion;
+    @Column(length=100) private String authorizationId;
+    @Column(precision=15,scale=2) private BigDecimal authorizedAmount;
+    private Instant authorizedAt;
+    private Instant authorizationExpiresAt;
+    @Column(precision=15,scale=2) private BigDecimal capturedAmount;
+    @Column(length=255) private String evidenceReason;
 }

@@ -29,8 +29,10 @@ class FulfillmentPaymentBoundaryTest {
     @BeforeEach void prepare() {
         var admin=new com.mercato.Entity.EcommUser();admin.setEmail("admin@test");when(auth.getLoggedInUser()).thenReturn(admin);
         order = new Order(); order.setOrderId("ORD-BOUNDARY"); order.setOrderStatus(OrderStatus.CONFIRMED);
+        order.setTotalAmount(new BigDecimal("200.00"));order.setCurrency("INR");
         order.setPaymentStatus(PaymentStatus.SUCCESS);
         Payment payment = new Payment(); payment.setStatus(PaymentStatus.SUCCESS); payment.setCompletedAt(Instant.now());
+        payment.setAmount(new BigDecimal("200.00"));payment.setCurrency("INR");
         order.setPayment(payment);payment.setCapturedAt(Instant.now().minusSeconds(7200));payment.setCapturedAmount(new BigDecimal("200"));order.setAllocationCompletedAt(payment.getCapturedAt());order.establishConfirmation(payment.getCapturedAt());
         line = new OrderLine(); line.setId(1L);line.setFulfillmentId("FUL-1");line.setOrderLineNumber(1); line.setOrderedQty(2); line.setUnitPrice(new BigDecimal("100.00"));
         line.setOrderLineStatus(OrderLineStatus.CONFIRMED); order.addOrderLine(line);
