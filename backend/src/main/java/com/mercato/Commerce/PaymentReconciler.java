@@ -47,6 +47,9 @@ public class PaymentReconciler {
         attempt.setLatestEvidenceId(id);
         attempt.setEvidenceSource(event.path("source").asText("LEGACY_UNKNOWN"));
         attempt.setApiVersion(event.path("apiVersion").asText("UNSPECIFIED"));
+        // Establish eligibility from facts stored BEFORE this observation. A newly supplied
+        // matching auth_id on another cf_payment_id cannot claim the aggregate's pending hold.
+        boolean pendingOwner=pendingAuthorizationOwner(order,attempt);
         if (!supported) attention(order,attempt,id,"Unsupported provider payment status");
         else if (!"SUCCESS".equals(status) && PaymentEvidence.read(event,order.getTotalAmount(),order.getCurrency()).state()==PaymentEvidence.State.CONFLICTING)
             attention(order,attempt,id,"Payment status contradicts collection evidence");
@@ -66,8 +69,10 @@ public class PaymentReconciler {
                 case AUTHORIZED, RELEASED -> {
                     if (attempt.getCapturedAt() == null) {
                         attempt.setEvidenceState(facts.state().name());
-                        if (!authorization(order,attempt,facts,id)) break;
+                        if (!attemptAuthorization(order,attempt,facts,id)) break;
                         if (payment.getCapturedAt() == null) {
+                            if (!pendingOwner) {authorizationOwnershipAttention(order,attempt,id);break;}
+                            if (!promoteAuthorization(order,attempt,facts,id)) break;
                             payment.setStatus(PaymentStatus.AUTHORIZED);
                             order.setPaymentStatus(PaymentStatus.AUTHORIZED);
                             halt(payment,"AUTHORIZATION_REQUIRES_FINANCIAL_INTEGRATION");
@@ -75,7 +80,7 @@ public class PaymentReconciler {
                         jobs.enqueue("CAPTURE_ATTENTION","authorization-review:" + id,Map.of("orderId",orderId,"eventId",id));
                     }
                 }
-                case CAPTURED -> capture(order, attempt, facts, id, event.path("group").asText());
+                case CAPTURED -> capture(order, attempt, facts, id, event.path("group").asText(),pendingOwner);
                 case NONE -> { /* No new collection evidence. */ }
             }
         } else if(payment.getCapturedAt()==null && payment.getAuthorizedAt()==null && order.getOrderStatus()!=OrderStatus.CANCELLED) {
@@ -84,38 +89,59 @@ public class PaymentReconciler {
         }
         attempts.save(attempt);envelope.setProcessedAt(clock.instant());
     }
-    private boolean authorization(Order order,GatewayAttempt attempt,PaymentEvidence.Facts facts,String id) {
-        var payment=order.getPayment();
-        if ((attempt.getAuthorizationId()!=null && !attempt.getAuthorizationId().equals(facts.authorizationId()))
-                || (attempt.getAuthorizedAt()!=null && !attempt.getAuthorizedAt().equals(facts.authorizedAt()))
-                || (payment.getAuthorizationId()!=null && !payment.getAuthorizationId().equals(facts.authorizationId()))
-                || (payment.getAuthorizedAt()!=null && !payment.getAuthorizedAt().equals(facts.authorizedAt()))) {
+    private boolean attemptAuthorization(Order order,GatewayAttempt attempt,PaymentEvidence.Facts facts,String id) {
+        if ((!facts.authorizationId().isBlank() && attempt.getAuthorizationId()!=null && !attempt.getAuthorizationId().equals(facts.authorizationId()))
+                || (facts.authorizedAt()!=null && attempt.getAuthorizedAt()!=null && !attempt.getAuthorizedAt().equals(facts.authorizedAt()))) {
             attention(order,attempt,id,"Authorization identity or clock changed");return false;
         }
-        attempt.setAuthorizationId(facts.authorizationId());
-        attempt.setAuthorizedAmount(facts.originalAmount());
-        attempt.setAuthorizedAt(facts.authorizedAt());
-        if(attempt.getAuthorizationExpiresAt()==null || facts.expiresAt()!=null && facts.expiresAt().isBefore(attempt.getAuthorizationExpiresAt()))
+        // New verified authorization metadata requires identity AND qualified start/expiry.
+        // Capture can be proven without those fields; absence must not erase earlier facts.
+        if (!facts.authorizationId().isBlank() && facts.authorizedAt()!=null && facts.expiresAt()!=null) {
+            attempt.setAuthorizationId(facts.authorizationId());
+            attempt.setAuthorizedAmount(facts.originalAmount());
+            attempt.setAuthorizedAt(facts.authorizedAt());
+        }
+        if (attempt.getAuthorizationId()!=null && !attempt.getAuthorizationId().isBlank() && facts.expiresAt()!=null
+                && (attempt.getAuthorizationExpiresAt()==null || facts.expiresAt().isBefore(attempt.getAuthorizationExpiresAt())))
             attempt.setAuthorizationExpiresAt(facts.expiresAt());
-        // A different or changed hold must not replace an already identified authorization.
-        if (payment.getAuthorizationId() == null) {
-            payment.setAuthorizationId(facts.authorizationId());
-            payment.setAuthorizedAmount(facts.originalAmount());
-            payment.setAuthorizedAt(facts.authorizedAt());
-            payment.setAuthorizationExpiresAt(facts.expiresAt());
-        } else if(facts.expiresAt()!=null && (payment.getAuthorizationExpiresAt()==null || facts.expiresAt().isBefore(payment.getAuthorizationExpiresAt()))) {
-            payment.setAuthorizationExpiresAt(facts.expiresAt());
+        return true;
+    }
+    private boolean pendingAuthorizationOwner(Order order,GatewayAttempt attempt) {
+        var payment=order.getPayment();
+        if (payment.getCapturedAt()!=null) return true; // Captured primary selection uses gatewayReference below.
+        if (payment.getAuthorizationId()==null && payment.getAuthorizedAt()==null
+                && payment.getAuthorizedAmount()==null && payment.getAuthorizationExpiresAt()==null) return true;
+        return attempt.getAuthorizationId()!=null && !attempt.getAuthorizationId().isBlank()
+            && attempt.getAuthorizationId().equals(payment.getAuthorizationId())
+            && attempt.getAuthorizedAt()!=null && attempt.getAuthorizedAt().equals(payment.getAuthorizedAt())
+            && attempt.getAuthorizedAmount()!=null && attempt.getAuthorizedAmount().equals(payment.getAuthorizedAmount())
+            && attempt.getAuthorizationExpiresAt()!=null && attempt.getAuthorizationExpiresAt().equals(payment.getAuthorizationExpiresAt())
+            && attempts.countByOrderIdAndAuthorizationId(order.getOrderId(),payment.getAuthorizationId())==1;
+    }
+    private boolean promoteAuthorization(Order order,GatewayAttempt attempt,PaymentEvidence.Facts facts,String id) {
+        var payment=order.getPayment();
+        if ((!facts.authorizationId().isBlank() && payment.getAuthorizationId()!=null && !payment.getAuthorizationId().equals(facts.authorizationId()))
+                || (facts.authorizedAt()!=null && payment.getAuthorizedAt()!=null && !payment.getAuthorizedAt().equals(facts.authorizedAt()))) {
+            attention(order,attempt,id,"Primary authorization identity or clock changed");return false;
+        }
+        if (attempt.getAuthorizationId()!=null && !attempt.getAuthorizationId().isBlank()) {
+            if (payment.getAuthorizationId()==null) {
+                payment.setAuthorizationId(attempt.getAuthorizationId());payment.setAuthorizedAmount(attempt.getAuthorizedAmount());
+                payment.setAuthorizedAt(attempt.getAuthorizedAt());payment.setAuthorizationExpiresAt(attempt.getAuthorizationExpiresAt());
+            } else if (attempt.getAuthorizationExpiresAt()!=null && (payment.getAuthorizationExpiresAt()==null
+                    || attempt.getAuthorizationExpiresAt().isBefore(payment.getAuthorizationExpiresAt())))
+                payment.setAuthorizationExpiresAt(attempt.getAuthorizationExpiresAt());
         }
         return true;
     }
-    private void capture(Order order,GatewayAttempt attempt,PaymentEvidence.Facts facts,String id,String group) {
+    private void authorizationOwnershipAttention(Order order,GatewayAttempt attempt,String id) {
+        attempt.setEvidenceReason("Authorization provider-attempt ownership requires review");
+        halt(order.getPayment(),"AUTHORIZATION_ATTEMPT_OWNERSHIP_REQUIRES_REVIEW");
+        jobs.enqueue("CAPTURE_ATTENTION","authorization-ownership:"+id,Map.of("orderId",order.getOrderId(),"eventId",id));
+    }
+    private void capture(Order order,GatewayAttempt attempt,PaymentEvidence.Facts facts,String id,String group,boolean pendingOwner) {
         var payment = order.getPayment();
-        if (!facts.authorizationId().isBlank() &&
-                (attempt.getAuthorizationId()!=null && !attempt.getAuthorizationId().equals(facts.authorizationId())
-                || payment.getAuthorizationId()!=null && !payment.getAuthorizationId().equals(facts.authorizationId()))) {
-            attention(order,attempt,id,"Authorization identity changed during capture");return;
-        }
-        if (facts.authorizedAt()!=null && facts.expiresAt()!=null && !authorization(order,attempt,facts,id)) return;
+        if (!attemptAuthorization(order,attempt,facts,id)) return;
         if (attempt.getCapturedAt() != null && attempt.getCapturedAmount() != null
                 && attempt.getCapturedAmount().compareTo(facts.capturedAmount()) != 0) {
             attention(order,attempt,id,"Captured amount changed for proven attempt");return;
@@ -138,6 +164,8 @@ public class PaymentReconciler {
         if (payment.getCapturedAt() != null && payment.getCapturedAmount()!=null && payment.getCapturedAmount().compareTo(facts.capturedAmount()) != 0) {
             attention(order,attempt,id,"Capture conflicts with preserved payment evidence");return;
         }
+        if (payment.getCapturedAt()==null && !pendingOwner) {authorizationOwnershipAttention(order,attempt,id);return;}
+        if (!promoteAuthorization(order,attempt,facts,id)) return;
         if (payment.getCapturedAt() == null) {
             payment.setCapturedAt(attempt.getCapturedAt());payment.setCapturedAmount(facts.capturedAmount());
             payment.setCapturedAtProvenance("OBSERVED_VERIFICATION");
@@ -173,7 +201,9 @@ public class PaymentReconciler {
     }
     private void halt(Payment payment,String reason) {
         // A weak/missing observation may never clear or weaken an existing explicit conflict.
-        if (!"CONFLICTING_PROVIDER_EVIDENCE".equals(payment.getFinancialHaltReason())) {
+        if (!"CONFLICTING_PROVIDER_EVIDENCE".equals(payment.getFinancialHaltReason())
+                && (!"AUTHORIZATION_ATTEMPT_OWNERSHIP_REQUIRES_REVIEW".equals(payment.getFinancialHaltReason())
+                    || "CONFLICTING_PROVIDER_EVIDENCE".equals(reason))) {
             payment.setFinancialHalt(true);payment.setFinancialHaltReason(reason);
         }
     }

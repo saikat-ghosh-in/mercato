@@ -49,6 +49,7 @@ class CashfreeFinalizeConcurrencyTest {
  @Autowired OrderRepository orders;@Autowired ProductRepository products;@Autowired CategoryRepository categories;
  @Autowired PaymentInbox inbox;@Autowired PaymentReconciler reconciler;@Autowired PaidOrderAllocation allocator;@Autowired AllocationHandler handler;
  @Autowired PlatformTransactionManager transactions;@Autowired JdbcTemplate jdbc;@Autowired ObjectMapper json;
+ @Autowired GatewayAttemptRepository attempts;
  @Autowired OrderServiceImpl orderService;@Autowired com.mercato.Utils.AuthUtil auth;@Autowired CashfreeGateway gateway;
  private TransactionTemplate tx;private String orderId;
  @BeforeEach void setup(){tx=new TransactionTemplate(transactions);orderId="ORD-"+UUID.randomUUID().toString().substring(0,12);tx.executeWithoutResult(t->{
@@ -117,6 +118,57 @@ class CashfreeFinalizeConcurrencyTest {
  private com.fasterxml.jackson.databind.node.ObjectNode hold(String id) {
   var p=json.createObjectNode().put("cf_payment_id",id).put("auth_id","auth-"+id).put("payment_status","SUCCESS").put("payment_amount","52.00").put("payment_currency","INR").put("is_captured",false);
   p.putObject("authorization").put("start_time","2026-10-20T10:00:00Z").put("end_time","2026-10-27T10:00:00Z");return p;
+ }
+ private com.fasterxml.jackson.databind.node.ObjectNode completedCapture(String id) {
+  var p=hold(id).put("is_captured",true);
+  ((com.fasterxml.jackson.databind.node.ObjectNode)p.path("authorization")).put("action","CAPTURE").put("status","SUCCESS").put("captured_amount","52.00").put("action_time","2026-10-21T10:00:00Z");return p;
+ }
+ private void assertPrimaryEvidenceUnchanged(Payment before,Payment after) {
+  assertEquals(before.getGatewayReference(),after.getGatewayReference());assertEquals(before.getCaptureEvidenceId(),after.getCaptureEvidenceId());
+  assertEquals(before.getCapturedAmount(),after.getCapturedAmount());assertEquals(before.getCapturedAt(),after.getCapturedAt());assertEquals(before.getCaptureVerifiedAt(),after.getCaptureVerifiedAt());assertEquals(before.getProviderCapturedAt(),after.getProviderCapturedAt());
+  assertEquals(before.getAuthorizationId(),after.getAuthorizationId());assertEquals(before.getAuthorizedAmount(),after.getAuthorizedAmount());assertEquals(before.getAuthorizedAt(),after.getAuthorizedAt());assertEquals(before.getAuthorizationExpiresAt(),after.getAuthorizationExpiresAt());
+ }
+ @Test void omittedAuthorizationIdentityCannotInvalidateTheSameAttemptsProvenCapture() {
+  var p=completedCapture("late-omission");String firstId=observation(p);reconciler.process(firstId);var original=snapshot().getPayment();
+  p.remove("auth_id");String omittedId=observation(p);reconciler.process(omittedId);
+  var current=snapshot().getPayment();assertFalse(current.isFinancialHalt());assertPrimaryEvidenceUnchanged(original,current);assertTrue(new FulfillmentFunding().verified(snapshot()));
+  var attempt=attempts.findById("cashfree:late-omission").orElseThrow();assertEquals("auth-late-omission",attempt.getAuthorizationId());assertEquals(firstId,attempt.getCaptureEvidenceId());assertEquals(Instant.parse("2026-10-20T10:00:00Z"),attempt.getAuthorizedAt());
+  assertEquals(0,jdbc.queryForObject("SELECT count(*) FROM durable_jobs WHERE business_key=?",Integer.class,"conflicting-evidence:"+omittedId));
+  ((com.fasterxml.jackson.databind.node.ObjectNode)p.path("authorization")).remove("start_time");((com.fasterxml.jackson.databind.node.ObjectNode)p.path("authorization")).remove("end_time");
+  reconciler.process(observation(p));assertPrimaryEvidenceUnchanged(original,snapshot().getPayment());assertFalse(snapshot().getPayment().isFinancialHalt());
+ }
+ @Test void anotherAttemptsHoldCannotBecomeTheCapturedPrimaryPaymentsAuthorization() {
+  reconciler.process(event("SUCCESS","ordinary-primary","52.00","INR"));var original=snapshot().getPayment();
+  String holdId=observation(hold("other-hold"));reconciler.process(holdId);
+  var current=snapshot().getPayment();assertPrimaryEvidenceUnchanged(original,current);assertFalse(current.isFinancialHalt());
+  var attempt=attempts.findById("cashfree:other-hold").orElseThrow();assertEquals("auth-other-hold",attempt.getAuthorizationId());assertEquals("AUTHORIZED",attempt.getEvidenceState());assertNull(attempt.getCapturedAt());
+  assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM durable_jobs WHERE business_key=?",Integer.class,"authorization-review:"+holdId));
+  reconciler.process(observation(completedCapture("ordinary-primary")));assertFalse(snapshot().getPayment().isFinancialHalt());assertEquals("auth-ordinary-primary",snapshot().getPayment().getAuthorizationId());assertEquals(original.getCaptureEvidenceId(),snapshot().getPayment().getCaptureEvidenceId());
+ }
+ @Test void extraCaptureKeepsItsOwnProofBeforeAttentionWithoutChangingPrimaryAuthorization() {
+  reconciler.process(observation(completedCapture("authorized-primary")));var original=snapshot().getPayment();
+  String extraId=observation(completedCapture("extra-capture"));reconciler.process(extraId);
+  var current=snapshot().getPayment();assertPrimaryEvidenceUnchanged(original,current);assertTrue(current.isFinancialHalt());
+  var attempt=attempts.findById("cashfree:extra-capture").orElseThrow();assertEquals("CAPTURED",attempt.getEvidenceState());assertEquals(new BigDecimal("52.00"),attempt.getCapturedAmount());assertEquals(extraId,attempt.getCaptureEvidenceId());assertNotNull(attempt.getCaptureVerifiedAt());assertNotNull(attempt.getCapturedAt());assertEquals(Instant.parse("2026-10-21T10:00:00Z"),attempt.getProviderCapturedAt());assertEquals("PROVIDER_ACTION",attempt.getProviderCaptureTimeSource());assertEquals("auth-extra-capture",attempt.getAuthorizationId());assertEquals(Instant.parse("2026-10-20T10:00:00Z"),attempt.getAuthorizedAt());
+  assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM durable_jobs WHERE business_key=?",Integer.class,"conflicting-evidence:"+extraId));assertNotNull(jdbc.queryForObject("SELECT processed_at FROM gateway_event_inbox WHERE id=?",java.sql.Timestamp.class,extraId));
+ }
+ @Test void pendingHoldOnAnotherAttemptCannotBeGuessedAsAnOrdinaryCapturesAuthorization() {
+  reconciler.process(observation(hold("pending-owner")));var original=snapshot().getPayment();
+  String captureId=event("SUCCESS","ordinary-with-other-hold","52.00","INR");reconciler.process(captureId);
+  var current=snapshot().getPayment();assertPrimaryEvidenceUnchanged(original,current);assertEquals("AUTHORIZATION_ATTEMPT_OWNERSHIP_REQUIRES_REVIEW",current.getFinancialHaltReason());assertTrue(current.isFinancialHalt());
+  var attempt=attempts.findById("cashfree:ordinary-with-other-hold").orElseThrow();assertEquals("CAPTURED",attempt.getEvidenceState());assertEquals(new BigDecimal("52.00"),attempt.getCapturedAmount());assertEquals(captureId,attempt.getCaptureEvidenceId());assertNotNull(attempt.getCaptureVerifiedAt());
+  assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM durable_jobs WHERE business_key=?",Integer.class,"authorization-ownership:"+captureId));
+ }
+ @Test void matchingAuthorizationIdentityAloneCannotClaimAnotherPendingAttemptsOwnership() {
+  reconciler.process(observation(hold("verified-owner")));var original=snapshot().getPayment();
+  var incoming=completedCapture("new-owner-claim").put("auth_id","auth-verified-owner");String captureId=observation(incoming);reconciler.process(captureId);
+  assertPrimaryEvidenceUnchanged(original,snapshot().getPayment());assertEquals("AUTHORIZATION_ATTEMPT_OWNERSHIP_REQUIRES_REVIEW",snapshot().getPayment().getFinancialHaltReason());
+  var attempt=attempts.findById("cashfree:new-owner-claim").orElseThrow();assertEquals("CAPTURED",attempt.getEvidenceState());assertEquals(captureId,attempt.getCaptureEvidenceId());assertEquals("auth-verified-owner",attempt.getAuthorizationId());
+ }
+ @Test void captureWithoutAuthorizationIdentityNeverPopulatesABlankVerifiedIdentity() {
+  var p=completedCapture("unknown-authorization");p.remove("auth_id");reconciler.process(observation(p));
+  assertNull(snapshot().getPayment().getAuthorizationId());assertNull(snapshot().getPayment().getAuthorizedAt());
+  var attempt=attempts.findById("cashfree:unknown-authorization").orElseThrow();assertNull(attempt.getAuthorizationId());assertNull(attempt.getAuthorizedAt());assertEquals("CAPTURED",attempt.getEvidenceState());assertFalse(snapshot().getPayment().isFinancialHalt());
  }
  @Test void authorizationIsPersistedButCannotActivateAllocationOrDispatch() {
   reconciler.process(observation(hold("uncollected")));
