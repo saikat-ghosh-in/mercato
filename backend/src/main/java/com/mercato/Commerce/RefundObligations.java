@@ -17,7 +17,9 @@ public class RefundObligations {
     @Transactional
     public void full(Order order,String reason) {
         order.setAutomaticFullRefund(true);
-        for(var line:order.getOrderLines())if(line.getPendingQty()>0){line.cancel(line.getPendingQty());line.setOrderLineStatus(line.deriveStatus());}
+        boolean quantityChanged=false;
+        for(var line:order.getOrderLines())if(line.getPendingQty()>0){line.cancel(line.getPendingQty());line.setOrderLineStatus(line.deriveStatus());quantityChanged=true;}
+        if(quantityChanged)order.workflowChanged();
         order.setOrderStatus(OrderStatus.CANCELLED);
         request(order,true,reason);
     }

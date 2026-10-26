@@ -135,6 +135,23 @@ public class Order {
     private boolean automaticFullRefund;
 
 
+    @Version
+    private long version;
+    @Column(nullable=false)
+    private long workflowRevision;
+    @Column(nullable=false)
+    private int workflowVersion = 2;
+    @Column(nullable=false)
+    private boolean workflowReviewRequired;
+    private String workflowReviewReason;
+    private Instant workflowPolicyAdoptedAt;
+    private Instant confirmedAt;
+    private Instant sellerActionsAvailableAt;
+    public void establishConfirmation(Instant now) {
+        if (confirmedAt == null) { confirmedAt = now; sellerActionsAvailableAt = now.plusSeconds(3600); }
+    }
+    public void workflowChanged() { workflowRevision++; }
+
     @Transient
     public BigDecimal getRevenue() {
         return orderLines.stream()

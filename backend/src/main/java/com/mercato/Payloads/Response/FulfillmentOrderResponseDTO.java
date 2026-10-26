@@ -7,8 +7,10 @@ import java.time.Instant;
 import java.util.List;
 
 @Getter
-@AllArgsConstructor
+@lombok.RequiredArgsConstructor
 public class FulfillmentOrderResponseDTO {
+    @lombok.Setter
+    private com.mercato.Service.FulfillmentWorkflow.Summary workflow;
     private final String fulfillmentId;
     private final String orderId;
     private final Customer customer;

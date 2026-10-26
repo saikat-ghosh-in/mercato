@@ -24,7 +24,16 @@ import static org.junit.jupiter.api.Assertions.*;
 @TestExecutionListeners(listeners=DependencyInjectionTestExecutionListener.class,mergeMode=TestExecutionListeners.MergeMode.REPLACE_DEFAULTS)
 class DurableJobsIntegrationTest {
     @Configuration @EnableAutoConfiguration @EntityScan(basePackageClasses=JobEntity.class)
-    @Import({JobStore.class, DurableJobs.class,com.mercato.Mail.MailActivity.class}) static class Config {}
+    @Import({JobStore.class, DurableJobs.class,com.mercato.Mail.MailActivity.class}) static class Config {
+        @Bean(name={"jobClock","durableJobClock"}) TestClock jobClock(){return new TestClock();}
+    }
+    static class TestClock extends Clock {
+        private volatile Instant current=Instant.now();
+        public ZoneId getZone(){return ZoneOffset.UTC;}
+        public Clock withZone(ZoneId zone){return this;}
+        public Instant instant(){return current;}
+    }
+    @Autowired TestClock jobClock;
     @Autowired com.mercato.Mail.MailActivity mailActivity;
     @Test void smtpFailureIsVisibleAndPermanentAuthenticationFailureStopsRetries() {
         var job=jobs.enqueue("AUTH_EMAIL","verify-email:test",Map.of("to","recipient@example.test","subject","Verify","text","private-link-token"));
@@ -56,7 +65,7 @@ class DurableJobsIntegrationTest {
     @Autowired JobStore store;
     @Autowired JdbcTemplate jdbc;
     @Autowired PlatformTransactionManager transactions;
-    @BeforeEach void clear(){jdbc.update("DELETE FROM durable_job_retry_audit");jdbc.update("DELETE FROM durable_jobs");}
+    @BeforeEach void clear(){jobClock.current=Instant.now();jdbc.update("DELETE FROM durable_job_retry_audit");jdbc.update("DELETE FROM durable_jobs");}
     @Test void enqueueRollsBackTogetherWithBusinessTransaction() {
         new TransactionTemplate(transactions).executeWithoutResult(tx->{
             jobs.enqueue("email", "rollback", Map.of("version",1,"orderId",42));tx.setRollbackOnly();
@@ -77,7 +86,7 @@ class DurableJobsIntegrationTest {
     @Test void claimsAreBoundedAndCompletionIsFencedAfterLeaseRecovery() {
         for(int i=0;i<12;i++) jobs.enqueue("email","claim-"+i,Map.of("version",1));
         List<JobRecord> first=store.claim("first",100,Duration.ofSeconds(30));
-        assertEquals(10,first.size());assertEquals(2,store.claim("second",10,Duration.ofSeconds(30)).size());
+        assertEquals(10,first.size(),()->"now="+Instant.now()+"; jobs="+jdbc.queryForList("SELECT business_key,due_at,status FROM durable_jobs"));assertEquals(2,store.claim("second",10,Duration.ofSeconds(30)).size());
         JobRecord stale=first.get(0);
         jdbc.update("UPDATE durable_jobs SET lease_expires_at=? WHERE id=?",java.sql.Timestamp.from(Instant.now().minusSeconds(1)),stale.id());
         JobRecord recovered=store.claim("recovery",1,Duration.ofSeconds(30)).get(0);

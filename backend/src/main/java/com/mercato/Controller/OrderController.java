@@ -129,6 +129,7 @@ public class OrderController {
 
     @PostMapping("/order-line/update")
     public ResponseEntity<OrderLineResponseDTO> updateOrderLine(@RequestBody OrderLineUpdateRequestDTO request) {
+        com.mercato.Service.WorkflowCommands.requireExternalOperation(request.getOperationId());
         TransitionTrigger trigger = authUtil.resolveTransitionTrigger();
         OrderLineResponseDTO response = orderLineUpdateService.updateOrderLine(request, trigger);
         return ResponseEntity.ok(response);
@@ -136,7 +137,9 @@ public class OrderController {
 
     @PostMapping("/user/orders/cancel")
     public ResponseEntity<OrderResponseDTO> cancelOrder(@RequestBody @Valid OrderCancelRequestDTO request) {
+        com.mercato.Service.WorkflowCommands.requireExternalOperation(request.getOperationId());
         TransitionTrigger trigger = authUtil.resolveTransitionTrigger();
+        if(trigger!=TransitionTrigger.ADMIN)trigger=TransitionTrigger.CUSTOMER;
         OrderResponseDTO response = orderService.cancelOrder(request, trigger);
         return ResponseEntity.ok(response);
     }

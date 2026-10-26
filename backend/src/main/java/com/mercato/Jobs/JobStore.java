@@ -16,7 +16,14 @@ import java.util.*;
 public class JobStore {
     private final JdbcTemplate jdbc;
     private final ObjectMapper json;
-    public JobStore(JdbcTemplate jdbc, ObjectMapper json) {
+    private final Clock clock;
+    @org.springframework.beans.factory.annotation.Autowired
+    public JobStore(JdbcTemplate jdbc,ObjectMapper json,@org.springframework.beans.factory.annotation.Qualifier("durableJobClock") org.springframework.beans.factory.ObjectProvider<Clock> clocks) {
+        this(jdbc,json,clocks.getIfAvailable());
+    }
+    public JobStore(JdbcTemplate jdbc,ObjectMapper json) { this(jdbc,json,(Clock)null); }
+    private JobStore(JdbcTemplate jdbc, ObjectMapper json,Clock clock) {
+        this.clock=clock;
         this.jdbc=jdbc;
         // Preserve exact decimal payloads and exact duplicate comparisons; never round through double.
         this.json=json.copy().enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS);
@@ -24,6 +31,12 @@ public class JobStore {
 
     @Transactional(propagation=Propagation.MANDATORY)
     public JobRecord enqueue(String type, String businessKey, Map<String,Object> payload) {
+        return enqueueAt(type,businessKey,payload,now());
+    }
+
+    @Transactional(propagation=Propagation.MANDATORY)
+    public JobRecord enqueueAt(String type,String businessKey,Map<String,Object> payload,Instant dueAt) {
+        if(dueAt==null)throw new IllegalArgumentException("Due time is required");
         requireText(type,120,"type"); requireText(businessKey,255,"business key");
         if(payload==null) throw new IllegalArgumentException("Payload is required");
         Map<String,Object> versioned=new LinkedHashMap<>(payload);
@@ -34,7 +47,7 @@ public class JobStore {
         Instant now=now();
         jdbc.update("INSERT INTO durable_jobs (id,job_type,business_key,payload,payload_version,status,attempts,due_at,failure_count,created_at,updated_at) "
             +"VALUES (?,?,?,?,?,'READY',0,?,0,?,?) ON CONFLICT DO NOTHING",
-            UUID.randomUUID(),type,businessKey,encoded,payloadVersion,ts(now),ts(now),ts(now));
+            UUID.randomUUID(),type,businessKey,encoded,payloadVersion,ts(dueAt),ts(now),ts(now));
         JobRecord result=jdbc.queryForObject("SELECT * FROM durable_jobs WHERE business_key=?",this::map,businessKey);
         // Compare parsed JSON so object-key ordering and numeric serialization do not create false conflicts.
         if(!result.type().equals(type) || !sameJson(result.payload(),encoded))
@@ -46,6 +59,8 @@ public class JobStore {
         }
         return result;
     }
+
+    public Instant currentTime(){return now().truncatedTo(java.time.temporal.ChronoUnit.MICROS);}
 
     public JobRecord get(UUID id) { return jdbc.queryForObject("SELECT * FROM durable_jobs WHERE id=?",this::map,id); }
 
@@ -109,8 +124,8 @@ public class JobStore {
     }
 
     private String fence(){return "id=? AND lease_token=? AND lease_owner=? AND status='RUNNING' AND lease_expires_at>?";}
-    private Instant now(){return jdbc.queryForObject("SELECT CURRENT_TIMESTAMP",(rs,n)->rs.getTimestamp(1).toInstant());}
-    private static Timestamp ts(Instant instant){return Timestamp.from(instant);}
+    private Instant now(){return clock==null?jdbc.queryForObject("SELECT CURRENT_TIMESTAMP",(rs,n)->rs.getTimestamp(1).toInstant()):clock.instant();}
+    private static Timestamp ts(Instant instant){return Timestamp.from(instant.truncatedTo(java.time.temporal.ChronoUnit.MICROS));}
     private static Instant instant(ResultSet rs,String name)throws SQLException {Timestamp value=rs.getTimestamp(name);return value==null?null:value.toInstant();}
     private JobRecord map(ResultSet rs,int row)throws SQLException {
         Map<String,Object> payload;

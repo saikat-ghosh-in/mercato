@@ -11,6 +11,9 @@ import java.util.List;
 
 public class OrderLineMapper {
 
+    public static OrderLineResponseDTO toDTO(OrderLine line,com.mercato.Service.FulfillmentWorkflow policy,com.mercato.Entity.fulfillment.TransitionTrigger actor) {
+        var dto=toDTO(line);dto.setWorkflow(policy.project(line,actor));return dto;
+    }
     public static OrderLineResponseDTO toDTO(OrderLine orderLine) {
         List<StateTransitionResponseDTO> stateTransitionDTOs = orderLine.getStateTransitions()
                 .stream()
@@ -49,7 +52,8 @@ public class OrderLineMapper {
                 orderLine.getLineTotal(),
                 stateTransitionDTOs,
                 orderLine.getCreatedAt(),
-                orderLine.getUpdatedAt()
+                orderLine.getUpdatedAt(),
+                null
         );
     }
 }

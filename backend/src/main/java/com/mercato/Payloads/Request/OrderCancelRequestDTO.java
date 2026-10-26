@@ -10,4 +10,6 @@ public class OrderCancelRequestDTO {
     @NotBlank(message = "Order ID is required")
     private String orderId;
     private String reason;
+    private String operationId;
+    private Long expectedVersion;
 }

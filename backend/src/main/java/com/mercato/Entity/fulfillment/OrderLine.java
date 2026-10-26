@@ -69,12 +69,24 @@ public class OrderLine {
     @Min(1)
     private int orderedQty;
 
-    @Column(name = "accepted_qty")
+    @Column(name = "accepted_qty", nullable=false)
     private int acceptedQty;
 
     @Column(name = "shipped_qty", nullable = false)
     @Builder.Default
     private int shippedQty = 0;
+
+    @Column(nullable = false)
+    private int preparingQty;
+    @Column(nullable=false)
+    private boolean workflowLegacyReview;
+    private Integer workflowBaselineOrderedQty;
+    private Integer workflowBaselineAcceptedQty;
+    private Instant workflowBaselineAt;
+    @Column(nullable = false)
+    private int packedQty;
+    @Column(nullable = false)
+    private int deliveredQty;
 
     @Column(name = "cancelled_qty", nullable = false)
     @Builder.Default
@@ -149,9 +161,7 @@ public class OrderLine {
     }
 
     public boolean isTerminal() {
-        return orderLineStatus == OrderLineStatus.FULFILLED
-                || orderLineStatus == OrderLineStatus.PARTIALLY_FULFILLED
-                || orderLineStatus == OrderLineStatus.CANCELLED;
+        return getPendingQty() == 0;
     }
 
     public boolean hasPendingQty() {
@@ -161,19 +171,31 @@ public class OrderLine {
     public void accept(int qty) {
         if (qty <= 0)
             throw new IllegalArgumentException("Accepted qty must be greater than 0");
-        if (qty > getPendingQty())
+        if (qty > orderedQty - cancelledQty - acceptedQty)
             throw new IllegalArgumentException(
-                    "Cannot accept more than pending qty: " + getPendingQty()
+                    "Cannot accept more than unaccepted qty: " + (orderedQty - cancelledQty - acceptedQty)
             );
-        this.acceptedQty = qty;
+        this.acceptedQty += qty;
     }
 
+    public void startPreparing(int qty) {
+        if (qty <= 0 || qty > acceptedQty - preparingQty) throw new IllegalArgumentException("Preparing quantity exceeds accepted units");
+        preparingQty += qty;
+    }
+    public void markPacked(int qty) {
+        if (qty <= 0 || qty > preparingQty - packedQty) throw new IllegalArgumentException("Packed quantity exceeds preparing units");
+        packedQty += qty;
+    }
+    public boolean validQuantities() {
+        return 0 <= deliveredQty && deliveredQty <= shippedQty && shippedQty <= packedQty
+            && packedQty <= preparingQty && preparingQty <= acceptedQty && acceptedQty <= orderedQty - cancelledQty && cancelledQty >= 0;
+    }
     public void ship(int qty) {
         if (qty <= 0)
             throw new IllegalArgumentException("Shipped qty must be greater than 0");
-        if (qty > getPendingQty())
+        if (qty > packedQty - shippedQty)
             throw new IllegalArgumentException(
-                    "Cannot ship more than pending qty: " + getPendingQty()
+                    "Cannot ship more than packed qty: " + (packedQty - shippedQty)
             );
         this.shippedQty += qty;
         this.revenue = this.unitPrice.multiply(BigDecimal.valueOf(this.shippedQty));
@@ -187,5 +209,10 @@ public class OrderLine {
                     "Cannot cancel more than pending qty: " + getPendingQty()
             );
         this.cancelledQty += qty;
+        // Consume least advanced units first; shipped history is immutable.
+        int remaining = orderedQty - cancelledQty;
+        acceptedQty = Math.min(acceptedQty, remaining);
+        preparingQty = Math.min(preparingQty, acceptedQty);
+        packedQty = Math.min(packedQty, preparingQty);
     }
 }

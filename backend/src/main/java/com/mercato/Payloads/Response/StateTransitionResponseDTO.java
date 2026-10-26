@@ -6,6 +6,7 @@ import lombok.Getter;
 import java.time.Instant;
 
 @Getter
+@lombok.NoArgsConstructor(force=true)
 @AllArgsConstructor
 public class StateTransitionResponseDTO {
     private final String fromStatus;

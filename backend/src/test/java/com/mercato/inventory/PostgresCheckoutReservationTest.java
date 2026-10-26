@@ -43,6 +43,9 @@ class PostgresCheckoutReservationTest {
     @EnableJpaRepositories(basePackages={"com.mercato.Repository","com.mercato.Commerce"})
     @Import({OrderServiceImpl.class,CartServiceImpl.class,CartReservationServiceImpl.class,CartPricingServiceImpl.class,PackageDeliveryPricing.class})
     static class Config {
+        @Bean WorkflowCommands workflowCommands(){return mock(WorkflowCommands.class);}
+        @Bean FulfillmentCancellation cancellation(){return mock(FulfillmentCancellation.class);}
+        @Bean FulfillmentWorkflow workflow(){return new FulfillmentWorkflow(java.time.Clock.systemUTC(),new FulfillmentFunding());}
         @Bean AuthUtil auth(){return mock(AuthUtil.class);}
         @Bean CashfreeService cashfree(){return mock(CashfreeService.class);}
         @Bean CommissionService commissions(){return mock(CommissionService.class);}

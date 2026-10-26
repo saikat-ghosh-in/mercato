@@ -10,6 +10,15 @@ import java.util.List;
 
 public class OrderMapper {
 
+    public static OrderResponseDTO toDTO(Order order,com.mercato.Service.FulfillmentWorkflow policy,com.mercato.Entity.fulfillment.TransitionTrigger actor) {
+        var dto=toDTO(order);dto.setWorkflow(policy.summarize(order));
+        for(int i=0;i<dto.getOrderLines().size();i++) {
+            var lineDto=dto.getOrderLines().get(i);
+            var line=order.getOrderLines().stream().filter(l->l.getOrderLineNumber()==lineDto.getOrderLineNumber()).findFirst().orElseThrow();
+            lineDto.setWorkflow(policy.project(line,actor));
+        }
+        return dto;
+    }
     public static OrderResponseDTO toDTO(Order order) {
         List<OrderLineResponseDTO> orderLineDTOs = order.getOrderLines().stream()
                 .sorted(Comparator.comparing(OrderLine::getOrderLineNumber))

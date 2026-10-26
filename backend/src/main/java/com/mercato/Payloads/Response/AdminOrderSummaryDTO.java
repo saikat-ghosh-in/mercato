@@ -10,6 +10,8 @@ import java.time.Instant;
 @Getter
 @AllArgsConstructor
 public class AdminOrderSummaryDTO {
+    @lombok.Setter
+    private com.mercato.Service.FulfillmentWorkflow.Summary workflow;
     private final String orderId;
     private final Customer customer;
     private final OrderStatus orderStatus;

@@ -21,6 +21,7 @@ public class FulfillmentServiceImpl implements FulfillmentService {
 
     private final OrderLineRepository orderLineRepository;
     private final AuthUtil authUtil;
+    private final FulfillmentWorkflow workflow;
 
     @Override
     @Transactional(readOnly = true)
@@ -56,7 +57,7 @@ public class FulfillmentServiceImpl implements FulfillmentService {
             throw new ResourceNotFoundException("FulfillmentOrder", "fulfillmentId", fulfillmentId);
         }
 
-        return FulfillmentOrderMapper.toDTO(fulfillmentId, lines);
+        return FulfillmentOrderMapper.toDTO(fulfillmentId, lines,workflow);
     }
 
 
@@ -68,7 +69,7 @@ public class FulfillmentServiceImpl implements FulfillmentService {
                 .filter(entry -> open
                         ? entry.getValue().stream().anyMatch(line -> !line.isTerminal())
                         : entry.getValue().stream().allMatch(OrderLine::isTerminal))
-                .map(entry -> FulfillmentOrderMapper.toDTO(entry.getKey(), entry.getValue()))
+                .map(entry -> FulfillmentOrderMapper.toDTO(entry.getKey(), entry.getValue(),workflow))
                 .toList();
     }
 }

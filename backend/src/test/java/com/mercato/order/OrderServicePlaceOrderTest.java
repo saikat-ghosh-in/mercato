@@ -34,6 +34,7 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class OrderServicePlaceOrderTest {
 
+    @Mock private FulfillmentWorkflow workflow;
     @Mock private OrderRepository orderRepository;
     @Mock private CartService cartService;
     @Mock private CashfreeService cashfreeService;

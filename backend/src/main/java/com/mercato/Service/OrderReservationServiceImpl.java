@@ -185,6 +185,8 @@ public class OrderReservationServiceImpl implements OrderReservationService {
                         "Product", "productId", orderLine.getProductId()
                 ));
 
+        if(reservation!=null && (reservation.getReservedQty()<qty || !reservation.getOrder().getOrderId().equals(orderLine.getOrder().getOrderId())))
+            throw new com.mercato.ExceptionHandler.CustomBadRequestException("Reservation quantity or ownership requires reconciliation");
         switch (action) {
             case SHIP -> {
                 if(reservation==null || reservation.getReservedQty()<qty
@@ -209,6 +211,7 @@ public class OrderReservationServiceImpl implements OrderReservationService {
 
         if (reservation != null) {
             if (orderLine.isTerminal()) {
+                orderLine.setOrderReservation(null);
                 orderReservationRepository.delete(reservation);
             } else {
                 reservation.setReservedQty(reservation.getReservedQty() - qty);

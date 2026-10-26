@@ -33,6 +33,9 @@ public class OrderServiceImpl implements OrderService {
 
     private final OrderRepository orderRepository;
     private final CartService cartService;
+    private final FulfillmentWorkflow workflow;
+    private final FulfillmentCancellation cancellation;
+    private final WorkflowCommands workflowCommands;
     private final CashfreeService cashfreeService;
     private final AddressRepository addressRepository;
     private final AuthUtil authUtil;
@@ -57,7 +60,7 @@ public class OrderServiceImpl implements OrderService {
                 throw new CustomBadRequestException("Order was cancelled while opening payment");
             }
             if(order.getPayment().getCapturedAt()==null)cashfreeService.initiatePayment(order,PaymentMethod.UNKNOWN,gateway);
-            return new OrderPlacementResponseDTO(order.getPayment().getPaymentSessionId(),OrderMapper.toDTO(order));
+            return new OrderPlacementResponseDTO(order.getPayment().getPaymentSessionId(),OrderMapper.toDTO(order,workflow,TransitionTrigger.CUSTOMER));
         });
     }
 
@@ -128,81 +131,32 @@ public class OrderServiceImpl implements OrderService {
                 throw new ResourceNotFoundException("Order", "orderId", request.getOrderId());
         }
 
-        Payment payment = order.getPayment();
-
-        if (order.getOrderStatus() == OrderStatus.CANCELLED
-                || order.getOrderStatus() == OrderStatus.FULFILLMENT_COMPLETE) {
-            throw new CustomBadRequestException("Order is already closed and cannot be cancelled");
+        if (trigger == TransitionTrigger.SELLER || trigger == TransitionTrigger.SYSTEM)
+            throw new CustomBadRequestException("Whole-order cancellation requires customer ownership or explicit admin scope");
+        if (order.getOrderLines().isEmpty())
+            throw new CustomBadRequestException("Order has no cancellable units");
+        String identity=authUtil.getLoggedInUser().getEmail();
+        String body=workflowCommands.encode(Arrays.asList("CANCEL_ORDER",request,trigger,identity));
+        String stored=workflowCommands.stored(order,request.getOperationId(),request.getExpectedVersion(),body);
+        if(stored!=null)return workflowCommands.decode(stored,OrderResponseDTO.class);
+        int affected=order.getOrderLines().stream().mapToInt(OrderLine::getPendingQty).sum();
+        var scope=new com.mercato.Payloads.Request.FulfillmentCancelRequest();scope.setOrderId(order.getOrderId());
+        scope.setReason(request.getReason());scope.setOperationId("whole:"+UUID.nameUUIDFromBytes(request.getOperationId().getBytes(java.nio.charset.StandardCharsets.UTF_8)));scope.setExpectedVersion(request.getExpectedVersion());
+        if(trigger==TransitionTrigger.ADMIN) {
+            var selections=new ArrayList<com.mercato.Payloads.Request.FulfillmentCancelRequest.Selection>();
+            for(var line:order.getOrderLines())if(line.getPendingQty()>0){var unit=new com.mercato.Payloads.Request.FulfillmentCancelRequest.Selection();unit.setOrderLineNumber(line.getOrderLineNumber());unit.setQty(line.getPendingQty());selections.add(unit);}scope.setUnits(selections);
         }
-        if (order.getOrderStatus() != OrderStatus.CREATED
-                && order.getOrderStatus() != OrderStatus.CONFIRMED) {
-            throw new CustomBadRequestException(
-                    "Order cannot be cancelled at this stage"
-            );
-        }
-
-        if (trigger != TransitionTrigger.ADMIN
-                && order.getOrderStatus() == OrderStatus.CONFIRMED) {
-            Instant confirmedAt = payment.getCompletedAt();
-            if (confirmedAt == null) {
-                throw new CustomBadRequestException("Order confirmation time is unavailable");
-            }
-            if (Instant.now().isAfter(confirmedAt.plusSeconds(60 * 60))) {
-                throw new CustomBadRequestException(
-                        "Cancellation window has expired. Orders can only be cancelled within 1 hour of confirmation"
-                );
-            }
-        }
-
-        if (order.getOrderStatus() == OrderStatus.CREATED) {
-            cashfreeService.terminateOrder(order.getOrderId());
-            if(payment.getCapturedAt()==null)payment.setStatus(PaymentStatus.CANCELLED);
-            payment.setGatewayResponseMessage("Cancelled before payment");
-            order.setOrderStatus(OrderStatus.CANCELLED);
-            order.getOrderLines().forEach(line->{line.cancel(line.getPendingQty());line.setOrderLineStatus(line.deriveStatus());});
-            if(payment.getCapturedAt()==null)order.setPaymentStatus(PaymentStatus.CANCELLED);
-            else refundObligations.full(order,"Captured order cancelled before allocation");
-            orderRepository.save(order);
-            return OrderMapper.toDTO(order);
-        }
-
-        if (trigger != TransitionTrigger.ADMIN) {
-            Instant confirmedAt = payment.getCompletedAt();
-            if (confirmedAt == null) {
-                throw new CustomBadRequestException("Order has not been confirmed yet");
-            }
-            if (Instant.now().isAfter(confirmedAt.plusSeconds(6 * 60 * 60))) {
-                throw new CustomBadRequestException(
-                        "Cancellation window has expired. Orders can only be cancelled within 6 hours of confirmation"
-                );
-            }
-        }
-
-        List<OrderLine> lines = new ArrayList<>(order.getOrderLines());
-        cashfreeService.terminateOrder(order.getOrderId());
-        lines.forEach(line -> {
-            if (!line.isTerminal() && line.hasPendingQty()) {
-                OrderLineUpdateRequestDTO lineRequest = new OrderLineUpdateRequestDTO();
-                lineRequest.setFulfillmentId(line.getFulfillmentId());
-                lineRequest.setOrderLineNumber(line.getOrderLineNumber());
-                lineRequest.setAction(OrderLineAction.CANCEL);
-                lineRequest.setQty(line.getPendingQty());
-                lineRequest.setReason(request.getReason());
-                orderLineUpdateService.updateOrderLine(lineRequest, trigger);
-            }
-        });
-
-        return OrderMapper.toDTO(
-                orderRepository.findByOrderId(request.getOrderId())
-                        .orElseThrow(() -> new ResourceNotFoundException("Order", "orderId", request.getOrderId()))
-        );
+        cancellation.cancel(scope,trigger);
+        var outcome=OrderMapper.toDTO(order,workflow,trigger);
+        workflowCommands.recordScope(order,request.getOperationId(),body,trigger,identity,request.getReason(),affected,workflowCommands.encode(outcome));
+        return outcome;
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<OrderResponseDTO> getAllOrders() {
         return orderRepository.findAll().stream()
-                .map(OrderMapper::toDTO)
+                .map(o->OrderMapper.toDTO(o,workflow,TransitionTrigger.ADMIN))
                 .toList();
     }
 
@@ -212,7 +166,7 @@ public class OrderServiceImpl implements OrderService {
         EcommUser currentUser = authUtil.getLoggedInUser();
         return orderRepository.findByCustomerEmail(currentUser.getEmail())
                 .stream()
-                .map(OrderMapper::toDTO)
+                .map(o->OrderMapper.toDTO(o,workflow,TransitionTrigger.CUSTOMER))
                 .toList();
     }
 
@@ -222,20 +176,20 @@ public class OrderServiceImpl implements OrderService {
         EcommUser currentUser = authUtil.getLoggedInUser();
         Order order = orderRepository.findByOrderIdAndCustomerEmail(orderId, currentUser.getEmail())
                 .orElseThrow(() -> new ResourceNotFoundException("Order", "orderId", orderId));
-        return OrderMapper.toDTO(order);
+        return OrderMapper.toDTO(order,workflow,TransitionTrigger.CUSTOMER);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<OrderSummaryDTO> getCurrentUserOrderSummaries() {
         EcommUser currentUser = authUtil.getLoggedInUser();
-        return orderRepository.findOrderSummariesByCustomerEmail(currentUser.getEmail());
+        return orderRepository.findByCustomerEmail(currentUser.getEmail()).stream().map(o->{var d=new OrderSummaryDTO(o.getOrderId(),o.getOrderStatus(),o.getPaymentStatus(),o.getTotalAmount(),o.getCreatedAt());d.setWorkflow(workflow.summarize(o));return d;}).toList();
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<AdminOrderSummaryDTO> getAllOrderSummaries() {
-        return orderRepository.findAllOrderSummaries();
+        return orderRepository.findAll().stream().map(o->{var d=new AdminOrderSummaryDTO(o.getOrderId(),o.getCustomerName(),o.getCustomerEmail(),o.getOrderStatus(),o.getTotalAmount(),o.getCreatedAt());d.setWorkflow(workflow.summarize(o));return d;}).toList();
     }
 
     @Override
@@ -243,7 +197,7 @@ public class OrderServiceImpl implements OrderService {
     public OrderResponseDTO getOrder(String orderId) {
         Order order = orderRepository.findByOrderId(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order", "orderId", orderId));
-        return OrderMapper.toDTO(order);
+        return OrderMapper.toDTO(order,workflow,TransitionTrigger.ADMIN);
     }
 
 

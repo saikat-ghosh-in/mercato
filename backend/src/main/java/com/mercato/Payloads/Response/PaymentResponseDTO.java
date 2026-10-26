@@ -7,6 +7,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 
 @Getter
+@lombok.NoArgsConstructor(force=true)
 @AllArgsConstructor
 public class PaymentResponseDTO {
     private String paymentId;
