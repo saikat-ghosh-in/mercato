@@ -1,16 +1,17 @@
 import { LoadingLayout } from "../shared/LoadingStates";
 import ActionArrow from "../shared/ActionArrow";
 import SelectControl from "../shared/SelectControl";
-import ModalFrame from "../shared/ModalFrame";
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import {
     MdSearch, MdClose, MdArrowBack,
     MdCheckCircle, MdCancel, MdHourglassEmpty,
-    MdAccessTime, MdWarning, MdShoppingBag,
+    MdAccessTime, MdShoppingBag,
     MdLocationOn, MdPayment, MdContentCopy,
 } from "react-icons/md";
 import toast from "../../utils/toastUtils.js";
-import api from "../../backend/api";
+import useWorkflowResource, { useWorkflowEpoch } from "../../hooks/useWorkflowResource";
+import { canCancelWhole, workflowLabel } from "../../utils/fulfillment";
+import { QuantityCommand, WorkflowProgress } from "../orders/WorkflowControls";
 import { formatCurrency } from "../../utils/formatCurrency";
 import { formatDate } from "../../utils/formatDate";
 
@@ -18,7 +19,7 @@ const STATUS_MAP = {
     CREATED: { label: "Awaiting Payment", color: "bg-yellow-100 text-yellow-700", icon: MdHourglassEmpty },
     CONFIRMED: { label: "Confirmed", color: "bg-blue-100 text-blue-700", icon: MdCheckCircle },
     FULFILLMENT_PROCESSING: { label: "Processing", color: "bg-blue-100 text-blue-700", icon: MdAccessTime },
-    FULFILLMENT_COMPLETE: { label: "Delivered", color: "bg-blue-100 text-blue-700", icon: MdCheckCircle },
+    FULFILLMENT_COMPLETE: { label: "Shipped (legacy)", color: "bg-blue-100 text-blue-700", icon: MdCheckCircle },
     CANCELLED: { label: "Cancelled", color: "bg-red-100 text-red-600", icon: MdCancel },
 };
 const getStatus = (raw) =>
@@ -58,64 +59,13 @@ const InfoRow = ({ label, value, mono, copyable, last }) => {
     );
 };
 
-const CancelModal = ({ order, onClose, onConfirm, loading }) => (
-    <ModalFrame title="Cancel Order" onClose={onClose}>
-        <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl">
-            <div className="flex items-center gap-2 text-red-600 mb-3">
-                <MdWarning size={20} />
-                <h2 className="text-sm font-bold">Cancel Order</h2>
-            </div>
-            <p className="text-sm text-gray-600 mb-1">Cancel order <span className="font-semibold">#{order.orderId}</span>?</p>
-            <p className="text-xs text-gray-400 mb-6">Refund will be initiated if payment was completed.</p>
-            <div className="flex gap-3">
-                <button aria-label="Close dialog" onClick={onClose} className="control flex-1 px-3 py-2.5 text-sm border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 cursor-pointer font-medium">Keep</button>
-                <button onClick={onConfirm} disabled={loading} className="control flex-1 px-3 py-2.5 text-sm bg-red-500 hover:bg-red-600 text-white rounded-xl cursor-pointer font-bold disabled:opacity-50 ">
-                    {loading ? "Cancelling..." : "Yes, Cancel"}
-                </button>
-            </div>
-        </div>
-    </ModalFrame>
-);
-
 const OrderDetail = ({ orderId, onBack }) => {
-    const [order, setOrder] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [showCancel, setShowCancel] = useState(false);
-    const [cancelling, setCancelling] = useState(false);
-
-    const fetchOrder = useCallback(async () => {
-        try {
-            setLoading(true);
-            const { data } = await api.get(`/admin/orders/${orderId}`);
-            setOrder(data);
-        } catch {
-            toast.error("Failed to load order");
-        } finally {
-            setLoading(false);
-        }
-    }, [orderId]);
-
-    useEffect(() => { fetchOrder(); }, [fetchOrder]);
-
-    const handleCancel = async () => {
-        setCancelling(true);
-        try {
-            const { data } = await api.post("/user/orders/cancel", { orderId, reason: "Admin cancellation" });
-            setOrder(data);
-            toast.success("Order cancelled");
-        } catch (err) {
-            toast.error(err?.response?.data?.message || "Failed to cancel order");
-        } finally {
-            setCancelling(false);
-            setShowCancel(false);
-        }
-    };
+    const {data:order, loading, error, refresh:fetchOrder, epoch} = useWorkflowResource(`/admin/orders/${encodeURIComponent(orderId)}`);
 
     if (loading && !order) return <DetailSkeleton />;
     if (!order) return null;
 
-    const { label, icon: StatusIcon } = getStatus(order.orderStatus);
-    const canCancel = order.orderStatus === "CREATED" || order.orderStatus === "CONFIRMED";
+    const { icon: StatusIcon } = getStatus(order.orderStatus);
 
     const PAYMENT_COLOR = { SUCCESS: "text-blue-700", PENDING: "text-yellow-600", FAILED: "text-red-500", CANCELLED: "text-gray-400" };
 
@@ -130,16 +80,11 @@ const OrderDetail = ({ orderId, onBack }) => {
                     <p className="text-sm font-bold text-gray-900">Order #{order.orderId}</p>
                     <p className="text-xs text-gray-400">{formatDate(order.createdAt ?? order.createDate)}</p>
                 </div>
-                {canCancel && (
-                    <button
-                        onClick={() => setShowCancel(true)}
-                        className="control ml-auto flex items-center gap-1.5 text-xs font-bold text-red-500 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-xl transition-colors cursor-pointer"
-                    >
-                        <MdCancel size={13} /> Cancel Order
-                    </button>
-                )}
+                <QuantityCommand key={`${epoch}:${orderId}:cancel`} label="Cancel entire order" whole cancellation maximum={canCancelWhole(order) ? 1 : 0} version={order.workflow?.version} endpoint="/user/orders/cancel" makeBody={(_qty,reason) => ({orderId,reason})} onComplete={fetchOrder} disabled={loading} />
             </div>
 
+            {error && <p role="alert" className="text-sm text-red-700">{error} <button className="text-link" onClick={fetchOrder}>Retry refresh</button></p>}
+            <WorkflowProgress record={order} />
             {/* Status banner */}
             <div className={`flex items-center gap-3 px-5 py-4 rounded-2xl border ${order.orderStatus === "CANCELLED" ? "bg-red-50 border-red-100" :
                     order.orderStatus === "FULFILLMENT_COMPLETE" ? "bg-blue-50 border-blue-100" :
@@ -153,7 +98,7 @@ const OrderDetail = ({ orderId, onBack }) => {
                 } />
                 <div>
                     <p className="text-xs text-gray-500 font-medium">Order Status</p>
-                    <p className="text-base font-semibold text-gray-900">{label}</p>
+                    <p className="text-base font-semibold text-gray-900">{workflowLabel(order)}</p>
                 </div>
             </div>
 
@@ -226,39 +171,21 @@ const OrderDetail = ({ orderId, onBack }) => {
                 </div>
             </div>
 
-            {showCancel && (
-                <CancelModal order={order} onClose={() => setShowCancel(false)} onConfirm={handleCancel} loading={cancelling} />
-            )}
         </div>
     );
 };
 
 
 const OrdersTab = () => {
-    const [orders, setOrders] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [search, setSearch] = useState("");
-    const [statusFilter, setStatusFilter] = useState("");
-    const [selectedOrderId, setSelectedOrderId] = useState(null);
-
-    useEffect(() => {
-        const fetch = async () => {
-            try {
-                setLoading(true);
-                const { data } = await api.get("/admin/orders/summary");
-                setOrders(data ?? []);
-            } catch {
-                toast.error("Failed to load orders");
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetch();
-    }, []);
-
-    if (selectedOrderId) return (
-        <OrderDetail orderId={selectedOrderId} onBack={() => setSelectedOrderId(null)} />
-    );
+    const epoch = useWorkflowEpoch();
+    const {data, loading, error, refresh} = useWorkflowResource('/admin/orders/summary');
+    const orders = data || [];
+    const [search, setSearch] = useState('');
+    const [statusFilter, setStatusFilter] = useState('');
+    const [selection, setSelection] = useState(null);
+    const selectedOrderId = selection?.epoch === epoch ? selection.id : null;
+    const setSelectedOrderId = id => setSelection(id ? {id,epoch} : null);
+    if (selectedOrderId) return <OrderDetail key={`${epoch}:${selectedOrderId}`} orderId={selectedOrderId} onBack={() => { setSelectedOrderId(null); refresh(); }} />;
 
     const filtered = orders.filter(o => {
         const matchSearch = !search ||
@@ -271,6 +198,7 @@ const OrdersTab = () => {
 
     return (
         <div className="surface overflow-hidden">
+            {error && <p role="alert" className="p-4 text-sm text-red-700">{error} <button className="text-link" onClick={refresh}>Retry refresh</button></p>}
             {/* Toolbar */}
             <div className="flex items-center gap-3 p-4 border-b border-gray-50 flex-wrap">
                 <div className="dashboard-search flex-1 min-w-48">
@@ -311,7 +239,7 @@ const OrdersTab = () => {
                             {filtered.length === 0 ? (
                                 <tr><td colSpan={6} className="text-center py-10 text-sm text-gray-400">No orders found</td></tr>
                             ) : filtered.map(o => {
-                                const { label, color, icon: StatusIcon } = getStatus(o.orderStatus);
+                                const { color, icon: StatusIcon } = getStatus(o.orderStatus);
                                 return (
                                     <tr key={o.orderId} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors cursor-pointer" tabIndex={0} onKeyDown={e => { if (e.target === e.currentTarget && ["Enter", " "].includes(e.key)) { e.preventDefault(); setSelectedOrderId(o.orderId); } }} onClick={() => setSelectedOrderId(o.orderId)}>
                                         <td className="px-4 py-3 text-xs font-mono font-semibold text-gray-700">{o.orderId}</td>
@@ -321,7 +249,7 @@ const OrdersTab = () => {
                                         </td>
                                         <td className="px-4 py-3">
                                             <span className={`text-xs font-bold px-2 py-0.5 rounded-full flex items-center gap-1 w-fit ${color}`}>
-                                                <StatusIcon size={9} />{label}
+                                                <StatusIcon size={9} />{workflowLabel(o)}
                                             </span>
                                         </td>
                                         <td className="px-4 py-3 text-sm font-semibold text-gray-900">{formatCurrency(o.totalAmount)}</td>

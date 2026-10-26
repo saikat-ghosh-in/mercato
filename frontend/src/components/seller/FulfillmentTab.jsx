@@ -1,14 +1,15 @@
 import { LoadingLayout } from "../shared/LoadingStates";
 import ActionArrow from "../shared/ActionArrow";
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import {
   MdLocalShipping, MdCheckCircle, MdAccessTime,
   MdCancel, MdHourglassEmpty,
   MdArrowBack, MdClose, MdPerson,
   MdLocationOn, MdSearch,
 } from "react-icons/md";
-import toast from "../../utils/toastUtils.js";
-import api from "../../backend/api";
+import useWorkflowResource, { useWorkflowEpoch } from "../../hooks/useWorkflowResource";
+import { actionMaximum, workflowLabel } from "../../utils/fulfillment";
+import { QuantityCommand, WorkflowDeadlines, WorkflowProgress } from "../orders/WorkflowControls";
 import { formatDate } from "../../utils/formatDate";
 
 const SUBTABS = [
@@ -37,40 +38,7 @@ const SectionCard = ({ children, className = "" }) => (
 );
 
 const FulfillmentDetail = ({ fulfillmentId, onBack }) => {
-  const [fo, setFo] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [updatingLine, setUpdatingLine] = useState(null);
-
-  const fetchFo = useCallback(async () => {
-    try {
-      setLoading(true);
-      const { data } = await api.get(`/seller/fulfillment-orders/${fulfillmentId}`);
-      setFo(data);
-    } catch {
-      toast.error("Failed to load fulfillment details");
-    } finally {
-      setLoading(false);
-    }
-  }, [fulfillmentId]);
-
-  useEffect(() => { fetchFo(); }, [fetchFo]);
-
-  const handleLineAction = async (line, action, qty) => {
-    setUpdatingLine(line.orderLineNumber);
-    try {
-      await api.post("/order-line/update", {
-        fulfillmentId: line.fulfillmentId ?? fulfillmentId,
-        orderLineNumber: line.orderLineNumber,
-        action,
-        qty,
-      });
-      fetchFo();
-    } catch (err) {
-      toast.error(err?.response?.data?.message || `Failed to ${action.toLowerCase()} line`);
-    } finally {
-      setUpdatingLine(null);
-    }
-  };
+  const {data:fo, loading, error, refresh:fetchFo, receivedAt, epoch} = useWorkflowResource(`/seller/fulfillment-orders/${encodeURIComponent(fulfillmentId)}`);
 
   if (loading && !fo) return (
     <div className="space-y-4">
@@ -83,7 +51,7 @@ const FulfillmentDetail = ({ fulfillmentId, onBack }) => {
 
   return (
     <div className="space-y-4">
-      {/* Header */}
+      {error && <p role="alert" className="text-sm text-red-700">{error} <button className="text-link" onClick={fetchFo}>Retry refresh</button></p>}
       <div className="flex items-center gap-3">
         <button
           onClick={onBack}
@@ -92,10 +60,16 @@ const FulfillmentDetail = ({ fulfillmentId, onBack }) => {
           <MdArrowBack size={13} /> Back
         </button>
         <div>
-          <p className="text-sm font-bold text-gray-900">{fo.fulfillmentId}</p>
+          <h2 className="text-sm font-bold text-gray-900">Fulfillment {fo.fulfillmentId}</h2>
           <p className="text-xs text-gray-400">Order #{fo.orderId} · {formatDate(fo.createdAt)}</p>
         </div>
+        <button className="button button-outline ml-auto" onClick={fetchFo} disabled={loading}>{loading ? 'Refreshing…' : 'Refresh'}</button>
       </div>
+
+      <WorkflowProgress record={fo} />
+      <WorkflowDeadlines workflow={fo.workflow} receivedAt={receivedAt} onRelease={fetchFo} />
+      <p className="text-xs text-gray-600">Accept within 48 hours after seller actions unlock. Preparation review is independent. Physical shipment is recorded by Mercato logistics after handoff.</p>
+      <QuantityCommand key={`${epoch}:${fulfillmentId}:cancel-all`} label="Cancel all remaining" whole cancellation maximum={fo.orderLines?.reduce((total,line) => total + actionMaximum(line, 'CANCEL'),0) || 0} version={fo.workflow?.version} endpoint="/fulfillment/cancellations" makeBody={(_qty,reason) => ({orderId:fo.orderId,fulfillmentId,reason})} onComplete={fetchFo} disabled={loading} />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
         {/* Order lines */}
@@ -105,16 +79,11 @@ const FulfillmentDetail = ({ fulfillmentId, onBack }) => {
               <h3 className="text-xs font-bold text-gray-400 ">Order Lines</h3>
             </div>
             <div className="divide-y divide-gray-50">
-              {fo.orderLines?.map((line, i) => {
-                const { label, color, icon: StatusIcon } = getLineStatus(line.orderLineStatus);
-                const isUpdating = updatingLine === line.orderLineNumber;
-                const lineStatus = line.orderLineStatus?.toUpperCase();
-                const canAccept = lineStatus === "CREATED" || lineStatus === "CONFIRMED";
-                const canShip = lineStatus === "PROCESSING" || lineStatus === "PARTIALLY_PROCESSED";
-                const isTerminal = lineStatus === "FULFILLED" || lineStatus === "PARTIALLY_FULFILLED" || lineStatus === "CANCELLED";
+              {fo.orderLines?.map(line => {
+                const { color, icon: StatusIcon } = getLineStatus(line.orderLineStatus);
 
                 return (
-                  <div key={i} className="px-5 py-4">
+                  <div key={`${epoch}:${fulfillmentId}:${line.orderLineNumber}`} className="px-5 py-4">
                     <div className="flex items-start gap-3">
                       <div className="w-12 h-12 rounded-xl bg-gray-50 border border-gray-100 overflow-hidden shrink-0">
                         {line.product?.primaryImageUrl
@@ -128,40 +97,13 @@ const FulfillmentDetail = ({ fulfillmentId, onBack }) => {
                             {line.product?.productName ?? "Product"}
                           </p>
                           <span className={`text-xs font-bold px-2 py-0.5 rounded-full shrink-0 flex items-center gap-1 ${color}`}>
-                            <StatusIcon size={9} /> {label}
+                            <StatusIcon size={9} /> {workflowLabel(line)}
                           </span>
                         </div>
-                        <div className="flex items-center gap-3 mt-1 text-xs text-gray-400 flex-wrap">
-                          <span>Ordered: <b className="text-gray-700">{line.orderedQty}</b></span>
-                          <span>Accepted: <b className="text-gray-700">{line.acceptedQty}</b></span>
-                          <span>Shipped: <b className="text-gray-700">{line.shippedQty}</b></span>
-                          <span>Cancelled: <b className="text-gray-700">{line.cancelledQty}</b></span>
-                          <span>Pending: <b className="text-blue-600">{line.pendingQty}</b></span>
+                        <div className="mt-2"><WorkflowProgress record={line} showState={false} /></div>
+                        <div className="flex items-center gap-2 mt-2.5 flex-wrap">
+                          {[['ACCEPT','Accept'],['START_PREPARING','Start preparing'],['MARK_PACKED','Mark as packed'],['CANCEL','Cancel units']].map(([action,label]) => <QuantityCommand key={action} label={label} maximum={actionMaximum(line,action)} version={fo.workflow?.version} cancellation={action==='CANCEL'} endpoint="/fulfillment/commands" makeBody={(qty,reason) => ({fulfillmentId:line.fulfillmentId || fulfillmentId,orderLineNumber:line.orderLineNumber,action,qty,...(action==='CANCEL' ? {reason} : {})})} onComplete={fetchFo} disabled={loading} />)}
                         </div>
-
-                        {/* Actions */}
-                        {!isTerminal && (
-                          <div className="flex items-center gap-2 mt-2.5 flex-wrap">
-                            {canAccept && (
-                              <button
-                                onClick={() => handleLineAction(line, "ACCEPT", line.pendingQty)}
-                                disabled={isUpdating}
-                                className="control text-xs font-bold px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors cursor-pointer disabled:opacity-40"
-                              >
-                                {isUpdating ? "..." : "Accept"}
-                              </button>
-                            )}
-                            {canShip && (
-                              <button
-                                onClick={() => handleLineAction(line, "SHIP", line.pendingQty)}
-                                disabled={isUpdating}
-                                className="control text-xs font-bold px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg transition-colors cursor-pointer disabled:opacity-40"
-                              >
-                                {isUpdating ? "..." : "Ship All"}
-                              </button>
-                            )}
-                          </div>
-                        )}
                       </div>
                     </div>
                   </div>
@@ -208,10 +150,7 @@ const FulfillmentDetail = ({ fulfillmentId, onBack }) => {
 
 const FulfillmentCard = ({ fo, onClick }) => {
   const lineCount = fo.orderLines?.length ?? 0;
-  const pendingLines = fo.orderLines?.filter(l => {
-    const s = l.orderLineStatus?.toUpperCase();
-    return s === "CREATED" || s === "CONFIRMED";
-  }).length ?? 0;
+  const pendingLines = fo.orderLines?.filter(line => ['ACCEPT','START_PREPARING','MARK_PACKED','CANCEL'].some(action => actionMaximum(line,action) > 0)).length ?? 0;
 
   return (
     <button type="button" aria-label={"View fulfillment " + fo.fulfillmentId}
@@ -234,10 +173,10 @@ const FulfillmentCard = ({ fo, onClick }) => {
 
       <div className="flex items-center gap-2 flex-wrap">
         {fo.orderLines?.slice(0, 3).map((line, i) => {
-          const { label, color } = getLineStatus(line.orderLineStatus);
+          const { color } = getLineStatus(line.orderLineStatus);
           return (
             <span key={i} className={`text-xs font-semibold px-2 py-0.5 rounded-full ${color}`}>
-              {label}
+              {workflowLabel(line)}
             </span>
           );
         })}
@@ -258,28 +197,23 @@ const FulfillmentCard = ({ fo, onClick }) => {
 
 const FulfillmentTab = () => {
   const [subtab, setSubtab] = useState("active");
-  const [activeFulfillments, setActiveFulfillments] = useState([]);
-  const [closedFulfillments, setClosedFulfillments] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedId, setSelectedId] = useState(null);
-  const [search, setSearch] = useState("");
-
-  useEffect(() => {
-    const controller = new AbortController();
-    Promise.all([
-      api.get("/seller/open-fulfillment-orders", { signal: controller.signal }),
-      api.get("/seller/closed-fulfillment-orders", { signal: controller.signal })
-    ]).then(([active, closed]) => {
-      if (!controller.signal.aborted) { setActiveFulfillments(active.data ?? []); setClosedFulfillments(closed.data ?? []); }
-    }).catch(() => { if (!controller.signal.aborted) toast.error("Failed to load fulfillment orders"); })
-      .finally(() => { if (!controller.signal.aborted) setLoading(false); });
-    return () => controller.abort();
-  }, []);
+  const epoch = useWorkflowEpoch();
+  const active = useWorkflowResource('/seller/open-fulfillment-orders');
+  const closed = useWorkflowResource('/seller/closed-fulfillment-orders');
+  const metrics = useWorkflowResource('/seller/fulfillment/metrics');
+  const activeFulfillments = active.data || [];
+  const closedFulfillments = closed.data || [];
+  const loading = active.loading || closed.loading;
+  const [selection, setSelection] = useState(null);
+  const selectedId = selection?.epoch === epoch ? selection.id : null;
+  const setSelectedId = id => setSelection(id ? {id,epoch} : null);
+  const [search, setSearch] = useState('');
+  const refreshLists = () => { active.refresh(); closed.refresh(); metrics.refresh(); };
 
   if (selectedId) return (
     <FulfillmentDetail
-      fulfillmentId={selectedId}
-      onBack={() => setSelectedId(null)}
+      key={`${epoch}:${selectedId}`} fulfillmentId={selectedId}
+      onBack={() => { setSelectedId(null); refreshLists(); }}
     />
   );
 
@@ -294,6 +228,9 @@ const FulfillmentTab = () => {
 
   return (
     <div className="space-y-4">
+      <div className="flex items-center justify-between gap-3"><h2 className="text-base font-semibold">Fulfillments</h2><button className="button button-outline" onClick={refreshLists} disabled={loading}>Refresh</button></div>
+      {(active.error || closed.error) && <p role="alert" className="text-sm text-red-700">{active.error || closed.error}</p>}
+      <section className="surface p-4 space-y-1" aria-label="Acceptance performance"><h3 className="text-sm font-semibold">On-time acceptance</h3>{metrics.data ? <><p className="text-sm tabular-nums">{metrics.data.acceptance?.onTimeAcceptanceRate == null ? 'No mature units in this period' : `${(metrics.data.acceptance.onTimeAcceptanceRate * 100).toFixed(1)}% on time`} · {metrics.data.acceptance?.acceptanceDenominatorQty ?? 0} eligible units · {metrics.data.acceptance?.timeoutCancelledQty ?? 0} units cancelled for seller delay</p><p className="text-xs text-gray-600">Confirmed or prospectively adopted cohorts with elapsed acceptance deadlines, {formatDate(metrics.data.coverage?.fromInclusive)} to {formatDate(metrics.data.coverage?.toExclusive)} (end exclusive). Customer cancellations before the deadline are excluded; seller cancellations remain in the denominator.</p></> : <p className="text-xs text-gray-600">{metrics.error || 'Loading acceptance performance…'}</p>}</section>
       {/* Subtab switcher */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="workspace-subtabs">
