@@ -1,8 +1,10 @@
 # Beta first: fresh Mercato launch on OCI + Netlify
 
+**Already installed beta:** use section 11 for updates. Do not repeat the initial database/account setup or regenerate encryption keys. The fulfillment revision uses additive migrations and preserves existing accounts, MFA, orders and uploads. Keep delayed authorization disabled until its enabled-account sandbox acceptance is recorded; deploy the compatible financial reader before changing Cashfree's account-wide settings.
+
 This guide replaces **only mercato-beta** with an **empty database and no old accounts, orders, listings, sessions or cart data**. It does not import or preserve the old application's data. Use a new database named `mercato_beta_launch`; there is no need to reset another database to launch this one.
 
-**Skip the legacy adoption procedure:** no schema-dump comparison, manual Flyway baseline, data backfill or old-order webhook transition is needed. Keep the checked-in migrations: on an empty database, Flyway runs V1–V7 automatically before Hibernate validates the schema. Do not manually import the old schema, enable automatic baselining, or change Hibernate to `update`.
+**Skip the legacy adoption procedure for a fresh database:** no manual Flyway baseline or old-order import is needed. Keep the checked-in migrations: on an empty database, Flyway runs all versioned migrations automatically before Hibernate validates the schema. On an already installed beta database, it applies only pending migrations, including their explicit compatibility backfills. Do not manually import the old schema, enable automatic baselining, or change Hibernate to `update`.
 
 The repository is [saikat-ghosh-in/mercato](https://github.com/saikat-ghosh-in/mercato). The active frontend is `frontend/` inside that repository. The deployment targets are:
 
@@ -390,7 +392,18 @@ Validate with `sudo visudo -c`. Do not grant unrestricted passwordless sudo. The
 
 ## 11. Subsequent releases: your usual redeploy command
 
-For each beta update, publish a **new prerelease tag from tested `stg`** and wait for its **Release backend** job/assets, then run on OCI:
+The fulfillment beta remains a **side-project sandbox**. Keep Cashfree authorization/delayed-capture activation disabled and use ordinary sandbox payment collection. Existing admin shipping/delivery actions are the target flow. New parcel and customer-return systems, advanced RTO, deductions and seller disputes are deferred. Do not enable account-wide card preauthorization to try out unfinished features.
+
+For each beta update, publish a **new prerelease tag from tested `stg`** and wait for its **Release backend** job/assets. Before a release containing new migrations, take a private recovery dump of the installed beta database on OCI:
+
+```bash
+sudo install -d -o root -g root -m 0700 /opt/mercato-beta/backups
+sudo bash -c 'umask 077; runuser -u postgres -- pg_dump --format=custom --dbname=mercato_beta_launch > /opt/mercato-beta/backups/before-upgrade-$(date -u +%Y%m%dT%H%M%SZ).dump'
+```
+
+Verify the dump with `sudo pg_restore --list /opt/mercato-beta/backups/<actual-file>.dump`, substituting its actual filename, without restoring it. A dump on this VM is a short-term migration recovery aid; it does not satisfy the off-instance backup production gate. Do not automatically restore it over a running application or roll back an incompatible schema.
+
+Then update only beta:
 
 ```bash
 bash ~/redeploy-beta.sh v0.1.0-beta.4
