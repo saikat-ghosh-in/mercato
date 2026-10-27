@@ -8,6 +8,21 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class PostgresMoneyUnitMigrationTest {
     @AfterAll static void cleanup(){PostgresTestSupport.cleanup();}
+    @Test void onlyPristineExistingMoneyUnitsReceiveInitialState()throws Exception{
+        var url=PostgresTestSupport.database();
+        Flyway.configure().dataSource(url,PostgresTestSupport.username(),PostgresTestSupport.password()).locations("classpath:db/migration").target("12").load().migrate();
+        try(var c=PostgresTestSupport.connect(url);var s=c.createStatement()){
+            s.execute("INSERT INTO order_snapshot(id,order_id,charges,currency,subtotal,total_amount,recipient_phone,customer_email,customer_name,delivery_address_line1,delivery_city,delivery_pincode,delivery_state,order_status,payment_status,recipient_name) VALUES(1,'PRE-V13',0,'INR',20,20,'9999999999','old@test.invalid','Old','Address','City','123456','State','CREATED','PENDING','Old')");
+            for(int n=1;n<=2;n++){
+                s.execute("INSERT INTO order_lines_snapshot(id,order_fk,order_line_number,fulfillment_id,product_id,product_name,unit_price,ordered_qty,accepted_qty,preparing_qty,packed_qty,shipped_qty,cancelled_qty,revenue,line_total,order_line_status) VALUES("+n+",1,"+n+",'PRE-V13-F','P"+n+"','Product',10,1,"+(n==2?"1,1,1,1":"0,0,0,0")+",0,0,10,'CREATED')");
+                s.execute("INSERT INTO order_money_units(unit_id,order_line_fk,unit_number,financial_policy_version,net_merchandise_paise,price_provenance,buyer_normal_delivery_paise,buyer_expedited_delivery_paise,platform_paise,handling_paise,seller_delivery_paise,commission_policy) VALUES('U"+n+"',"+n+",1,1,1000,'UNKNOWN',0,0,0,0,0,'UNKNOWN')");
+            }
+        }
+        Flyway.configure().dataSource(url,PostgresTestSupport.username(),PostgresTestSupport.password()).locations("classpath:db/migration").load().migrate();
+        try(var c=PostgresTestSupport.connect(url);var s=c.createStatement();var rows=s.executeQuery("SELECT unit_id,stage,shipped_at FROM order_unit_states")){
+            assertTrue(rows.next());assertEquals("U1",rows.getString(1));assertEquals("UNACCEPTED",rows.getString(2));assertNull(rows.getObject(3));assertFalse(rows.next(),"Advanced historical physical unit identity must stay unknown");
+        }
+    }
     @Test void legacyUnknownsStayUnknownAndUnitMoneyCannotBeRewritten()throws Exception {
         var url=PostgresTestSupport.database();
         Flyway.configure().dataSource(url,PostgresTestSupport.username(),PostgresTestSupport.password()).locations("classpath:db/migration").target("10").load().migrate();

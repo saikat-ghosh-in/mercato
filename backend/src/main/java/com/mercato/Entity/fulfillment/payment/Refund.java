@@ -27,6 +27,11 @@ import java.time.Instant;
 @Builder
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class Refund {
+    @OneToMany(mappedBy="refund",cascade=CascadeType.ALL)
+    @Builder.Default
+    private java.util.List<RefundUnitAllocation> allocations=new java.util.ArrayList<>();
+    @Column(length=100,updatable=false) private String expectedPaymentReference;
+    public boolean committed(){return status==RefundStatus.SUCCESS || status==RefundStatus.PENDING || status==RefundStatus.ONHOLD;}
 
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "refund_seq")

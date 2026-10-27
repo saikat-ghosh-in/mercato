@@ -63,6 +63,7 @@ public class PaymentInbox {
         if(!currency.isBlank()) event.put("currency",currency);
         event.put("group",details.path("payment_group").asText("unknown"));
         event.put("providerReference",details.path("cf_refund_id").asText(""));
+        if(refund)copy(details,event,"cf_payment_id","paymentIdentity");
         if (!refund) {
             // Trust the authenticated caller path, never a provider-controlled type string.
             event.put("source",source);

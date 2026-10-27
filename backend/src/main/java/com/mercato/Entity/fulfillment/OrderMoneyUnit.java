@@ -8,6 +8,7 @@ import java.math.BigDecimal;
 @Entity @Table(name="order_money_units",uniqueConstraints=@UniqueConstraint(name="uk_money_unit_line_number",columnNames={"order_line_fk","unit_number"}))
 @Getter @Setter @NoArgsConstructor
 public class OrderMoneyUnit {
+    @OneToOne(mappedBy="unit",cascade=CascadeType.ALL) private OrderUnitState state;
     @Id @Column(length=40,updatable=false) private String unitId;
     @ManyToOne(fetch=FetchType.LAZY,optional=false) @JoinColumn(name="order_line_fk",nullable=false,updatable=false) private OrderLine orderLine;
     @Column(nullable=false,updatable=false) private int unitNumber;

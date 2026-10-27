@@ -387,7 +387,7 @@ class PostgresQuantityWorkflowTest {
         String email="a".repeat(64)+"@"+"b".repeat(63)+"."+"c".repeat(63)+"."+"d".repeat(56)+".test";
         new jakarta.mail.internet.InternetAddress(email,true).validate();assertEquals(254,email.length());
         // Exercise the enqueue boundary independently of the unrelated legacy snapshot email column width.
-        var detached=tx.execute(t->{var o=orders.findByOrderId(orderId).orElseThrow();o.getPayment().getCapturedAt();return o;});detached.getOrderLines().get(0).setSellerEmail(email);
+        var detached=tx.execute(t->{var o=orders.findByOrderId(orderId).orElseThrow();o.getPayment().getCapturedAt();o.getPayment().getRefunds().size();o.getOrderLines().forEach(l->l.getMoneyUnits().size());return o;});detached.getOrderLines().get(0).setSellerEmail(email);
         var repository=mock(OrderRepository.class);when(repository.lockByOrderId(orderId)).thenReturn(Optional.of(detached));
         var policy=new FulfillmentWorkflow(clock,new FulfillmentFunding());
         var handler=new FulfillmentDeadlines(queue,repository,policy,updates,jdbc,mock(FulfillmentSlaMetrics.class),new FulfillmentNoticeGuard(repository,policy));

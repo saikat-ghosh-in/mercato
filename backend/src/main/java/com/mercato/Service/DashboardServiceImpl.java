@@ -34,6 +34,7 @@ public class DashboardServiceImpl implements DashboardService {
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
     private final AuthUtil authUtil;
+    private final MarketplaceFinanceService finance;
 
     @Override
     @Transactional(readOnly = true)
@@ -75,10 +76,10 @@ public class DashboardServiceImpl implements DashboardService {
                 totalOrders, todayCount, pendingPayment, activeOrders, averageOrderValue
         );
 
-        BigDecimal allTimeRevenue = orderRepository.findTotalRevenue();
-        BigDecimal thisMonthRevenue = orderRepository.findTotalRevenueBetween(startOfMonth, endOfToday);
-        BigDecimal todayRevenue = orderRepository.findTotalRevenueBetween(startOfToday, endOfToday);
-        BigDecimal averageRevenuePerOrder = orderRepository.findAverageRevenuePerOrder();
+        BigDecimal allTimeRevenue = finance.netEarnings(requester,true,Instant.EPOCH,Instant.parse("9999-12-31T00:00:00Z"));
+        BigDecimal thisMonthRevenue = finance.netEarnings(requester,true,startOfMonth,endOfToday);
+        BigDecimal todayRevenue = finance.netEarnings(requester,true,startOfToday,endOfToday);
+        BigDecimal averageRevenuePerOrder = totalOrders==0?BigDecimal.ZERO:allTimeRevenue.divide(BigDecimal.valueOf(totalOrders),2,java.math.RoundingMode.HALF_UP);
 
         RevenueStats revenueStats = new RevenueStats(
                 allTimeRevenue, thisMonthRevenue, todayRevenue, averageRevenuePerOrder
@@ -140,14 +141,10 @@ public class DashboardServiceImpl implements DashboardService {
         Instant startOfMonth = LocalDate.now().withDayOfMonth(1)
                 .atStartOfDay(ZoneId.systemDefault()).toInstant();
 
-        BigDecimal allTimeRevenue = orderLineRepository.findRevenueBySeller(sellerEmail);
-        BigDecimal thisMonthRevenue = orderLineRepository.findRevenueBySellerBetween(
-                sellerEmail, startOfMonth, endOfToday
-        );
-        BigDecimal todayRevenue = orderLineRepository.findRevenueBySellerBetween(
-                sellerEmail, startOfToday, endOfToday
-        );
-        BigDecimal averageRevenuePerOrder = orderLineRepository.findAverageRevenuePerOrderBySeller(sellerEmail);
+        BigDecimal allTimeRevenue = finance.netEarnings(seller,false,Instant.EPOCH,Instant.parse("9999-12-31T00:00:00Z"));
+        BigDecimal thisMonthRevenue = finance.netEarnings(seller,false,startOfMonth,endOfToday);
+        BigDecimal todayRevenue = finance.netEarnings(seller,false,startOfToday,endOfToday);
+        BigDecimal averageRevenuePerOrder = orderLineRepository.countTotalOrdersBySeller(sellerEmail)==0?BigDecimal.ZERO:allTimeRevenue.divide(BigDecimal.valueOf(orderLineRepository.countTotalOrdersBySeller(sellerEmail)),2,java.math.RoundingMode.HALF_UP);
 
         RevenueStats revenueStats = new RevenueStats(
                 allTimeRevenue, thisMonthRevenue, todayRevenue, averageRevenuePerOrder

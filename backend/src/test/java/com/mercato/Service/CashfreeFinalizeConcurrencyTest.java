@@ -59,7 +59,7 @@ class CashfreeFinalizeConcurrencyTest {
   var p=new Payment();p.setAmount(o.getTotalAmount());p.setCurrency("INR");p.setPaymentMethod(PaymentMethod.UNKNOWN);p.setStatus(PaymentStatus.INITIATED);o.attachPayment(p);orders.save(o);
  });}
  private String event(String status,String attempt,String amount,String currency){var p=json.createObjectNode();p.put("cf_payment_id",attempt);p.put("payment_status",status);p.put("payment_amount",amount);p.put("payment_currency",currency);if("SUCCESS".equals(status))p.put("is_captured",true);inbox.polled(orderId,p);return jdbc.queryForObject("SELECT id FROM gateway_event_inbox WHERE order_id=? AND event_json LIKE ? ORDER BY received_at DESC LIMIT 1",String.class,orderId,"%"+attempt+"%");}
- private Order snapshot(){return tx.execute(t->{var o=orders.findByOrderId(orderId).orElseThrow();o.getPayment().getRefunds().size();return o;});}
+ private Order snapshot(){return tx.execute(t->{var o=orders.findByOrderId(orderId).orElseThrow();o.getPayment().getRefunds().size();o.getOrderLines().forEach(l->l.getMoneyUnits().size());return o;});}
  @Test void captureSurvivesAllocationRollbackAndRefundIncludesAllCharges(){
   tx.executeWithoutResult(t->products.findByProductIdForUpdate(orderId+"-1").orElseThrow().setPhysicalQty(0));reconciler.process(event("SUCCESS","shortage-"+orderId,"52.00","INR"));
   assertThrows(com.mercato.ExceptionHandler.InsufficientInventoryException.class,()->allocator.allocate(orderId));assertEquals(new BigDecimal("52.00"),snapshot().getPayment().getCapturedAmount());assertEquals(0,jdbc.queryForObject("SELECT sum(reserved_qty) FROM products WHERE product_id LIKE ?",Integer.class,orderId+"%"));

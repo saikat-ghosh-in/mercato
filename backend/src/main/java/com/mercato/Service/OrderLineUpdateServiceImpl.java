@@ -43,6 +43,7 @@ public class OrderLineUpdateServiceImpl implements OrderLineUpdateService {
         int unaccepted=line.getOrderedQty()-line.getCancelledQty()-line.getAcceptedQty();
         int acceptedOnly=line.getAcceptedQty()-line.getPreparingQty();
         int preparingOnly=line.getPreparingQty()-line.getPackedQty();
+        com.mercato.Commerce.UnitFinancials.transition(line,request.getAction(),qty,trigger,request.getOperationId(),workflow.now());
         switch(request.getAction()) {
             case ACCEPT -> line.accept(qty);
             case START_PREPARING -> line.startPreparing(qty);
@@ -58,6 +59,7 @@ public class OrderLineUpdateServiceImpl implements OrderLineUpdateService {
         orderRepository.saveAndFlush(order);
         var result=OrderLineMapper.toDTO(line);result.setWorkflow(workflow.project(line,trigger));
         commands.record(order,line,request,trigger,actor,qty,unaccepted,acceptedOnly,preparingOnly,result);
+        if(request.getAction()==OrderLineAction.CANCEL)refundService.processRefundIfRequired(order);
         if(request.getAction()==OrderLineAction.SHIP)shipmentNotificationService.notifyShippedIfNeeded(order);
         return result;
     }
@@ -71,6 +73,5 @@ public class OrderLineUpdateServiceImpl implements OrderLineUpdateService {
         if(cancelled)order.setOrderStatus(OrderStatus.CANCELLED);
         else if(closed)order.setOrderStatus(OrderStatus.FULFILLMENT_COMPLETE);
         else if(order.getOrderLines().stream().anyMatch(l->l.getAcceptedQty()>0))order.setOrderStatus(OrderStatus.FULFILLMENT_PROCESSING);
-        if(closed)refundService.processRefundIfRequired(order);
     }
 }

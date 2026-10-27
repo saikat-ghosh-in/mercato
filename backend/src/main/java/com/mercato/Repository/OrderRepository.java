@@ -24,7 +24,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     @Query("select new com.mercato.Payloads.Response.OrderSummaryDTO(o.orderId,o.orderStatus,o.paymentStatus,o.totalAmount,o.createdAt) from Order o where o.customerEmail=:email")
     org.springframework.data.domain.Page<OrderSummaryDTO> userActivityOrders(@Param("email") String email,org.springframework.data.domain.Pageable page);
     @EntityGraph(attributePaths={"orderLines", "payment"})
-    @Query("select distinct o from Order o where o.createdAt >= :start and o.createdAt < :end and (:email is null or exists (select l.id from OrderLine l where l.order = o and l.sellerEmail = :email)) order by o.createdAt desc")
+    @Query("select distinct o from Order o where coalesce(o.payment.captureVerifiedAt,o.payment.capturedAt,o.createdAt) >= :start and coalesce(o.payment.captureVerifiedAt,o.payment.capturedAt,o.createdAt) < :end and (:email is null or exists (select l.id from OrderLine l where l.order = o and l.sellerEmail = :email)) order by o.createdAt desc")
     List<Order> financialOrders(@Param("start") Instant start, @Param("end") Instant end, @Param("email") String email);
 
     @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)

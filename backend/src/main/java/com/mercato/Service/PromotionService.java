@@ -20,7 +20,7 @@ public class PromotionService {
     private final SellerPromotionRepository campaigns;
     private final ProductRepository products;
     private final UserRepository users;
-    private final OrderLineRepository lines;
+    private final MarketplaceFinanceService finance;
     private final ProductMapper mapper;
     private final AuthUtil auth;
     @jakarta.persistence.PersistenceContext private jakarta.persistence.EntityManager entityManager;
@@ -45,7 +45,7 @@ public class PromotionService {
     public BigDecimal netFees(String sellerId) {
         return campaigns.findBySellerIdOrderByCreatedAtDesc(sellerId).stream().map(c->c.getFee().subtract(c.getCredited())).reduce(BigDecimal.ZERO,BigDecimal::add);
     }
-    private BigDecimal available(EcommUser seller) { return lines.eligiblePromotionEarnings(seller.getEmail()).subtract(netFees(seller.getUserId())).max(BigDecimal.ZERO).setScale(2,RoundingMode.DOWN); }
+    private BigDecimal available(EcommUser seller) { return finance.availableBudget(seller).max(BigDecimal.ZERO).setScale(2,RoundingMode.DOWN); }
     @Transactional(readOnly=true)
     public Object workspace() {
         var seller=seller(); return Map.of("tiers",tiers(),"durations",List.of(3,7,14),"availableBudget",available(seller),"campaigns",campaigns.findBySellerIdOrderByCreatedAtDesc(seller.getUserId()));

@@ -5,7 +5,8 @@ import java.time.Instant;
 
 /**
  * Synchronous transaction hook for Task 4: persist refund obligations here, never perform gateway I/O.
- * Cancellation ordinals identify newly cancelled units; bucket quantities retain least-advanced selection.
+ * Cancellation ordinals are audit counts, never monetary unit IDs. UnitFinancials persists
+ * stable least-advanced unit selection before this hook; refunds are requested after listeners return.
  * Duplicate commands emit no event. A failing listener rolls back the command and inventory together.
  */
 public record FulfillmentCancellationRecorded(String orderId,String fulfillmentId,int orderLineNumber,

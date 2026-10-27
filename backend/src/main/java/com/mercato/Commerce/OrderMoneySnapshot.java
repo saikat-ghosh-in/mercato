@@ -36,6 +36,7 @@ public final class OrderMoneySnapshot {
                 String key=String.format(java.util.Locale.ROOT,"%05d:%05d",line.getOrderLineNumber(),n);
                 var unit=new OrderMoneyUnit();unit.setOrderLine(line);unit.setUnitNumber(n);unit.setFinancialPolicyVersion(1);
                 unit.setUnitId(UUID.nameUUIDFromBytes((order.getOrderId()+"|"+line.getOrderLineNumber()+"|"+n).getBytes(StandardCharsets.UTF_8)).toString());
+                unit.setState(OrderUnitState.initial(unit));
                 unit.setNetMerchandisePaise(paise(line.getUnitPrice()));unit.setPriceProvenance("UNKNOWN");
                 if("PRODUCT_PRICE_AT_SELECTION".equals(item.getSelectedPriceProvenance()) && item.getSelectedRetailPrice()!=null && item.getSelectedDiscountPercent()!=null) {
                     long retail=paise(item.getSelectedRetailPrice());

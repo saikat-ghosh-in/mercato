@@ -86,7 +86,10 @@ public class OrderController {
     }
 
     @GetMapping("/user/orders/{orderId}/payment-session")
-    public Object paymentSession(@PathVariable String orderId) {return recovery.recover(orderId);}
+    public ResponseEntity<Object> paymentSession(@PathVariable String orderId) {return ResponseEntity.ok().cacheControl(org.springframework.http.CacheControl.noStore()).body(recovery.recover(orderId));}
+
+    @GetMapping("/user/checkout-intents/{operationId}")
+    public ResponseEntity<Object> checkoutIntent(@PathVariable String operationId){return ResponseEntity.ok().header("Cache-Control","private, no-store").body(recovery.recoverIntent(operationId));}
 
     @PutMapping("/user/orders/{orderId}")
     public ResponseEntity<OrderResponseDTO> editCurrentUserOrder(@PathVariable String orderId) {

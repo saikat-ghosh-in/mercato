@@ -33,7 +33,7 @@ class FulfillmentPaymentBoundaryTest {
         order.setPaymentStatus(PaymentStatus.SUCCESS);
         Payment payment = new Payment(); payment.setStatus(PaymentStatus.SUCCESS); payment.setCompletedAt(Instant.now());
         payment.setAmount(new BigDecimal("200.00"));payment.setCurrency("INR");
-        order.setPayment(payment);payment.setCapturedAt(Instant.now().minusSeconds(7200));payment.setCapturedAmount(new BigDecimal("200"));order.setAllocationCompletedAt(payment.getCapturedAt());order.establishConfirmation(payment.getCapturedAt());
+        order.setPayment(payment);payment.setCapturedAt(Instant.now().minusSeconds(7200));payment.setCapturedAmount(new BigDecimal("200"));payment.setCaptureVerifiedAt(payment.getCapturedAt());payment.setCaptureEvidenceId("test-reader-proof");order.setAllocationCompletedAt(payment.getCapturedAt());order.establishConfirmation(payment.getCapturedAt());
         line = new OrderLine(); line.setId(1L);line.setFulfillmentId("FUL-1");line.setOrderLineNumber(1); line.setOrderedQty(2); line.setUnitPrice(new BigDecimal("100.00"));
         line.setOrderLineStatus(OrderLineStatus.CONFIRMED); order.addOrderLine(line);
 

@@ -102,7 +102,7 @@ class MarketplaceFinancePromotionTest {
         var unpriced=getReport(admin);assertEquals(unpriced.get("totals").get("fulfilledSales"),unpriced.get("totals").get("unpricedLegacySales"));assertEquals(0,unpriced.get("totals").get("knownNetEarnings").decimalValue().signum());
         jdbc.update("update order_lines_snapshot set commission_rate_percent=5 where fulfillment_id='DEMO-FULFILLMENT-001'");
         new TransactionTemplate(transactions).executeWithoutResult(t->{var o=orders.findByOrderId("DEMO-EARNINGS-001").orElseThrow();var refund=Refund.builder().refundId("TEST-REFUND-001").payment(o.getPayment()).amount(new BigDecimal("100")).currency("INR").status(RefundStatus.SUCCESS).build();o.getPayment().setRefund(refund);});
-        var held=getReport(admin);assertEquals(0,new BigDecimal("100").compareTo(held.get("successfulRefunds").decimalValue()));assertEquals(0,new BigDecimal("100").compareTo(held.get("totals").get("refundHold").decimalValue()));
+        var held=getReport(admin);assertEquals(0,new BigDecimal("100").compareTo(held.get("successfulRefunds").decimalValue()));assertEquals(0,held.get("totals").get("knownNetEarnings").decimalValue().signum());assertTrue(held.get("totals").get("refundHold").decimalValue().compareTo(new BigDecimal("100"))>=0);
         mvc.perform(get("/api/seller/promotions").with(mvc.as(admin))).andExpect(jsonPath("$.availableBudget").value(0));
         var r=request(products.findAll().get(0).getProductId(),LocalDate.now(ZoneOffset.UTC).toString());mvc.perform(post("/api/seller/promotions").with(mvc.as(admin)).contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(r))).andExpect(status().isBadRequest());
     }

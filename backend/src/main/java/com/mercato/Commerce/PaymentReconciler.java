@@ -217,6 +217,11 @@ public class PaymentReconciler {
         if(event.has("amount")&&PaymentRules.decimal(event.path("amount").asText()).compareTo(refund.getAmount())!=0)throw new PoisonJobException("Refund amount mismatch");
         if(event.has("currency")&&!refund.getCurrency().equals(event.path("currency").asText()))throw new PoisonJobException("Refund currency mismatch");
         if(refund.getStatus()==RefundStatus.SUCCESS)return;
+        if(refund.getExpectedPaymentReference()==null || refund.getExpectedPaymentReference().isBlank())throw new ManualInterventionJobException("Legacy refund primary attempt requires review");
+        if(event.path("paymentIdentity").asText().isBlank()||!event.has("amount")||!event.has("currency")){
+            jobs.enqueue("REFUND_ORDER","refund-reconcile:"+refund.getRefundId()+":"+event.path("status").asText(),Map.of("refundId",refund.getRefundId()));return;
+        }
+        if(!refund.getExpectedPaymentReference().equals(event.path("paymentIdentity").asText()))throw new ManualInterventionJobException("Refund belongs to another provider payment attempt");
         if("SUCCESS".equals(event.path("status").asText())) {
             refund.setStatus(RefundStatus.SUCCESS);refund.setGatewayReference(event.path("providerReference").asText());
             obligations.completed(order,refund);
