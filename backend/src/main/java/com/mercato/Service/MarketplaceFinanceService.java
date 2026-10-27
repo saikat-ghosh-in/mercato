@@ -108,7 +108,7 @@ public class MarketplaceFinanceService {
                 BigDecimal gross=units(line,line.getShippedQty());
                 BigDecimal returned=fullRefund?gross:BigDecimal.ZERO;
                 BigDecimal charge=com.mercato.Utils.CommissionMath.forUnits(line.getUnitPrice(),fullRefund?0:line.getShippedQty(),line.getCommissionRatePercent(),line.getCommissionCapPerItem());
-                BigDecimal delivery = fullRefund || line.getSellerDeliveryCharge() == null ? BigDecimal.ZERO : money(line.getSellerDeliveryCharge().multiply(BigDecimal.valueOf(line.getShippedQty())).divide(BigDecimal.valueOf(line.getOrderedQty()), 10, RoundingMode.HALF_UP));
+                BigDecimal delivery = line.getSellerDeliveryCharge() == null ? BigDecimal.ZERO : money(line.getSellerDeliveryCharge().multiply(BigDecimal.valueOf(line.getShippedQty())).divide(BigDecimal.valueOf(line.getOrderedQty()), 10, RoundingMode.HALF_UP));
                 BigDecimal reversal=BigDecimal.ZERO,linePending=BigDecimal.ZERO;
                 BigDecimal unknown=line.getCommissionRatePercent()==null?gross.subtract(returned):BigDecimal.ZERO;
                 BigDecimal cancelled=units(line,line.getCancelledQty());

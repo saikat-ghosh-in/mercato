@@ -30,6 +30,7 @@ class MarketplaceFinancePromotionTest {
     @Autowired UserRepository users; @Autowired RoleRepository roles;
     @Autowired org.springframework.jdbc.core.JdbcTemplate jdbc;
     @Autowired jakarta.persistence.EntityManager entities;
+    @Autowired MarketplaceFinanceService finance;
     String login(String name,String password)throws Exception {return mvc.login(name,password);}
     JsonNode getReport(String token)throws Exception{return json.readTree(mvc.perform(get("/api/admin/finance").with(mvc.as(token))).andExpect(status().isOk()).andReturn().getResponse().getContentAsString());}
     Map<String,Object> request(String product,String start){Map<String,Object> r=new HashMap<>();r.put("productId",product);r.put("tier","DISCOVERY");r.put("durationDays",3);r.put("startDate",start);r.put("expectedFee",147);r.put("requestId",UUID.randomUUID().toString());r.put("authorizeDeduction",true);return r;}
@@ -118,6 +119,17 @@ class MarketplaceFinancePromotionTest {
     }
 
     @Test @org.springframework.transaction.annotation.Transactional
+    void verifiedLegacyFullRefundRetainsKnownShippedDeliveryAcrossFinanceMonthlyAndBudget() throws Exception {
+        String admin=login("reviewer","ReviewOnly!2026");var seller=users.findByUsername("reviewer").orElseThrow();var baseline=getReport(admin);BigDecimal originalNet=baseline.get("totals").get("knownNetEarnings").decimalValue();
+        var originalMonthly=finance.monthlyReport(seller.getUserId(),YearMonth.now(ZoneOffset.UTC),ZoneOffset.UTC);BigDecimal monthlyNet=(BigDecimal)((Map<?,?>)originalMonthly.get("totals")).get("knownNetEarnings");
+        var o=new com.mercato.Entity.fulfillment.Order();o.setOrderId("LEGACY-REFUNDED-DELIVERY");o.setCustomerName("Synthetic buyer");o.setCustomerEmail("synthetic@test.invalid");o.setOrderStatus(OrderStatus.CREATED);o.setPaymentStatus(PaymentStatus.REFUNDED);o.setRecipientName("Synthetic buyer");o.setRecipientPhone("9999999999");o.setDeliveryAddressLine1("Synthetic address");o.setDeliveryCity("City");o.setDeliveryState("State");o.setDeliveryPincode("123456");o.setCurrency("INR");o.setSubtotal(new BigDecimal("200"));o.setCharges(BigDecimal.ZERO);o.setTotalAmount(new BigDecimal("200"));
+        o.addOrderLine(OrderLine.builder().fulfillmentId("LEGACY-DELIVERY-F").orderLineNumber(1).productId(products.findAll().get(0).getProductId()).productName("Synthetic legacy sale").unitPrice(new BigDecimal("100")).orderedQty(2).acceptedQty(1).preparingQty(1).packedQty(1).shippedQty(1).lineTotal(new BigDecimal("200")).sellerName("Seller").sellerEmail(seller.getEmail()).commissionRatePercent(new BigDecimal("0.5")).sellerDeliveryCharge(new BigDecimal("50")).orderLineStatus(OrderLineStatus.FULFILLED).build());
+        var p=new Payment();p.setAmount(o.getTotalAmount());p.setCurrency("INR");p.setPaymentMethod(PaymentMethod.UPI);p.setStatus(PaymentStatus.REFUNDED);p.setCapturedAmount(o.getTotalAmount());p.setCapturedAt(Instant.now());p.setCaptureVerifiedAt(p.getCapturedAt());p.setCaptureEvidenceId("synthetic-legacy-reader-proof");o.attachPayment(p);o.setOrderStatus(OrderStatus.FULFILLMENT_COMPLETE);p.setRefund(Refund.builder().refundId("LEGACY-DELIVERY-REFUND").payment(p).amount(o.getTotalAmount()).currency("INR").status(RefundStatus.SUCCESS).build());orders.saveAndFlush(o);
+        var report=getReport(admin);assertEquals(0,new BigDecimal("25").compareTo(report.get("totals").get("sellerPaidDelivery").decimalValue()));assertEquals(0,originalNet.subtract(new BigDecimal("25")).compareTo(report.get("totals").get("knownNetEarnings").decimalValue()));
+        var monthly=finance.monthlyReport(seller.getUserId(),YearMonth.now(ZoneOffset.UTC),ZoneOffset.UTC);assertEquals(0,new BigDecimal("25").compareTo((BigDecimal)((Map<?,?>)monthly.get("totals")).get("sellerPaidDelivery")));assertEquals(0,monthlyNet.subtract(new BigDecimal("25")).compareTo((BigDecimal)((Map<?,?>)monthly.get("totals")).get("knownNetEarnings")));
+        mvc.perform(get("/api/seller/promotions").with(mvc.as(admin))).andExpect(status().isOk()).andExpect(jsonPath("$.availableBudget").value(originalNet.subtract(new BigDecimal("25")).doubleValue()));
+    }
+    @Test @org.springframework.transaction.annotation.Transactional
     void cappedSnapshotIsSharedByFinanceAndPromotionFundingAndRefundReversal() throws Exception {
         String admin=login("reviewer","ReviewOnly!2026");
         jdbc.update("update order_lines_snapshot set unit_price=200000, shipped_qty=2, line_total=400000, commission_rate_percent=0.5, commission_cap_per_item=500, seller_delivery_charge=250 where fulfillment_id='DEMO-FULFILLMENT-001'");
@@ -134,7 +146,7 @@ class MarketplaceFinancePromotionTest {
         order.getPayment().setRefund(Refund.builder().refundId("CAPPED-FULL-REFUND").payment(order.getPayment()).amount(order.getTotalAmount()).currency("INR").status(RefundStatus.SUCCESS).build());
         orders.flush();
         assertEquals(0,getReport(admin).get("totals").get("commission").decimalValue().signum());
-        assertEquals(0,getReport(admin).get("totals").get("sellerPaidDelivery").decimalValue().signum());
+        assertEquals(0,new BigDecimal("125").compareTo(getReport(admin).get("totals").get("sellerPaidDelivery").decimalValue()));
         mvc.perform(get("/api/seller/promotions").with(mvc.as(admin))).andExpect(jsonPath("$.availableBudget").value(0));
     }
 }

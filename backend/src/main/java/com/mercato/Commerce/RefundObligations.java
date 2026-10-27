@@ -26,7 +26,7 @@ public class RefundObligations {
     @Transactional public void allocationFailed(String id){var o=orders.lockByOrderId(id).orElseThrow();o.setInventoryFinalizationFailed(true);full(o,"Paid items unavailable");}
     @Transactional public void cancelled(Order order){
         if(order.getPayment()==null || order.getPayment().getCapturedAt()==null)return;
-        request(order,order.getOrderLines().stream().allMatch(l->l.getCancelledQty()==l.getOrderedQty()),"Order cancellation");
+        request(order,UnitFinancials.closed(order)||order.getOrderLines().stream().allMatch(l->l.getCancelledQty()==l.getOrderedQty()),"Order cancellation");
     }
     /** Caller established physical receipt/approval and recorded its guarded command in this transaction. */
     @Transactional public void approvedReturn(Order order){request(order,UnitFinancials.closed(order),"Approved received return");}

@@ -88,6 +88,17 @@ class PostgresPracticalFinanceTest {
         var states=hooks.units(id);assertEquals("PACKED",states.stream().filter(u->u.unitId().equals(id+"U1")).findFirst().orElseThrow().stage());assertEquals("SHIPPED",states.stream().filter(u->u.unitId().equals(id+"U3")).findFirst().orElseThrow().stage());assertEquals(before+1,version());assertEquals(1,jdbc.queryForObject("select count(*) from fulfillment_commands where order_id=? and operation_id='parcel'",Integer.class,id));
         tx.executeWithoutResult(t->{var o=orders.lockByOrderId(id).orElseThrow();assertThrows(RuntimeException.class,()->hooks.requireShippable(o,List.of(id+"U3")));});
     }
+    @Test void finalCancellationAfterReceivedReturnClosesAllBuyerFeesAndReplays(){
+        ACTOR.set(buyer);updates.updateOrderLine(request(OrderLineAction.CANCEL,1,"first-cancel"),TransitionTrigger.CUSTOMER);
+        ACTOR.set(seller);updates.updateOrderLine(request(OrderLineAction.ACCEPT,1,"accept"),TransitionTrigger.SELLER);updates.updateOrderLine(request(OrderLineAction.START_PREPARING,1,"prepare"),TransitionTrigger.SELLER);updates.updateOrderLine(request(OrderLineAction.MARK_PACKED,1,"pack"),TransitionTrigger.SELLER);
+        ACTOR.set(admin);updates.updateOrderLine(request(OrderLineAction.SHIP,1,"ship"),TransitionTrigger.ADMIN);
+        long receivedVersion=version();tx.executeWithoutResult(t->hooks.approveReceivedUnits(id,List.of(id+"U2"),"Task5-validated-receipt","return",receivedVersion));
+        assertEquals(new BigDecimal("232.00"),jdbc.queryForObject("select sum(r.amount) from refunds r join payments p on r.payment_fk=p.id join order_snapshot o on o.payment_fk=p.id where o.order_id=?",BigDecimal.class,id));
+        ACTOR.set(buyer);var last=request(OrderLineAction.CANCEL,1,"last-cancel");updates.updateOrderLine(last,TransitionTrigger.CUSTOMER);updates.updateOrderLine(last,TransitionTrigger.CUSTOMER);
+        assertEquals(new BigDecimal("363.00"),jdbc.queryForObject("select sum(r.amount) from refunds r join payments p on r.payment_fk=p.id join order_snapshot o on o.payment_fk=p.id where o.order_id=?",BigDecimal.class,id));
+        assertEquals(3,jdbc.queryForObject("select count(*) from refunds r join payments p on r.payment_fk=p.id join order_snapshot o on o.payment_fk=p.id where o.order_id=?",Integer.class,id));
+        assertEquals(1,jdbc.queryForObject("select shipped_qty from order_lines_snapshot where fulfillment_id=?",Integer.class,fulfillment));assertEquals(2,jdbc.queryForObject("select cancelled_qty from order_lines_snapshot where fulfillment_id=?",Integer.class,fulfillment));assertEquals(0,jdbc.queryForObject("select reserved_qty from products where product_id=?",Integer.class,id+"P"));
+    }
     @Test void simultaneousSameCancellationCannotDuplicateRefundOrInventoryRelease()throws Exception{
         var r=request(OrderLineAction.CANCEL,1,"concurrent");var pool=java.util.concurrent.Executors.newFixedThreadPool(2);var start=new java.util.concurrent.CountDownLatch(1);
         try{var a=pool.submit(()->{ACTOR.set(buyer);start.await();return updates.updateOrderLine(r,TransitionTrigger.CUSTOMER);});var b=pool.submit(()->{ACTOR.set(buyer);start.await();return updates.updateOrderLine(r,TransitionTrigger.CUSTOMER);});start.countDown();a.get(20,java.util.concurrent.TimeUnit.SECONDS);b.get(20,java.util.concurrent.TimeUnit.SECONDS);}finally{pool.shutdownNow();}

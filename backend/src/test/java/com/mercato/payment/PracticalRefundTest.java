@@ -44,6 +44,16 @@ class PracticalRefundTest {
         UnitFinancials.transition(l,OrderLineAction.SHIP,1,TransitionTrigger.ADMIN,"s",Instant.now());l.ship(1);
         assertEquals("SHIPPED",l.getMoneyUnits().get(0).getState().getStage());assertThrows(IllegalArgumentException.class,()->UnitFinancials.transition(l,OrderLineAction.CANCEL,1,TransitionTrigger.SELLER,"x",Instant.now()));
     }
+    @Test void cancellationAfterApprovedReturnRefundsResidualFixedFeesAndReplays(){
+        var o=order();var l=o.getOrderLines().get(0);var history=new ArrayList<Refund>();var repo=mock(RefundRepository.class);
+        when(repo.findByPayment_IdOrderByIdAsc(1L)).thenReturn(history);when(repo.findByRefundId(anyString())).thenAnswer(c->history.stream().filter(r->r.getRefundId().equals(c.getArgument(0))).findFirst());
+        when(repo.saveAndFlush(any())).thenAnswer(c->{Refund r=c.getArgument(0);history.add(r);return r;});var service=new RefundObligations(repo,mock(OrderRepository.class),mock(DurableJobs.class));
+        var returned=l.getMoneyUnits().get(0).getState();returned.setStage("RETURNED");returned.setCause("RETURN_APPROVED");returned.setShippedAt(Instant.now());returned.setReturnApprovedAt(Instant.now());l.setAcceptedQty(1);l.setPreparingQty(1);l.setPackedQty(1);l.setShippedQty(1);
+        service.approvedReturn(o);assertEquals(new BigDecimal("121.00"),history.get(0).getAmount());
+        UnitFinancials.transition(l,OrderLineAction.CANCEL,1,TransitionTrigger.CUSTOMER,"last-cancel",Instant.now());l.cancel(1);service.cancelled(o);
+        assertEquals(new BigDecimal("242.00"),history.stream().map(Refund::getAmount).reduce(BigDecimal.ZERO,BigDecimal::add));
+        service.cancelled(o);assertEquals(2,history.size());assertEquals(1,l.getShippedQty());
+    }
     @Test void unassignedRefundCannotConsumeSurvivingUnitFunding(){var o=order();var r=Refund.builder().amount(new BigDecimal("1")).status(RefundStatus.PENDING).build();o.getPayment().getRefunds().add(r);assertFalse(new com.mercato.Service.FulfillmentFunding().verified(o));}
     @Test void unexpectedPartialCaptureAndHaltNeverGrantEntitlement(){var o=order();o.getPayment().setCapturedAmount(new BigDecimal("121"));assertFalse(new com.mercato.Service.FulfillmentFunding().verified(o));o.getPayment().setCapturedAmount(o.getTotalAmount());o.getPayment().setFinancialHalt(true);assertFalse(new com.mercato.Service.FulfillmentFunding().verified(o));}
     @Test void historicalObservationWithoutReaderProofIsNotCollection(){var o=order();o.getPayment().setCaptureEvidenceId(null);o.getPayment().setCaptureVerifiedAt(null);assertFalse(MarketplaceFinanceService.paid(o));}
