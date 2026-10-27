@@ -22,7 +22,12 @@ class PostgresMoneyUnitMigrationTest {
                 assertTrue(r.next());assertNull(r.getObject(1));assertNull(r.getObject(2));assertNull(r.getObject(3));
             }
             try(var s=c.createStatement();var r=s.executeQuery("SELECT count(*) FROM order_money_units")){assertTrue(r.next());assertEquals(0,r.getInt(1));}
+            try(var s=c.createStatement();var r=s.executeQuery("SELECT retry_cart_item_id,retry_selection_generation FROM order_lines_snapshot WHERE id=1")) {
+                assertTrue(r.next());assertNull(r.getObject(1));assertNull(r.getObject(2));
+            }
             try(var s=c.createStatement()) {
+                assertThrows(SQLException.class,()->s.execute("UPDATE order_lines_snapshot SET retry_cart_item_id=123 WHERE id=1"));
+                s.execute("UPDATE order_lines_snapshot SET retry_cart_item_id=123,retry_selection_generation='explicit-retry' WHERE id=1");
                 s.execute("INSERT INTO order_money_units(unit_id,order_line_fk,unit_number,financial_policy_version,net_merchandise_paise,price_provenance,buyer_normal_delivery_paise,buyer_expedited_delivery_paise,platform_paise,handling_paise,seller_delivery_paise,commission_policy) VALUES('synthetic-unit',1,1,1,1000,'UNKNOWN',0,0,0,0,0,'UNKNOWN')");
                 assertThrows(SQLException.class,()->s.execute("UPDATE order_money_units SET net_merchandise_paise=999 WHERE unit_id='synthetic-unit'"));
                 assertThrows(SQLException.class,()->s.execute("DELETE FROM order_money_units WHERE unit_id='synthetic-unit'"));

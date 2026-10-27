@@ -253,8 +253,10 @@ public class CartServiceImpl implements CartService {
     public Cart lockCartForMutation(Long id){var cart=lockRow(id);lockProducts(List.of(cart),List.of());return cart;}
 
     public static boolean sameSelection(CartItem item,com.mercato.Entity.fulfillment.OrderLine line) {
-        return line.getSourceCartItemId()!=null && line.getSourceCartItemId().equals(item.getCartItemId())
-            && line.getSourceSelectionGeneration()!=null && line.getSourceSelectionGeneration().equals(item.getSelectionGeneration());
+        return (line.getSourceCartItemId()!=null && line.getSourceCartItemId().equals(item.getCartItemId())
+            && line.getSourceSelectionGeneration()!=null && line.getSourceSelectionGeneration().equals(item.getSelectionGeneration()))
+            || (line.getRetryCartItemId()!=null && line.getRetryCartItemId().equals(item.getCartItemId())
+            && line.getRetrySelectionGeneration()!=null && line.getRetrySelectionGeneration().equals(item.getSelectionGeneration()));
     }
 
     @Override

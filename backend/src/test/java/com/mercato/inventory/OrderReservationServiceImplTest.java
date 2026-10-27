@@ -214,6 +214,14 @@ class OrderReservationServiceImplTest {
         assertEquals(ORDER_QTY, product.getReservedQty(), "transfer moves hold without net reservedQty change");
         assertTrue(cartReservationDeleted.get());
     }
+    @Test void explicitRetryBindingTransfersWithoutRewritingOriginalSelection() {
+        String original=orderLine.getSourceSelectionGeneration();
+        cartItem.setCartItemId(CART_ITEM_ID);cartItem.setSelectionGeneration("retry-generation");
+        orderLine.setRetryCartItemId(CART_ITEM_ID);orderLine.setRetrySelectionGeneration("retry-generation");
+        orderReservationService.finalizeInventoryForPaidOrder(order,cart);
+        assertEquals(ORDER_QTY,product.getReservedQty());assertTrue(cartReservationDeleted.get());
+        assertEquals(original,orderLine.getSourceSelectionGeneration());
+    }
 
     @Test
     void uniqueConstraintFailureRollsBackInsteadOfContinuingAnAbortedPostgresTransaction() {

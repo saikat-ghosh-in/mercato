@@ -116,6 +116,11 @@ public class OrderLine {
     private Long sourceCartItemId;
     @Column(updatable=false,length=36)
     private String sourceSelectionGeneration;
+    // Mutable retry authorization, separate from the immutable checkout quote lineage.
+    @Column
+    private Long retryCartItemId;
+    @Column(length=36)
+    private String retrySelectionGeneration;
     @OneToMany(mappedBy="orderLine",cascade=CascadeType.ALL)
     @OrderBy("unitNumber")
     @Builder.Default

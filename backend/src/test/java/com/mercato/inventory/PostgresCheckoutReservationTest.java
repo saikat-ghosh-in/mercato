@@ -41,7 +41,8 @@ class PostgresCheckoutReservationTest {
     @Configuration @EnableAutoConfiguration
     @EntityScan(basePackages={"com.mercato.Entity","com.mercato.Commerce","com.mercato.Jobs"})
     @EnableJpaRepositories(basePackages={"com.mercato.Repository","com.mercato.Commerce"})
-    @Import({OrderServiceImpl.class,CartServiceImpl.class,CartReservationServiceImpl.class,CartPricingServiceImpl.class,PackageDeliveryPricing.class})
+    @Import({OrderServiceImpl.class,CartServiceImpl.class,CartReservationServiceImpl.class,CartPricingServiceImpl.class,PackageDeliveryPricing.class,
+        OrderRetryHoldService.class,OrderReservationServiceImpl.class,com.mercato.Commerce.PaidOrderAllocation.class})
     static class Config {
         @Bean WorkflowCommands workflowCommands(){return mock(WorkflowCommands.class);}
         @Bean FulfillmentCancellation cancellation(){return mock(FulfillmentCancellation.class);}
@@ -50,7 +51,10 @@ class PostgresCheckoutReservationTest {
         @Bean CashfreeService cashfree(){return mock(CashfreeService.class);}
         @Bean CommissionService commissions(){return mock(CommissionService.class);}
         @Bean OrderLineUpdateService updates(){return mock(OrderLineUpdateService.class);}
-        @Bean OrderRetryHoldService retryHolds(){return mock(OrderRetryHoldService.class);}
+        @Bean java.time.Clock clock(){return java.time.Clock.systemUTC();}
+        @Bean FulfillmentFunding funding(){return new FulfillmentFunding();}
+        @Bean FulfillmentDeadlines deadlines(){return mock(FulfillmentDeadlines.class);}
+        @Bean com.mercato.Jobs.DurableJobs jobs(){return mock(com.mercato.Jobs.DurableJobs.class);}
         @Bean com.mercato.Commerce.RefundObligations refunds(){return mock(com.mercato.Commerce.RefundObligations.class);}
     }
     @DynamicPropertySource static void postgres(DynamicPropertyRegistry p){
@@ -65,6 +69,7 @@ class PostgresCheckoutReservationTest {
     @Autowired CartPricingService pricing; @Autowired OrderService orderService; @Autowired AuthUtil auth;
     @Autowired CartService cartService;
     @Autowired CashfreeService cashfree; @Autowired CommissionService commissions;
+    @Autowired com.mercato.Commerce.PaidOrderAllocation allocation;
     @Autowired PlatformTransactionManager transactions; @Autowired JdbcTemplate jdbc;
     static final java.util.concurrent.atomic.AtomicLong PHONES=new java.util.concurrent.atomic.AtomicLong(9990000000L);
     TransactionTemplate tx; EcommUser buyer; String first,second,addressId; Long cartId; BigDecimal total;
@@ -159,6 +164,45 @@ class PostgresCheckoutReservationTest {
         cartService.deleteProductFromCart(first,context);cartService.addProductToCart(add(first,3),context);
         tx.executeWithoutResult(status->{var order=orders.lockByOrderId(placed.getOrder().getOrderId()).orElseThrow();cartService.removePurchasedItems(cartService.getCartByUser(buyer),order);});
         assertEquals(3,jdbc.queryForObject("SELECT quantity FROM cart_items i JOIN products p ON p.id=i.product_fk WHERE cart_fk=? AND p.product_id=?",Integer.class,cartId,first));
+    }
+    @Test void retryRestoredMissingSelectionTransfersItsHoldThroughPaidAllocationWithExactStock() {
+        retryRestoredSelectionAllocates(false);
+    }
+    @Test void retryRestoredReducedSelectionTransfersItsHoldThroughPaidAllocationWithExactStock() {
+        retryRestoredSelectionAllocates(true);
+    }
+    void retryRestoredSelectionAllocates(boolean reduce) {
+        String orderId=twoUnitCheckout();var context=new com.mercato.Utils.CartContext(buyer.getUserId(),null);
+        var original=jdbc.queryForMap("SELECT source_cart_item_id,source_selection_generation,unit_price FROM order_lines_snapshot WHERE order_fk=(SELECT id FROM order_snapshot WHERE order_id=?)",orderId);
+        if(reduce){var update=new com.mercato.Payloads.Request.CartItemRequestDTO();update.setProductId(first);update.setQuantity(1);cartService.updateProductQuantityInCart(update,context);}
+        else cartService.deleteProductFromCart(first,context);
+        orderService.retryPayment(orderId);
+        assertEquals(2,reserved(first));
+        assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM order_lines_snapshot l JOIN cart_items i ON i.cart_item_id=l.retry_cart_item_id AND i.selection_generation=l.retry_selection_generation WHERE l.order_fk=(SELECT id FROM order_snapshot WHERE order_id=?)",Integer.class,orderId));
+        tx.executeWithoutResult(status->{var order=orders.lockByOrderId(orderId).orElseThrow();var payment=order.getPayment();payment.setCapturedAmount(order.getTotalAmount());payment.setCapturedAt(Instant.now());payment.setStatus(com.mercato.Entity.fulfillment.payment.PaymentStatus.SUCCESS);});
+        assertDoesNotThrow(()->allocation.allocate(orderId));allocation.allocate(orderId);
+        assertEquals(2,reserved(first));assertEquals(0,holdCount());
+        assertEquals(0,jdbc.queryForObject("SELECT count(*) FROM cart_items WHERE cart_fk=?",Integer.class,cartId));
+        assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM order_reservations WHERE order_fk=(SELECT id FROM order_snapshot WHERE order_id=?)",Integer.class,orderId));
+        assertEquals(2,jdbc.queryForObject("SELECT sum(reserved_qty) FROM order_reservations WHERE order_fk=(SELECT id FROM order_snapshot WHERE order_id=?)",Integer.class,orderId));
+        assertNotNull(jdbc.queryForObject("SELECT allocation_completed_at FROM order_snapshot WHERE order_id=?",java.sql.Timestamp.class,orderId));
+        assertEquals(original,jdbc.queryForMap("SELECT source_cart_item_id,source_selection_generation,unit_price FROM order_lines_snapshot WHERE order_fk=(SELECT id FROM order_snapshot WHERE order_id=?)",orderId));
+    }
+    @Test void unrelatedAdequateNewSelectionCannotReachPaymentWhenItsHoldUsesAllStock() {
+        String orderId=twoUnitCheckout();var context=new com.mercato.Utils.CartContext(buyer.getUserId(),null);
+        cartService.deleteProductFromCart(first,context);cartService.addProductToCart(add(first,2),context);
+        clearInvocations(cashfree);
+        var failure=assertThrows(InsufficientInventoryException.class,()->orderService.retryPayment(orderId));
+        assertEquals(first,failure.getProductId());assertEquals(0,failure.getAvailableQty());verifyNoInteractions(cashfree);
+        assertEquals(2,reserved(first));assertEquals(1,holdCount());
+        assertEquals(2,jdbc.queryForObject("SELECT sum(quantity) FROM cart_items WHERE cart_fk=?",Integer.class,cartId));
+    }
+    String twoUnitCheckout() {
+        var context=new com.mercato.Utils.CartContext(buyer.getUserId(),null);cartService.deleteProductFromCart(second,context);
+        var update=new com.mercato.Payloads.Request.CartItemRequestDTO();update.setProductId(first);update.setQuantity(2);cartService.updateProductQuantityInCart(update,context);
+        jdbc.update("UPDATE products SET physical_qty=2 WHERE product_id=?",first);
+        var quote=cartService.getCart(context);var request=request();request.setExpectedCartVersion(quote.getVersion());request.setExpectedTotal(quote.getTotal());
+        return orderService.placeOrder(request).getOrder().getOrderId();
     }
     @Test void replayAfterBagEditsReturnsTheOriginalSnapshotAndSession() {
         var request=request();var original=orderService.placeOrder(request);

@@ -36,4 +36,13 @@ class CartSelectionProvenanceTest {
         assertEquals(4294967294L,cart.getCartQuantity());
         assertThrows(ArithmeticException.class,()->cart.getCartItems().get(0).addQuantity(1));
     }
+    @Test void reducingOrReplacingARetryBoundSelectionDoesNotAuthorizeItsNewGeneration() {
+        var item=CartItem.builder().cartItemId(100L).quantity(2).unitPrice(BigDecimal.ONE).build();
+        var line=new com.mercato.Entity.fulfillment.OrderLine();line.setRetryCartItemId(item.getCartItemId());line.setRetrySelectionGeneration(item.getSelectionGeneration());
+        assertTrue(com.mercato.Service.CartServiceImpl.sameSelection(item,line));
+        item.updateQuantity(1);assertFalse(com.mercato.Service.CartServiceImpl.sameSelection(item,line));
+        item.addQuantity(1);assertFalse(com.mercato.Service.CartServiceImpl.sameSelection(item,line));
+        var replacement=CartItem.builder().cartItemId(101L).quantity(2).unitPrice(BigDecimal.ONE).build();
+        assertFalse(com.mercato.Service.CartServiceImpl.sameSelection(replacement,line));
+    }
 }
