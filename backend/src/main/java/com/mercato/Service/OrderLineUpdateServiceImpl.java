@@ -43,12 +43,14 @@ public class OrderLineUpdateServiceImpl implements OrderLineUpdateService {
         int unaccepted=line.getOrderedQty()-line.getCancelledQty()-line.getAcceptedQty();
         int acceptedOnly=line.getAcceptedQty()-line.getPreparingQty();
         int preparingOnly=line.getPreparingQty()-line.getPackedQty();
-        com.mercato.Commerce.UnitFinancials.transition(line,request.getAction(),qty,trigger,request.getOperationId(),workflow.now());
+        if(request.getAction()!=OrderLineAction.DELIVER)
+            com.mercato.Commerce.UnitFinancials.transition(line,request.getAction(),qty,trigger,request.getOperationId(),workflow.now());
         switch(request.getAction()) {
             case ACCEPT -> line.accept(qty);
             case START_PREPARING -> line.startPreparing(qty);
             case MARK_PACKED -> line.markPacked(qty);
             case SHIP -> {line.ship(qty);orderReservationService.settleQty(line,qty,OrderLineAction.SHIP);}
+            case DELIVER -> line.deliver(qty);
             case CANCEL -> {line.cancel(qty);line.setOrderLineStatus(line.deriveStatus());orderReservationService.settleQty(line,qty,OrderLineAction.CANCEL);}
             default -> throw new CustomBadRequestException("Unsupported workflow action");
         }

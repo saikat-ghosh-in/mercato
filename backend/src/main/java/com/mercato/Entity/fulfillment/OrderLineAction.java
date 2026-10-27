@@ -6,5 +6,6 @@ public enum OrderLineAction {
     START_PREPARING,
     MARK_PACKED,
     SHIP,
+    DELIVER,
     CANCEL
 }

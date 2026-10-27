@@ -102,6 +102,43 @@ class PostgresQuantityWorkflowTest {
     }
     OrderLineUpdateRequestDTO request(OrderLineAction action,int qty,long version,String operation){var r=new OrderLineUpdateRequestDTO();r.setFulfillmentId(fulfillment);r.setOrderLineNumber(1);r.setAction(action);r.setQty(qty);r.setExpectedVersion(version);r.setOperationId(operation);r.setReason("Synthetic test reason");return r;}
     OrderLine snapshot(){return tx.execute(t->orders.findByOrderId(orderId).orElseThrow().getOrderLines().get(0));}
+    void packAll(){
+        updates.updateOrderLine(request(OrderLineAction.ACCEPT,10,0,"accept"),TransitionTrigger.SELLER);
+        updates.updateOrderLine(request(OrderLineAction.START_PREPARING,10,1,"prepare"),TransitionTrigger.SELLER);
+        updates.updateOrderLine(request(OrderLineAction.MARK_PACKED,10,2,"pack"),TransitionTrigger.SELLER);
+    }
+    void currentCaptureProof(){tx.executeWithoutResult(t->{var p=orders.lockByOrderId(orderId).orElseThrow().getPayment();p.setCaptureVerifiedAt(CONFIRMED);p.setCaptureEvidenceId("synthetic-reader-proof");});}
+    @Test void historicalCaptureCannotAuthorizePhysicalHandoff(){
+        packAll();
+        assertThrows(com.mercato.ExceptionHandler.CustomBadRequestException.class,()->updates.updateOrderLine(request(OrderLineAction.SHIP,1,3,"legacy-ship"),TransitionTrigger.ADMIN));
+        assertEquals(0,snapshot().getShippedQty());
+    }
+    @Test void adminDeliveryRecordsRealProgressAndReplaysWithoutInventoryOrMoneyChanges(){
+        packAll();currentCaptureProof();
+        updates.updateOrderLine(request(OrderLineAction.SHIP,10,3,"ship"),TransitionTrigger.ADMIN);
+        var deliver=OrderLineAction.valueOf("DELIVER");
+        var r=request(deliver,4,4,"deliver-part");var first=updates.updateOrderLine(r,TransitionTrigger.ADMIN);
+        assertEquals(4,first.getWorkflow().deliveredQty());assertEquals(6,first.getWorkflow().actionMaxima().get("DELIVER"));
+        assertEquals(4,updates.updateOrderLine(r,TransitionTrigger.ADMIN).getWorkflow().deliveredQty());
+        r.setQty(5);assertThrows(org.springframework.web.server.ResponseStatusException.class,()->updates.updateOrderLine(r,TransitionTrigger.ADMIN));
+        assertThrows(org.springframework.web.server.ResponseStatusException.class,()->updates.updateOrderLine(request(deliver,1,4,"stale-deliver"),TransitionTrigger.ADMIN));
+        assertThrows(com.mercato.ExceptionHandler.CustomBadRequestException.class,()->updates.updateOrderLine(request(deliver,7,5,"too-many"),TransitionTrigger.ADMIN));
+        assertThrows(com.mercato.ExceptionHandler.CustomBadRequestException.class,()->updates.updateOrderLine(request(deliver,1,5,"seller-deliver"),TransitionTrigger.SELLER));
+        IDENTITY.set("buyer@test.invalid");assertThrows(com.mercato.ExceptionHandler.CustomBadRequestException.class,()->updates.updateOrderLine(request(deliver,1,5,"buyer-deliver"),TransitionTrigger.CUSTOMER));
+        clock.value.set(CONFIRMED.plusSeconds(9000));var full=updates.updateOrderLine(request(deliver,6,5,"deliver-rest"),TransitionTrigger.ADMIN);
+        assertEquals("DELIVERED",full.getWorkflow().state());assertEquals(10,snapshot().getShippedQty());
+        assertEquals(10,jdbc.queryForObject("SELECT physical_qty FROM products WHERE product_id=?",Integer.class,orderId+"-P"));
+        assertEquals(0,jdbc.queryForObject("SELECT reserved_qty FROM products WHERE product_id=?",Integer.class,orderId+"-P"));
+        assertEquals(java.sql.Timestamp.from(clock.instant()),jdbc.queryForObject("SELECT max(occurred_at) FROM order_line_state_transitions WHERE action='DELIVER' AND order_line_fk=?",java.sql.Timestamp.class,snapshot().getId()));
+        verifyNoInteractions(refundService);
+    }
+    @Test void deliveryRejectsUnshippedAndLostCurrentProof(){
+        packAll();currentCaptureProof();var deliver=OrderLineAction.valueOf("DELIVER");
+        assertThrows(com.mercato.ExceptionHandler.CustomBadRequestException.class,()->updates.updateOrderLine(request(deliver,1,3,"unshipped"),TransitionTrigger.ADMIN));
+        updates.updateOrderLine(request(OrderLineAction.SHIP,2,3,"ship"),TransitionTrigger.ADMIN);
+        tx.executeWithoutResult(t->orders.lockByOrderId(orderId).orElseThrow().getPayment().setCaptureEvidenceId(null));
+        assertThrows(com.mercato.ExceptionHandler.CustomBadRequestException.class,()->updates.updateOrderLine(request(deliver,1,4,"unproven"),TransitionTrigger.ADMIN));
+    }
     void addSecondLine(boolean prepared,String seller){tx.executeWithoutResult(t->{
         var o=orders.lockByOrderId(orderId).orElseThrow();var first=o.getOrderLines().get(0);
         var p=products.findByProductIdForUpdate(first.getProductId()).orElseThrow();p.adjustReservedQty(2);
@@ -224,6 +261,7 @@ class PostgresQuantityWorkflowTest {
         assertEquals(0,jdbc.queryForObject("SELECT count(*) FROM durable_jobs WHERE business_key LIKE ?",Integer.class,"fulfillment:"+orderId+":%"));
     }
     @Test void packedUnitsRequireLogisticsAndSellerCancellationNeverChangesShippedHistory(){
+        currentCaptureProof();
         updates.updateOrderLine(request(OrderLineAction.ACCEPT,10,0,"accept"),TransitionTrigger.SELLER);
         updates.updateOrderLine(request(OrderLineAction.START_PREPARING,10,1,"prepare"),TransitionTrigger.SELLER);
         updates.updateOrderLine(request(OrderLineAction.MARK_PACKED,10,2,"pack"),TransitionTrigger.SELLER);

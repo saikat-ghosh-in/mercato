@@ -214,6 +214,12 @@ public class OrderLine {
         this.revenue = this.unitPrice.multiply(BigDecimal.valueOf(this.shippedQty));
     }
 
+    public void deliver(int qty) {
+        if (qty <= 0 || qty > shippedQty - deliveredQty)
+            throw new IllegalArgumentException("Delivery quantity exceeds undelivered shipped units");
+        deliveredQty += qty;
+    }
+
     public void cancel(int qty) {
         if (qty <= 0)
             throw new IllegalArgumentException("Cancelled qty must be greater than 0");

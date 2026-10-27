@@ -74,6 +74,9 @@ class PostgresPracticalFinanceTest {
         ACTOR.set(seller);updates.updateOrderLine(request(OrderLineAction.ACCEPT,2,"accept"),TransitionTrigger.SELLER);updates.updateOrderLine(request(OrderLineAction.START_PREPARING,2,"prepare"),TransitionTrigger.SELLER);updates.updateOrderLine(request(OrderLineAction.MARK_PACKED,2,"pack"),TransitionTrigger.SELLER);
         tx.executeWithoutResult(t->{var o=orders.lockByOrderId(id).orElseThrow();assertEquals(2,hooks.requireShippable(o,List.of(id+"U2",id+"U3")).size());assertThrows(RuntimeException.class,()->hooks.requireShippable(o,List.of(id+"U1")));});
         ACTOR.set(admin);updates.updateOrderLine(request(OrderLineAction.SHIP,2,"ship"),TransitionTrigger.ADMIN);
+        updates.updateOrderLine(request(OrderLineAction.valueOf("DELIVER"),2,"deliver"),TransitionTrigger.ADMIN);
+        assertEquals(2,hooks.units(id).stream().filter(u->u.stage().equals("SHIPPED")).count());
+        assertEquals(2,jdbc.queryForObject("select delivered_qty from order_lines_snapshot where fulfillment_id=?",Integer.class,fulfillment));
         assertEquals(new BigDecimal("189.00"),finance.netEarnings(seller,false,Instant.EPOCH,NOW.plusSeconds(1)));assertEquals(new BigDecimal("189.00"),finance.availableBudget(seller));
         long v=version();tx.executeWithoutResult(t->hooks.approveReceivedUnits(id,List.of(id+"U2",id+"U3"),"Task5-validated-receipt","return",v));tx.executeWithoutResult(t->hooks.approveReceivedUnits(id,List.of(id+"U3",id+"U2"),"Task5-validated-receipt","return",v));
         assertEquals(new BigDecimal("363.00"),jdbc.queryForObject("select sum(r.amount) from refunds r join payments p on r.payment_fk=p.id join order_snapshot o on o.payment_fk=p.id where o.order_id=?",BigDecimal.class,id));

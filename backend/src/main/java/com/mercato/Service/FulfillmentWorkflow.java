@@ -17,7 +17,7 @@ public class FulfillmentWorkflow {
             Instant workflowPolicyAdoptedAt, Instant effectiveSellerActionsAvailableAt, Instant serverNow, Map<String,Integer> actionMaxima, Map<String,String> blockedReasons, List<String> allowedActions, boolean reviewRequired, String reviewReason) {}
     public Projection project(OrderLine line, TransitionTrigger actor) {
         var o=line.getOrder(); var now=now(); var maxima=new LinkedHashMap<String,Integer>();var reasons=new LinkedHashMap<String,String>();
-        for(var action:List.of(OrderLineAction.ACCEPT,OrderLineAction.START_PREPARING,OrderLineAction.MARK_PACKED,OrderLineAction.CANCEL,OrderLineAction.SHIP)) {
+        for(var action:List.of(OrderLineAction.ACCEPT,OrderLineAction.START_PREPARING,OrderLineAction.MARK_PACKED,OrderLineAction.CANCEL,OrderLineAction.SHIP,OrderLineAction.DELIVER)) {
             String blocked=blocked(line,actor,action,now); int max=blocked==null?quantityMax(line,actor,action):0;
             if(blocked==null&&max==0)blocked="NO_ELIGIBLE_QUANTITY";
             maxima.put(action.name(),max); if(blocked!=null)reasons.put(action.name(),blocked);
@@ -63,7 +63,8 @@ public class FulfillmentWorkflow {
         var o=line.getOrder();
         if(o.isWorkflowReviewRequired() || o.getWorkflowVersion()!=2 || !line.validQuantities())return "WORKFLOW_REVIEW_REQUIRED";
         if(actor==TransitionTrigger.CUSTOMER && action!=OrderLineAction.CANCEL)return "CUSTOMER_CANCEL_ONLY";
-        if(actor==TransitionTrigger.SELLER && action==OrderLineAction.SHIP)return "LOGISTICS_HANDOFF_REQUIRED";
+        if((action==OrderLineAction.SHIP||action==OrderLineAction.DELIVER) && actor!=TransitionTrigger.ADMIN)return "LOGISTICS_HANDOFF_REQUIRED";
+        if((action==OrderLineAction.SHIP||action==OrderLineAction.DELIVER) && !FulfillmentFunding.provenCollection(o))return "CURRENT_CAPTURE_PROOF_REQUIRED";
         if(action==OrderLineAction.CANCEL && (actor==TransitionTrigger.CUSTOMER||actor==TransitionTrigger.ADMIN) && o.getConfirmedAt()==null && o.getAllocationCompletedAt()==null && !funding.verified(o))return null;
         if(!funding.verified(o)||o.getAllocationCompletedAt()==null||o.getConfirmedAt()==null||o.isInventoryFinalizationFailed())return "VERIFIED_FUNDING_AND_ALLOCATION_REQUIRED";
         if(actor==TransitionTrigger.SELLER && (releaseAt(o)==null||now.isBefore(releaseAt(o))))return "SELLER_HOLD";
@@ -76,6 +77,7 @@ public class FulfillmentWorkflow {
             case START_PREPARING -> l.getAcceptedQty()-l.getPreparingQty();
             case MARK_PACKED -> l.getPreparingQty()-l.getPackedQty();
             case SHIP -> l.getPackedQty()-l.getShippedQty();
+            case DELIVER -> l.getShippedQty()-l.getDeliveredQty();
             case CANCEL -> l.getOrderedQty()-l.getCancelledQty()-(actor==TransitionTrigger.CUSTOMER?l.getPreparingQty():l.getShippedQty());
             default -> 0;
         };
