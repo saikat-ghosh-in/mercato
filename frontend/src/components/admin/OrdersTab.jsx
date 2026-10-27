@@ -10,7 +10,7 @@ import {
 } from "react-icons/md";
 import toast from "../../utils/toastUtils.js";
 import useWorkflowResource, { useWorkflowEpoch } from "../../hooks/useWorkflowResource";
-import { canCancelWhole, workflowLabel } from "../../utils/fulfillment";
+import { actionMaximum, canCancelWhole, workflowLabel } from "../../utils/fulfillment";
 import { QuantityCommand, WorkflowProgress } from "../orders/WorkflowControls";
 import { formatCurrency } from "../../utils/formatCurrency";
 import { formatDate } from "../../utils/formatDate";
@@ -112,7 +112,7 @@ const OrderDetail = ({ orderId, onBack }) => {
                     {/* Order lines */}
                     <SectionCard title="Order Items" icon={MdShoppingBag}>
                         {order.orderLines?.map((line, i) => (
-                            <div key={i} className="flex items-center gap-3 py-3 border-b border-gray-50 last:border-0">
+                            <div key={i} className="flex flex-wrap items-center gap-3 py-3 border-b border-gray-50 last:border-0">
                                 <div className="w-12 h-12 rounded-xl bg-gray-50 border border-gray-100 overflow-hidden shrink-0">
                                     {line.product?.primaryImageUrl
                                         ? <img src={line.product.primaryImageUrl} alt="" className="w-full h-full object-cover" />
@@ -124,6 +124,9 @@ const OrderDetail = ({ orderId, onBack }) => {
                                     <p className="text-xs text-gray-400">Qty: {line.quantity ?? line.orderedQty} · {formatCurrency(line.product?.unitPrice)} each</p>
                                 </div>
                                 <span className="text-sm font-semibold text-gray-900 shrink-0">{formatCurrency(line.lineTotal)}</span>
+                                <div className="w-full space-y-3"><WorkflowProgress record={line} /><div className="flex flex-wrap gap-2">
+                                    {[["ACCEPT","Accept"],["START_PREPARING","Start preparing"],["MARK_PACKED","Mark as packed"],["SHIP","Mark shipped"],["DELIVER","Mark delivered"],["CANCEL","Cancel units"]].map(([action,label]) => <QuantityCommand key={`${epoch}:${line.fulfillmentId}:${line.orderLineNumber}:${action}`} label={label} cancellation={action==='CANCEL'} maximum={actionMaximum(line,action)} version={order.workflow?.version} endpoint="/fulfillment/commands" makeBody={(qty,reason) => ({fulfillmentId:line.fulfillmentId,orderLineNumber:line.orderLineNumber,action,qty,...(action==='CANCEL'?{reason}:{})})} onComplete={fetchOrder} disabled={loading} />)}
+                                </div></div>
                             </div>
                         ))}
                     </SectionCard>

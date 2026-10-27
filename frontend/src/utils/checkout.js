@@ -1,4 +1,18 @@
 // Reject a selection that disappeared during a refresh or deletion.
+export function createCheckoutIntent(makeId = () => crypto.randomUUID()) {
+  let saved;
+  return {
+    payload(body) { return saved ??= Object.freeze({ ...body, operationId: makeId() }); },
+    restore(request) { saved = Object.freeze({ ...request }); },
+    current() { return saved; },
+    clear() { saved = undefined; },
+  };
+}
+export function recoveryAction(recovery) {
+  if (recovery?.canReplayCapture && recovery.state === "PAYMENT_READY" && recovery.paymentSessionId?.trim()) return "payment";
+  if (recovery?.canReplayCapture && recovery.state === "REPLAY_CAPTURE") return "replay";
+  return "order";
+}
 export function currentDeliveryAddress(addresses, selected) {
   return addresses?.find(address => address.addressId === selected?.addressId)
     ?? addresses?.find(address => address.defaultAddress)

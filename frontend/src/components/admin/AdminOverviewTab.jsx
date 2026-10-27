@@ -8,7 +8,7 @@ import { formatCurrency } from "../../utils/formatCurrency";
 import { formatDate } from "../../utils/formatDate";
 import {
     DashboardSkeleton, DashboardError,
-    StatCard, SectionCard, SectionLabel,
+    StatCard, SectionCard, SectionLabel, RevenueCards,
     TopSellingProducts, StatusBreakdownBars,
 
 } from "../shared/DashboardWidgets";
@@ -91,6 +91,7 @@ const AdminOverviewTab = () => {
 
             {/* Revenue */}
             <MarketplaceFinance admin />
+            {stats.revenue && <RevenueCards revenue={stats.revenue} admin />}
 
             {/* Order + user stats */}
             <div>

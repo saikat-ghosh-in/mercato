@@ -15,12 +15,14 @@ async function fixture(component='seller', setup) {
     import {privateApi} from './src/reduxStore/services/privateApi.js';
     import Help from './src/components/Help.jsx';
     import ReviewPaymentStep from './src/components/checkout/steps/ReviewPaymentStep.jsx';
+    import MarketplaceFinance from './src/components/shared/MarketplaceFinance.jsx';
+    import {RevenueCards} from './src/components/shared/DashboardWidgets.jsx';
     import useWorkflowResource from './src/hooks/useWorkflowResource.js';
     import {MemoryRouter} from 'react-router-dom';
     import {Provider} from 'react-redux'; import {configureStore} from '@reduxjs/toolkit';
     const store=configureStore({reducer:{cart:()=>({deliveryOptions:[],deliveryMethod:'STANDARD',cartLoading:false}),[privateApi.reducerPath]:privateApi.reducer},middleware:get=>get().concat(privateApi.middleware)});
     function Resource(){const [url,setUrl]=React.useState('/one');const value=useWorkflowResource(url);window.refresh=value.refresh;window.selectUrl=setUrl;return <p>{value.data?.name || 'Loading'}{value.error}</p>;}
-    window.render=() => createRoot(document.getElementById('root')).render(<Provider store={store}><MemoryRouter initialEntries={[${component==='orders'?'"/orders?orderId=O1"':'"/"'}]}>${component==='seller'?'<FulfillmentTab />':component==='admin'?'<OrdersTab />':component==='orders'?'<Orders />':component==='resource'?'<Resource />':component==='help'?'<Help />':component==='checkout'?'<ReviewPaymentStep selectedAddress={{}} cartWithProducts={[]} />':'<OrderDetails orderId="O1" />'}</MemoryRouter></Provider>);
+    window.render=() => createRoot(document.getElementById('root')).render(<Provider store={store}><MemoryRouter initialEntries={[${component==='orders'?'"/orders?orderId=O1"':'"/"'}]}>${component==='seller'?'<FulfillmentTab />':component==='admin'?'<OrdersTab />':component==='orders'?'<Orders />':component==='resource'?'<Resource />':component==='help'?'<Help />':component==='finance'?'<><RevenueCards revenue={{allTime:189,thisMonth:189,today:189,averagePerOrder:63}} admin/><MarketplaceFinance admin/></>':component==='checkout'?'<ReviewPaymentStep selectedAddress={{}} cartWithProducts={[]} />':'<OrderDetails orderId="O1" />'}</MemoryRouter></Provider>);
     window.render();`,resolveDir:root,loader:'jsx'},bundle:true,write:false,jsx:'automatic',plugins:[{name:'fixture',setup(build){
       build.onResolve({filter:/backend\/api(?:\.js)?$/},() => ({path:'api',namespace:'fixture'}));
       build.onResolve({filter:/toastUtils(?:\.js)?$/},() => ({path:'toast',namespace:'fixture'}));
@@ -44,13 +46,13 @@ async function fixture(component='seller', setup) {
     const customer=component==='customer'||component==='orders';
     window.record=()=>{
       const line=window.line, active=line.orderedQty-line.cancelledQty;
-      const maxima={ACCEPT:active-line.acceptedQty,START_PREPARING:line.acceptedQty-line.workflow.preparingQty,MARK_PACKED:line.workflow.preparingQty-line.workflow.packedQty,CANCEL:active-(customer?line.workflow.preparingQty:line.shippedQty)};
-      const state=active===0?'CANCELLED':line.shippedQty===active?'SHIPPED':line.workflow.packedQty===active?'PACKED':line.workflow.preparingQty===active?'PREPARING':line.acceptedQty===active?'ACCEPTED':'CONFIRMED';
-      const summary={...workflow,version:window.version,state,orderedQty:line.orderedQty,cancelledQty:line.cancelledQty,acceptedQty:line.acceptedQty,preparingQty:line.workflow.preparingQty,packedQty:line.workflow.packedQty,shippedQty:line.shippedQty,deliveredQty:0};
+      const maxima={ACCEPT:active-line.acceptedQty,START_PREPARING:line.acceptedQty-line.workflow.preparingQty,MARK_PACKED:line.workflow.preparingQty-line.workflow.packedQty,CANCEL:active-(customer?line.workflow.preparingQty:line.shippedQty),...(component==='admin'?{SHIP:line.workflow.packedQty-line.shippedQty,DELIVER:line.shippedQty-line.workflow.deliveredQty}:{})};
+      const state=active===0?'CANCELLED':line.workflow.deliveredQty===active?'DELIVERED':line.shippedQty===active?'SHIPPED':line.workflow.packedQty===active?'PACKED':line.workflow.preparingQty===active?'PREPARING':line.acceptedQty===active?'ACCEPTED':'CONFIRMED';
+      const summary={...workflow,version:window.version,state,orderedQty:line.orderedQty,cancelledQty:line.cancelledQty,acceptedQty:line.acceptedQty,preparingQty:line.workflow.preparingQty,packedQty:line.workflow.packedQty,shippedQty:line.shippedQty,deliveredQty:line.workflow.deliveredQty};
       return {fulfillmentId:'F1',orderId:'O1',workflow:summary,orderStatus:'FULFILLMENT_PROCESSING',createdAt:'2026-10-26T00:00:00Z',orderLines:[{...line,workflow:{...line.workflow,state,version:window.version,actionMaxima:maxima,allowedActions:Object.keys(maxima).filter(action=>maxima[action]>0)}}],customer:{name:'Maya',email:'maya@example.test'},subTotal:1500,totalAmount:1500};
     };
     window.fixtureGet=async url=>({data:url.includes('metrics')?{coverage:{fromInclusive:'2026-09-26T02:00:00Z',toExclusive:'2026-10-26T02:00:00Z',matureCohortOnly:true},acceptance:{onTimeAcceptanceRate:null,acceptanceDenominatorQty:0,timeoutCancelledQty:0}}:url.includes('summary')?[window.record()]:url.includes('closed')?[]:url.includes('open')?[window.record()]:window.record()});
-    window.fixturePost=async (url,body)=>{window.posts.push({url,body}); if(window.mode==='network') throw Error('offline'); if(window.mode==='conflict'){window.version=4;throw {response:{status:409}};} if(body.action==='ACCEPT'){window.line.acceptedQty+=body.qty;}else if(body.action==='CANCEL'){window.line.cancelledQty+=body.qty;}window.version++; return {data:window.record()};};
+    window.fixturePost=async (url,body)=>{window.posts.push({url,body}); if(window.mode==='network') throw Error('offline'); if(window.mode==='conflict'){window.version=4;throw {response:{status:409}};} if(body.action==='ACCEPT'){window.line.acceptedQty+=body.qty;}else if(body.action==='CANCEL'){window.line.cancelledQty+=body.qty;}else if(body.action==='SHIP'){window.line.shippedQty+=body.qty;}else if(body.action==='DELIVER'){window.line.workflow.deliveredQty+=body.qty;}window.version++; return {data:window.record()};};
   }, component);
   if(setup) await page.evaluate(setup);
   await mkdir(new URL('../../backend/target/task3-browser/',import.meta.url),{recursive:true});
@@ -140,6 +142,52 @@ test('admin cancellation adapter requires reason, version and stable retry ident
   } finally {await browser.close();}
 });
 
+test('admin ships and delivers only supported quantities with stable retry and mobile focus',async()=>{
+  const {browser,page}=await fixture('admin',()=>{
+    window.line.orderedQty=2;window.line.cancelledQty=0;window.line.acceptedQty=2;
+    window.line.workflow.preparingQty=2;window.line.workflow.packedQty=2;
+  });
+  try {
+    await page.getByRole('row').filter({hasText:'O1'}).click();
+    assert.equal(await page.getByRole('button',{name:'Mark delivered',exact:true}).count(),0);
+    await page.getByRole('button',{name:'Mark shipped',exact:true}).click();
+    await page.getByRole('button',{name:'Confirm mark shipped',exact:true}).click();
+    await page.getByRole('alert').waitFor();
+    await page.evaluate(()=>window.mode='success');
+    await page.getByRole('button',{name:'Confirm mark shipped',exact:true}).click();
+    await page.getByRole('button',{name:'Mark delivered',exact:true}).waitFor();
+    assert.deepEqual(...await page.evaluate(()=>window.posts.slice(0,2)));
+    await page.getByRole('button',{name:'Mark delivered',exact:true}).click();
+    assert.equal(await page.getByLabel('Quantity',{exact:true}).inputValue(),'1');
+    assert.equal(await page.getByLabel('Quantity',{exact:true}).getAttribute('max'),'1');
+    await page.getByRole('button',{name:'Confirm mark delivered',exact:true}).click();
+    await page.getByRole('button',{name:'Mark delivered',exact:true}).waitFor({state:'hidden'});
+    const posts=await page.evaluate(()=>window.posts);assert.equal(posts.at(-1).url,'/fulfillment/commands');assert.equal(posts.at(-1).body.action,'DELIVER');assert.equal(posts.at(-1).body.expectedVersion,4);
+    await page.emulateMedia({reducedMotion:'reduce'});
+    for(const width of [320,390]){
+      await page.setViewportSize({width,height:844});
+      assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'admin detail must fit mobile');
+      await page.getByRole('button',{name:'Back',exact:true}).focus();await page.keyboard.press('Tab');assert.notEqual(await page.evaluate(()=>document.activeElement.tagName),'BODY');
+      await page.screenshot({path:fileURLToPath(new URL(`../../backend/target/task3-browser/admin-core-${width}.png`,import.meta.url)),fullPage:true});
+    }
+  }finally{await browser.close();}
+});
+
+test('finance keeps collections, platform accrual and marketplace seller earnings distinct',async()=>{
+  const {browser,page}=await fixture('finance',()=>{
+    window.fixtureGet=async()=>({data:{from:'2026-10-01',through:'2026-10-27',recognitionBasis:'Verified observations; current fulfillment and committed refunds',capturedPayments:363,platformFees:30,handlingFees:3,platformAccrualBeforeCosts:34,successfulRefunds:111,pendingRefunds:0,shippingCollected:33,promotionBookings:0,promotionCredits:0,unclassifiedLegacyCharges:0,totals:{fulfilledSales:200,commission:1,commissionReversals:0,sellerPaidDelivery:10},sellerBreakdown:[],lines:[]}});
+  });try{
+    await page.getByRole('heading',{name:'Marketplace seller earnings',exact:true}).waitFor();
+    await page.getByText('Platform accrual before costs',{exact:true}).waitFor();
+    assert.equal(await page.getByText('Retained handling fees',{exact:true}).count(),1);
+    assert.equal(await page.getByText('Verified buyer payments captured',{exact:true}).count(),1);
+    assert.equal(await page.getByText('Average earnings / order',{exact:true}).count(),1);
+    await page.getByText(/Recognition basis: Verified observations/).waitFor();
+    assert.equal(await page.getByText('Revenue',{exact:true}).count(),0);
+    for(const width of [320,390]){await page.setViewportSize({width,height:844});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await page.screenshot({path:fileURLToPath(new URL(`../../backend/target/task3-browser/finance-core-${width}.png`,import.meta.url)),fullPage:true});}
+  }finally{await browser.close();}
+});
+
 
 test('resource retains same-scope content but fences superseded reads, record switches and account changes',async()=>{
   const {browser,page}=await fixture('resource',()=>{
@@ -178,10 +226,10 @@ test('seller hold is read only and refreshes at the server-relative release with
       const result=await get(url);
       if(url.includes('/fulfillment-orders/')){
         reads++;
+        result.data.workflow.sellerActionsAvailableAt='2026-10-26T02:00:01Z';
         if(reads===1){
-          result.data.workflow.sellerActionsAvailableAt='2026-10-26T02:00:01Z';
           result.data.orderLines[0].workflow.allowedActions=[];
-        }
+        } else result.data.workflow.serverNow='2026-10-26T02:00:01.150Z';
       }
       return result;
     };
@@ -191,19 +239,21 @@ test('seller hold is read only and refreshes at the server-relative release with
     await page.getByText(/Read only · seller actions unlock/).waitFor();
     assert.equal(await page.getByRole('button',{name:'Accept',exact:true}).count(),0);
     await page.getByRole('button',{name:'Accept',exact:true}).waitFor();
+    assert.equal(await page.getByText(/Read only · seller actions unlock/).count(),0);
+    assert.equal(await page.locator('time[datetime="2026-10-26T02:00:01Z"]').count(),1);
     assert.equal(await page.getByText('Ceramic cup',{exact:true}).count(),1);
     assert.equal(await page.getByRole('button',{name:/ship/i}).count(),0);
   } finally {await browser.close();}
 });
 
-test('checkout and public help disclose cancellation allocation and conditional payment collection',async()=>{
+test('checkout and public help disclose actual cancellation allocation and immediate sandbox collection',async()=>{
   for(const component of ['checkout','help']){
     const {browser,page}=await fixture(component);
     try {
       await page.getByRole('button',{name:'Cancellation and refund policy'}).click();
       await page.getByText(/partial customer cancellation retains fixed platform and handling fees/).waitFor();
       if(component==='help') await page.getByRole('button',{name:'What happens if payment is interrupted?'}).click();
-      await page.getByText(/bank processing times vary/).waitFor();
+      await page.getByText(/Cashfree immediate payment collection/).waitFor();
     } finally {await browser.close();}
   }
 });

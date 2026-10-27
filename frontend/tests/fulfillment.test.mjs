@@ -1,6 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 const workflow = await import('../src/utils/fulfillment.js').catch(() => ({}));
+test('release countdown never predates a refreshed receipt at the immutable boundary',()=>{
+  assert.equal(workflow.remainingUntil('2026-10-26T01:00:01.000Z',1150,900,'2026-10-26T01:00:01.150Z'),0);
+});
 test('customer cancellation uses authoritative maxima after other units prepare', () => {
   assert.equal(workflow.actionMaximum?.({workflow:{version:3,allowedActions:['CANCEL'],actionMaxima:{CANCEL:2}}}, 'CANCEL'), 2);
   assert.equal(workflow.actionMaximum?.({workflow:{allowedActions:[],actionMaxima:{CANCEL:2}}}, 'CANCEL'), 0);
