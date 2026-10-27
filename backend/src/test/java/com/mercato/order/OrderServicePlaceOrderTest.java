@@ -33,6 +33,7 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class OrderServicePlaceOrderTest {
+    private OrderCaptureRequestDTO request(){var r=new OrderCaptureRequestDTO();r.setOperationId(java.util.UUID.randomUUID().toString());r.setExpectedCartVersion(0L);return r;}
 
     @Mock private FulfillmentWorkflow workflow;
     @Mock private OrderRepository orderRepository;
@@ -63,9 +64,10 @@ class OrderServicePlaceOrderTest {
                 .when(cartReservationService).reserve(item);
 
         org.junit.jupiter.api.Assertions.assertThrows(com.mercato.ExceptionHandler.InsufficientInventoryException.class,
-                () -> orderService.placeOrder(new OrderCaptureRequestDTO()));
+                () -> orderService.placeOrder(request()));
 
-        verifyNoInteractions(cashfreeService, addressRepository, orderRepository);
+        verifyNoInteractions(cashfreeService, addressRepository);
+        verify(orderRepository, never()).saveAndFlush(any());
     }
 
     @Test
@@ -102,7 +104,7 @@ class OrderServicePlaceOrderTest {
         address.setAddressId("ADR-1");
         address.setUser(user);
 
-        OrderCaptureRequestDTO request = new OrderCaptureRequestDTO();
+        OrderCaptureRequestDTO request = request();
         request.setAddressId("ADR-1");
 
         when(authUtil.getLoggedInUser()).thenReturn(user);
@@ -146,7 +148,7 @@ class OrderServicePlaceOrderTest {
         Product product = Product.builder().productId("P-QUOTE").sellingPrice(BigDecimal.valueOf(100)).build();
         Cart cart = new Cart(); cart.setCartItems(List.of(CartItem.builder().product(product).quantity(1).unitPrice(BigDecimal.valueOf(100)).build()));
         when(authUtil.getLoggedInUser()).thenReturn(user); when(cartService.getCartByUser(user)).thenReturn(cart);
-        OrderCaptureRequestDTO request = new OrderCaptureRequestDTO(); request.setExpectedTotal(BigDecimal.ONE);
+        OrderCaptureRequestDTO request = request(); request.setExpectedTotal(BigDecimal.ONE);
         org.junit.jupiter.api.Assertions.assertThrows(com.mercato.ExceptionHandler.CustomBadRequestException.class, () -> orderService.placeOrder(request));
         request.setExpectedTotal(cart.getTotal()); request.setDeliveryMethod(com.mercato.Entity.cart.DeliveryMethod.EXPEDITED);
         org.junit.jupiter.api.Assertions.assertThrows(com.mercato.ExceptionHandler.CustomBadRequestException.class, () -> orderService.placeOrder(request));
@@ -165,7 +167,7 @@ class OrderServicePlaceOrderTest {
         when(addressRepository.findByAddressIdAndUser_UserId("A-STATE", "U-STATE")).thenReturn(Optional.of(address));
         when(commissions.currentRate()).thenReturn(new BigDecimal("5.00"));
         when(sellerApplications.findByUser_UserId("S-STATE")).thenReturn(Optional.of(application));
-        OrderCaptureRequestDTO request = new OrderCaptureRequestDTO(); request.setAddressId("A-STATE");
+        OrderCaptureRequestDTO request = request(); request.setAddressId("A-STATE");
         org.junit.jupiter.api.Assertions.assertThrows(com.mercato.ExceptionHandler.CustomBadRequestException.class, () -> orderService.placeOrder(request));
         verifyNoInteractions(cashfreeService);
     }

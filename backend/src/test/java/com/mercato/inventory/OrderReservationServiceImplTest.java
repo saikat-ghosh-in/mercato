@@ -96,6 +96,9 @@ class OrderReservationServiceImplTest {
         orderLine.setId(LINE_ID);
         orderLine.setProductId(PRODUCT_ID);
         orderLine.setOrderedQty(ORDER_QTY);
+        // A transfer is valid only for the selected item generation, as captured at checkout.
+        orderLine.setSourceCartItemId(CART_ITEM_ID);
+        orderLine.setSourceSelectionGeneration(cartItem.getSelectionGeneration());
         order.addOrderLine(orderLine);
 
         cartReservationDeleted.set(false);

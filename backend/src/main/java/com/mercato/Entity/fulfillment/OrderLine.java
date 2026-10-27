@@ -112,6 +112,14 @@ public class OrderLine {
     // Full-line standard-delivery contribution captured at checkout. Legacy null means no contribution.
     @Column(name = "seller_delivery_charge", precision = 12, scale = 2, updatable = false)
     private BigDecimal sellerDeliveryCharge;
+    @Column(updatable=false)
+    private Long sourceCartItemId;
+    @Column(updatable=false,length=36)
+    private String sourceSelectionGeneration;
+    @OneToMany(mappedBy="orderLine",cascade=CascadeType.ALL)
+    @OrderBy("unitNumber")
+    @Builder.Default
+    private List<OrderMoneyUnit> moneyUnits=new ArrayList<>();
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)

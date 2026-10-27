@@ -11,6 +11,7 @@ import java.util.List;
 @Setter
 @AllArgsConstructor
 public class CartResponseDTO {
+    private long version;
     private final String cartId;
     private final BigDecimal subtotal;
     private final List<CartChargeResponseDTO> charges;

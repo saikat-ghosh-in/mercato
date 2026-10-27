@@ -34,7 +34,7 @@ public class PaidOrderAllocation {
             order.setAllocationCompletedAt(now());order.establishConfirmation(now());deadlines.schedule(order);return;
         }
         var buyer=users.findByEmail(order.getCustomerEmail());
-        var cart=buyer.map(carts::getCartByUser).orElse(null);
+        var cart=buyer.map(user->carts.getCartForOrderAllocation(user,order)).orElse(null);
         inventory.finalizeInventoryForPaidOrder(order,cart);
         order.confirmOrder();order.setAllocationCompletedAt(now());order.establishConfirmation(now());order.workflowChanged();order.setInventoryFinalizationFailed(false);deadlines.schedule(order);
         for(var line:order.getOrderLines())line.addStateTransition(StateTransition.builder().orderLine(line).fromStatus(OrderLineStatus.CREATED).toStatus(OrderLineStatus.CONFIRMED).action(OrderLineAction.CONFIRM).triggeredBy(TransitionTrigger.SYSTEM).reason("Verified payment allocated").occurredAt(now()).build());

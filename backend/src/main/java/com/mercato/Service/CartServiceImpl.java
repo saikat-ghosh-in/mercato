@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -29,13 +30,15 @@ public class CartServiceImpl implements CartService {
     private final CartPricingService cartPricingService;
     private final UserRepository userRepository;
     private final CartReservationService cartReservationService;
+    @jakarta.persistence.PersistenceContext private jakarta.persistence.EntityManager entityManager;
 
     @Override
     @Transactional
     public CartResponseDTO addProductToCart(CartRequestDTO cartRequestDTO, CartContext context) {
         Cart cart = resolveCart(context);
+        lockProducts(List.of(cart),cartRequestDTO.getCartItems().stream().map(CartItemRequestDTO::getProductId).toList());
 
-        cartRequestDTO.getCartItems().forEach(dto -> {
+        cartRequestDTO.getCartItems().stream().sorted(Comparator.comparing(CartItemRequestDTO::getProductId)).forEach(dto -> {
             String productId = dto.getProductId();
             Integer requestedQuantity = dto.getQuantity();
             if (requestedQuantity == null || requestedQuantity <= 0)
@@ -55,6 +58,7 @@ public class CartServiceImpl implements CartService {
         });
 
         cartPricingService.applyCharges(cart);
+        cart.advanceVersion();
         cartRepository.save(cart);
         return CartMapper.toDTO(cart);
     }
@@ -63,7 +67,7 @@ public class CartServiceImpl implements CartService {
     @Transactional
     public CartResponseDTO getCart(CartContext context) {
         Cart cart = resolveCart(context);
-        cartPricingService.applyCharges(cart);
+        lockProducts(List.of(cart),List.of());reprice(cart);
         return CartMapper.toDTO(cart);
     }
 
@@ -72,8 +76,10 @@ public class CartServiceImpl implements CartService {
     public CartResponseDTO selectDeliveryMethod(com.mercato.Entity.cart.DeliveryMethod method, CartContext context) {
         if (method == null) throw new IllegalArgumentException("Choose an available delivery method");
         Cart cart = resolveCart(context);
+        lockProducts(List.of(cart),List.of());
         cart.setDeliveryMethod(method);
         cartPricingService.applyCharges(cart);
+        cart.advanceVersion();
         cartRepository.save(cart);
         return CartMapper.toDTO(cart);
     }
@@ -85,6 +91,7 @@ public class CartServiceImpl implements CartService {
             throw new IllegalArgumentException("Quantity cannot be less than 0");
 
         Cart cart = resolveCart(context);
+        lockProducts(List.of(cart),List.of(dto.getProductId()));
         CartItem cartItem = cart.findItemByProductId(dto.getProductId())
                 .orElseThrow(() -> new ResourceNotFoundException("CartItem", "productId", dto.getProductId()));
         String warning = null;
@@ -114,6 +121,7 @@ public class CartServiceImpl implements CartService {
         cartPricingService.applyCharges(cart);
         cartRepository.save(cart);
 
+        cart.advanceVersion();
         CartResponseDTO response = CartMapper.toDTO(cart);
         response.setWarning(warning);
         return response;
@@ -123,12 +131,14 @@ public class CartServiceImpl implements CartService {
     @Transactional
     public void deleteProductFromCart(String productId, CartContext context) {
         Cart cart = resolveCart(context);
+        lockProducts(List.of(cart),List.of(productId));
         CartItem cartItem = cart.findItemByProductId(productId)
                 .orElseThrow(() -> new ResourceNotFoundException("CartItem", "productId", productId));
 
         cartReservationService.release(cartItem);
         cart.removeCartItem(cartItem);
         cartPricingService.applyCharges(cart);
+        cart.advanceVersion();
         cartRepository.save(cart);
     }
 
@@ -136,19 +146,27 @@ public class CartServiceImpl implements CartService {
     @Transactional
     public void clearCart(CartContext context) {
         Cart cart = resolveCart(context);
+        lockProducts(List.of(cart),List.of());
         if (cart.isEmpty()) return;
 
         List<CartItem> itemsToRelease = List.copyOf(cart.getCartItems());
         itemsToRelease.forEach(cartReservationService::release);
         cart.clear();
         cartPricingService.applyCharges(cart);
+        cart.advanceVersion();
         cartRepository.save(cart);
     }
 
     @Override
     @Transactional
     public void removePurchasedItems(Cart cart, com.mercato.Entity.fulfillment.Order order) {
-        for (var line : order.getOrderLines()) {
+        if(entityManager.getLockMode(cart)!=jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+            throw new IllegalStateException("Purchased quantity removal requires the allocation cart mutex");
+        boolean changed=false;
+        for (var line : order.getOrderLines().stream().sorted(Comparator.comparing(com.mercato.Entity.fulfillment.OrderLine::getProductId)).toList()) {
+            var selected=cart.findItemByProductId(line.getProductId());
+            if(selected.isEmpty() || !sameSelection(selected.get(),line))continue;
+            changed=true;
             cart.findItemByProductId(line.getProductId()).ifPresent(item -> {
                 int remaining = Math.max(0, item.getQuantity() - line.getOrderedQty());
                 if (remaining == 0) {
@@ -161,30 +179,35 @@ public class CartServiceImpl implements CartService {
             });
         }
         cartPricingService.applyCharges(cart);
+        if(changed)cart.advanceVersion();
         cartRepository.save(cart);
     }
 
     @Override
     @Transactional
     public void mergeGuestCartOnLogin(String userId, String guestToken) {
-        Optional<Cart> guestCartOpt =
-                cartRepository.findByGuestToken(guestToken);
-        if (guestCartOpt.isEmpty()) return;
-
-        Cart guestCart = guestCartOpt.get();
+        var guestId=cartRepository.findIdByGuestToken(guestToken);
+        if(guestId.isEmpty())return;
+        var userCartId=cartRepository.findIdByUserId(userId).orElseGet(()->{
+            userRepository.findByUserIdForUpdate(userId).orElseThrow();
+            return cartRepository.findIdByUserId(userId).orElseGet(()->createUserCart(userId).getId());
+        });
+        var locked=new TreeMap<Long,Cart>();
+        for(var id:new TreeSet<>(List.of(guestId.get(),userCartId)))locked.put(id,lockRow(id));
+        Cart guestCart=locked.get(guestId.get()),userCart=locked.get(userCartId);
+        lockProducts(locked.values(),List.of());
         if (guestCart.isEmpty()) {
             cartRepository.delete(guestCart);
             return;
         }
 
-        Cart userCart = resolveCart(new CartContext(userId, null));
         if (userCart.isEmpty()) userCart.setDeliveryMethod(guestCart.getDeliveryMethod());
 
         // Release guest holds before reserving the merged cart. Both operations are in
         // this transaction, so a failed merge restores the original guest holds.
         cartReservationService.releaseAllForCart(guestCart);
 
-        for (CartItem guestItem : guestCart.getCartItems()) {
+        for (CartItem guestItem : guestCart.getCartItems().stream().sorted(Comparator.comparing(i->i.getProduct().getProductId())).toList()) {
             Product product = productRepository.findByProductIdForUpdate(guestItem.getProduct().getProductId())
                     .orElseThrow(() -> new ResourceNotFoundException("Product", "productId", guestItem.getProduct().getProductId()));
             if (!product.isPurchasable()) continue;
@@ -196,7 +219,7 @@ public class CartServiceImpl implements CartService {
                                 cartReservationService.reserve(existing);
                             },
                             () -> {
-                                userCart.addProduct(product, guestItem.getQuantity());
+                                userCart.addCartItem(guestItem.copySelection(userCart,product));
                                 CartItem newItem = userCart.findItemByProductId(product.getProductId())
                                         .orElseThrow();
                                 cartReservationService.reserve(newItem);
@@ -205,17 +228,33 @@ public class CartServiceImpl implements CartService {
         }
 
         cartPricingService.applyCharges(userCart);
+        userCart.advanceVersion();
         cartRepository.save(userCart);
         cartRepository.delete(guestCart);
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public Cart getCartByUser(EcommUser user) {
-        Cart cart = cartRepository.findByUser_UserId(user.getUserId()).orElse(null);
+        Cart cart = cartRepository.findIdByUserId(user.getUserId()).map(this::lockRow).orElse(null);
         if (cart == null) return null;
-        cartPricingService.applyCharges(cart);
+        lockProducts(List.of(cart),List.of());reprice(cart);
         return cart;
+    }
+
+    @Override @Transactional
+    public Cart getCartForOrderAllocation(EcommUser user,com.mercato.Entity.fulfillment.Order order) {
+        Cart cart=cartRepository.findIdByUserId(user.getUserId()).map(this::lockRow).orElse(null);
+        if(cart==null)return null;
+        lockProducts(List.of(cart),order.getOrderLines().stream().map(com.mercato.Entity.fulfillment.OrderLine::getProductId).toList());
+        return cart;
+    }
+    @Override @Transactional
+    public Cart lockCartForMutation(Long id){var cart=lockRow(id);lockProducts(List.of(cart),List.of());return cart;}
+
+    public static boolean sameSelection(CartItem item,com.mercato.Entity.fulfillment.OrderLine line) {
+        return line.getSourceCartItemId()!=null && line.getSourceCartItemId().equals(item.getCartItemId())
+            && line.getSourceSelectionGeneration()!=null && line.getSourceSelectionGeneration().equals(item.getSelectionGeneration());
     }
 
     @Override
@@ -237,15 +276,32 @@ public class CartServiceImpl implements CartService {
 
     private Cart resolveCart(CartContext context) {
         if (!context.isGuest()) {
-            return cartRepository.findByUser_UserId(context.userId())
-                    .orElseGet(() -> createUserCart(context.userId()));
+            var id=cartRepository.findIdByUserId(context.userId());
+            if(id.isPresent())return lockRow(id.get());
+            userRepository.findByUserIdForUpdate(context.userId()).orElseThrow(()->new ResourceNotFoundException("User","userId",context.userId()));
+            return cartRepository.findIdByUserId(context.userId()).map(this::lockRow).orElseGet(()->createUserCart(context.userId()));
         }
         if (context.guestToken() != null) {
-            return cartRepository.findByGuestToken(context.guestToken())
-                    .orElseGet(() -> createGuestCart(context.guestToken()));
+            return cartRepository.findIdByGuestToken(context.guestToken()).map(this::lockRow).orElseGet(()->createGuestCart(context.guestToken()));
         }
         throw new IllegalStateException("Cannot resolve cart: no userId or guestToken");
     }
+
+    private Cart lockRow(Long id) {
+        var cart=cartRepository.lockById(id).orElseThrow(()->new ResourceNotFoundException("Cart","id",id));
+        entityManager.refresh(cart,jakarta.persistence.LockModeType.PESSIMISTIC_WRITE);
+        return cart;
+    }
+    private void lockProducts(Collection<Cart> carts,Collection<String> additional) {
+        var ids=new TreeSet<String>(additional);
+        for(var cart:carts)ids.addAll(cartRepository.productIds(cart.getId()));
+        for(var id:ids)productRepository.findByProductIdForUpdate(id).orElseThrow(()->new ResourceNotFoundException("Product","productId",id));
+    }
+    private void reprice(Cart cart) {
+        String before=chargeSignature(cart);cartPricingService.applyCharges(cart);
+        if(!before.equals(chargeSignature(cart)))cart.advanceVersion();
+    }
+    private String chargeSignature(Cart cart){return cart.getCharges().stream().sorted(Comparator.comparing(c->c.getType().name())).map(c->c.getType()+":"+c.getAmount().stripTrailingZeros().toPlainString()).collect(java.util.stream.Collectors.joining("|"));}
 
     private Cart createUserCart(String userId) {
         EcommUser user = userRepository.findByUserId(userId)
@@ -253,13 +309,13 @@ public class CartServiceImpl implements CartService {
         Cart cart = Cart.builder()
                 .user(user)
                 .build();
-        return cartRepository.save(cart);
+        return cartRepository.saveAndFlush(cart);
     }
 
     private Cart createGuestCart(String guestToken) {
         Cart cart = Cart.builder()
                 .guestToken(guestToken)
                 .build();
-        return cartRepository.save(cart);
+        return cartRepository.saveAndFlush(cart);
     }
 }

@@ -30,6 +30,7 @@ import java.util.*;
 @RequiredArgsConstructor
 @Slf4j
 public class OrderServiceImpl implements OrderService {
+    public static final int MAX_CHECKOUT_UNITS=10_000;
 
     private final OrderRepository orderRepository;
     private final CartService cartService;
@@ -49,27 +50,60 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public OrderPlacementResponseDTO placeOrder(OrderCaptureRequestDTO request) {
+        if(request==null || request.getOperationId()==null || request.getOperationId().isBlank() || request.getOperationId().length()>120
+            || request.getExpectedCartVersion()==null || request.getExpectedCartVersion()<0)
+            throw new CustomBadRequestException("operationId and non-negative expectedCartVersion are required");
         var tx = new org.springframework.transaction.support.TransactionTemplate(transactions);
-        Order draft = tx.execute(status -> prepareOrder(request));
         EcommUser buyer = authUtil.getLoggedInUser();
+        String orderId=tx.execute(status -> prepareOrder(request,buyer));
+        // Intent lookup may hold the user/cart mutex, but never locks an existing
+        // order. Commit that transaction before entering the order-first protocol.
+        Order draft=tx.execute(status->{var order=ownedOrder(orderId,buyer);org.hibernate.Hibernate.initialize(order.getPayment());return order;});
+        if(draft.getPayment().getPaymentSessionId()!=null && !draft.getPayment().getPaymentSessionId().isBlank())
+            return tx.execute(status->placement(ownedOrder(orderId,buyer)));
         CashfreeOrderResponse gateway = cashfreeService.createOrder(draft, buyer);
         return tx.execute(status -> {
-            Order order=orderRepository.lockByOrderId(draft.getOrderId()).orElseThrow();
+            Order order=ownedOrder(draft.getOrderId(),buyer);
             if(order.getOrderStatus()==OrderStatus.CANCELLED) {
                 cashfreeService.terminateOrder(order.getOrderId());
                 throw new CustomBadRequestException("Order was cancelled while opening payment");
             }
-            if(order.getPayment().getCapturedAt()==null)cashfreeService.initiatePayment(order,PaymentMethod.UNKNOWN,gateway);
-            return new OrderPlacementResponseDTO(order.getPayment().getPaymentSessionId(),OrderMapper.toDTO(order,workflow,TransitionTrigger.CUSTOMER));
+            if(order.getPayment().getCapturedAt()==null && (order.getPayment().getPaymentSessionId()==null || order.getPayment().getPaymentSessionId().isBlank()))
+                cashfreeService.initiatePayment(order,PaymentMethod.UNKNOWN,gateway);
+            return placement(order);
         });
     }
 
-    private Order prepareOrder(OrderCaptureRequestDTO request) {
-        EcommUser user = authUtil.getLoggedInUser();
+    private Order ownedOrder(String orderId,EcommUser buyer) {
+        var order=orderRepository.lockByOrderId(orderId).orElseThrow();
+        if(!buyer.getUserId().equals(order.getCustomerUserId()))throw new ResourceNotFoundException("Order","orderId",orderId);
+        return order;
+    }
+    private OrderPlacementResponseDTO placement(Order order){return new OrderPlacementResponseDTO(order.getPayment().getPaymentSessionId(),OrderMapper.toDTO(order,workflow,TransitionTrigger.CUSTOMER));}
+    private String existingIntent(EcommUser user,OrderCaptureRequestDTO request,String body) {
+        var prior=orderRepository.checkoutIntent(user.getUserId(),request.getOperationId());
+        if(prior.isEmpty())return null;
+        if(!body.equals(prior.get(0)[1]))throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.CONFLICT,"Checkout operationId was used for a different request");
+        return (String)prior.get(0)[0];
+    }
+    private String prepareOrder(OrderCaptureRequestDTO request,EcommUser user) {
+        String body=new com.fasterxml.jackson.databind.ObjectMapper().valueToTree(Arrays.asList(request.getAddressId(),
+            request.getExpectedTotal()==null?null:request.getExpectedTotal().stripTrailingZeros().toPlainString(),request.getDeliveryMethod(),request.getExpectedCartVersion())).toString();
+        String prior=existingIntent(user,request,body);if(prior!=null)return prior;
         Cart cart = cartService.getCartByUser(user);
+        // Recheck after waiting for the cart mutex; scalar queries take no order lock.
+        prior=existingIntent(user,request,body);if(prior!=null)return prior;
 
         if (cart == null || cart.getCartItems() == null || cart.getCartItems().isEmpty()) {
             throw new CustomBadRequestException("Cart is empty");
+        }
+        if(request.getExpectedCartVersion()!=cart.getVersion())
+            throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.CONFLICT,"Your bag changed or this quote already opened a checkout. Refresh your bag.");
+        long quantity=0;
+        for(var item:cart.getCartItems()) {
+            if(item.getQuantity()<=0)throw new CustomBadRequestException("Bag quantities must be positive");
+            quantity=Math.addExact(quantity,(long)item.getQuantity());
+            if(quantity>MAX_CHECKOUT_UNITS)throw new CustomBadRequestException("A checkout supports at most 10000 total units. Reduce quantities before paying.");
         }
         if ((request.getExpectedTotal() != null && request.getExpectedTotal().compareTo(cart.getTotal()) != 0)
                 || (request.getDeliveryMethod() != null && request.getDeliveryMethod() != cart.getDeliveryMethod()))
@@ -88,13 +122,15 @@ public class OrderServiceImpl implements OrderService {
                         "Address", "addressId", request.getAddressId())
                 );
         Order order = buildOrder(cart, user, address);
+        order.setCheckoutOperationId(request.getOperationId());order.setCheckoutRequestBody(body);
 
         // Commit a local payable aggregate before external I/O. Repeated gateway creation uses
         // this immutable merchant order identity; callbacks can always find the payment.
         Payment payment=new Payment();payment.setAmount(order.getTotalAmount());payment.setCurrency(order.getCurrency());
         payment.setPaymentMethod(PaymentMethod.UNKNOWN);payment.setStatus(PaymentStatus.INITIATED);payment.setGatewayName("cashfree");payment.setInitiatedAt(Instant.now());
         order.attachPayment(payment);order.setPaymentStatus(PaymentStatus.INITIATED);
-        return orderRepository.saveAndFlush(order);
+        orderRepository.saveAndFlush(order);cart.advanceVersion();
+        return order.getOrderId();
     }
 
     @Override
@@ -208,6 +244,7 @@ public class OrderServiceImpl implements OrderService {
         order.setOrderId(generateOrderId());
         order.setCustomerName(customer.getUsername());
         order.setCustomerEmail(customer.getEmail());
+        order.setCustomerUserId(customer.getUserId());
         order.setOrderStatus(OrderStatus.CREATED);
         order.setRecipientName(address.getRecipientName());
         order.setRecipientPhone(address.getRecipientPhone());
@@ -249,6 +286,8 @@ public class OrderServiceImpl implements OrderService {
             orderLine.setCommissionRatePercent(commissionRate);
             orderLine.setCommissionCapPerItem(com.mercato.Utils.CommissionMath.CAP_PER_ITEM);
             orderLine.setSellerDeliveryCharge(cartItem.getSellerDeliveryCharge());
+            orderLine.setSourceCartItemId(cartItem.getCartItemId());
+            orderLine.setSourceSelectionGeneration(cartItem.getSelectionGeneration());
             orderLine.setOrderLineStatus(OrderLineStatus.CREATED);
 
             order.addOrderLine(orderLine);
@@ -259,7 +298,9 @@ public class OrderServiceImpl implements OrderService {
         order.setCharges(cart.getTotalCharges());
         order.setShippingCharge(cart.getChargeAmount(com.mercato.Entity.cart.ChargeType.SHIPPING));
         order.setPlatformFee(cart.getChargeAmount(com.mercato.Entity.cart.ChargeType.PLATFORM_FEE));
+        order.setHandlingCharge(cart.getChargeAmount(com.mercato.Entity.cart.ChargeType.PROCESSING_AND_HANDLING));
         order.setTotalAmount(order.getSubtotal().add(order.getCharges()));
+        com.mercato.Commerce.OrderMoneySnapshot.snapshot(order,cartItems);
 
         return order;
     }

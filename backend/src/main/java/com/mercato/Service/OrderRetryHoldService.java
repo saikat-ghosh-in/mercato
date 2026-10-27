@@ -25,7 +25,7 @@ public class OrderRetryHoldService {
 
     @Transactional
     public void ensureCartHoldsForRetry(Order order, EcommUser user) {
-        Cart cart = cartService.getCartByUser(user);
+        Cart cart = cartService.getCartForOrderAllocation(user,order);
         if (cart == null) {
             throw new ResourceNotFoundException("Cart", "userId", user.getUserId());
         }
@@ -47,6 +47,7 @@ public class OrderRetryHoldService {
         }
 
         cartPricingService.applyCharges(cart);
+        cart.advanceVersion();
         cartRepository.save(cart);
     }
 }

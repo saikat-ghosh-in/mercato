@@ -63,6 +63,7 @@ class PostgresCheckoutReservationTest {
     @Autowired CartRepository carts; @Autowired AddressRepository addresses; @Autowired OrderRepository orders;
     @Autowired CartReservationRepository holds; @Autowired CartReservationService reservations;
     @Autowired CartPricingService pricing; @Autowired OrderService orderService; @Autowired AuthUtil auth;
+    @Autowired CartService cartService;
     @Autowired CashfreeService cashfree; @Autowired CommissionService commissions;
     @Autowired PlatformTransactionManager transactions; @Autowired JdbcTemplate jdbc;
     static final java.util.concurrent.atomic.AtomicLong PHONES=new java.util.concurrent.atomic.AtomicLong(9990000000L);
@@ -96,7 +97,7 @@ class PostgresCheckoutReservationTest {
             .when(cashfree).initiatePayment(any(),any(),any());
     }
     void expire(){jdbc.update("UPDATE cart_reservations SET expires_at=? WHERE cart_item_fk IN (SELECT cart_item_id FROM cart_items WHERE cart_fk=?)",java.sql.Timestamp.from(Instant.now().minusSeconds(60)),cartId);}
-    OrderCaptureRequestDTO request(){var request=new OrderCaptureRequestDTO();request.setAddressId(addressId);request.setExpectedTotal(total);return request;}
+    OrderCaptureRequestDTO request(){var request=new OrderCaptureRequestDTO();request.setAddressId(addressId);request.setExpectedTotal(total);request.setOperationId(UUID.randomUUID().toString());request.setExpectedCartVersion(0L);return request;}
     int reserved(String id){return jdbc.queryForObject("SELECT reserved_qty FROM products WHERE product_id=?",Integer.class,id);}
     int holdCount(){return jdbc.queryForObject("SELECT count(*) FROM cart_reservations r JOIN cart_items i ON i.cart_item_id=r.cart_item_fk WHERE i.cart_fk=?",Integer.class,cartId);}
 
@@ -115,6 +116,152 @@ class PostgresCheckoutReservationTest {
         var failure=assertThrows(InsufficientInventoryException.class,()->orderService.placeOrder(request()));
         assertEquals(second,failure.getProductId());assertEquals(3,failure.getAvailableQty());assertEquals(before,orders.count());
         assertEquals(0,holdCount());assertEquals(0,reserved(first));assertEquals(0,reserved(second));verifyNoInteractions(cashfree);
+    }
+    @Test void uncertainCheckoutRetryKeepsTheOriginalMerchantIdentity() {
+        var request=request();var identities=new ArrayList<String>();
+        when(cashfree.createOrder(any(),eq(buyer))).thenAnswer(call->{
+            com.mercato.Entity.fulfillment.Order order=call.getArgument(0);identities.add(order.getOrderId());
+            if(identities.size()==1)throw new IllegalStateException("Synthetic uncertain transport outcome");
+            return new CashfreeOrderResponse("same-cf-id","recovered-session");
+        });
+        long before=orders.count();
+        assertThrows(IllegalStateException.class,()->orderService.placeOrder(request));
+        var response=orderService.placeOrder(request);
+        assertEquals(1,new HashSet<>(identities).size(),"A transport retry must reuse its durable checkout intent");
+        assertEquals(before+1,orders.count());assertEquals(identities.get(0),response.getOrder().getOrderId());
+    }
+    @Test void changedIntentBodyAndDistinctStaleQuoteCannotCreateAnotherOrder() {
+        var request=request();long before=orders.count();orderService.placeOrder(request);
+        request.setExpectedTotal(total.add(new BigDecimal("0.01")));
+        var mismatch=assertThrows(org.springframework.web.server.ResponseStatusException.class,()->orderService.placeOrder(request));
+        assertEquals(409,mismatch.getStatusCode().value());
+        var stale=assertThrows(org.springframework.web.server.ResponseStatusException.class,()->orderService.placeOrder(request()));
+        assertEquals(409,stale.getStatusCode().value());assertEquals(before+1,orders.count());
+    }
+    @Test void cartEditsCannotBeLostWhenPurchasedQuantitiesAreRemoved() throws Exception {
+        var placed=orderService.placeOrder(request());var read=new CountDownLatch(1);var release=new CountDownLatch(1);
+        var owner=new java.util.concurrent.atomic.AtomicInteger();var pool=Executors.newFixedThreadPool(2);
+        try {
+            Future<?> allocation=pool.submit(()->tx.executeWithoutResult(status->{
+                var order=orders.lockByOrderId(placed.getOrder().getOrderId()).orElseThrow();
+                var cart=cartService.getCartByUser(buyer);owner.set(jdbc.queryForObject("SELECT pg_backend_pid()",Integer.class));read.countDown();
+                await(release);cartService.removePurchasedItems(cart,order);
+            }));
+            assertTrue(read.await(10,TimeUnit.SECONDS));
+            Future<?> edit=pool.submit(()->cartService.addProductToCart(add(first,2),new com.mercato.Utils.CartContext(buyer.getUserId(),null)));
+            waitUntilBlockedOrDone(edit,owner.get());release.countDown();allocation.get(10,TimeUnit.SECONDS);edit.get(10,TimeUnit.SECONDS);
+            assertEquals(2,jdbc.queryForObject("SELECT quantity FROM cart_items i JOIN products p ON p.id=i.product_fk WHERE cart_fk=? AND p.product_id=?",Integer.class,cartId,first));
+            assertEquals(2,reserved(first));assertEquals(0,reserved(second));
+        } finally {release.countDown();pool.shutdownNow();}
+    }
+    @Test void newlyReaddedSelectionIsNotConsumedByAnEarlierCheckout() {
+        var placed=orderService.placeOrder(request());var context=new com.mercato.Utils.CartContext(buyer.getUserId(),null);
+        cartService.deleteProductFromCart(first,context);cartService.addProductToCart(add(first,3),context);
+        tx.executeWithoutResult(status->{var order=orders.lockByOrderId(placed.getOrder().getOrderId()).orElseThrow();cartService.removePurchasedItems(cartService.getCartByUser(buyer),order);});
+        assertEquals(3,jdbc.queryForObject("SELECT quantity FROM cart_items i JOIN products p ON p.id=i.product_fk WHERE cart_fk=? AND p.product_id=?",Integer.class,cartId,first));
+    }
+    @Test void replayAfterBagEditsReturnsTheOriginalSnapshotAndSession() {
+        var request=request();var original=orderService.placeOrder(request);
+        cartService.addProductToCart(add(first,2),new com.mercato.Utils.CartContext(buyer.getUserId(),null));
+        request.setExpectedTotal(new BigDecimal(request.getExpectedTotal().stripTrailingZeros().toPlainString()));
+        var replay=orderService.placeOrder(request);
+        assertEquals(original.getOrder().getOrderId(),replay.getOrder().getOrderId());assertEquals(original.getPaymentSessionId(),replay.getPaymentSessionId());
+        assertEquals(3,jdbc.queryForObject("SELECT quantity FROM cart_items i JOIN products p ON p.id=i.product_fk WHERE cart_fk=? AND p.product_id=?",Integer.class,cartId,first));
+        verify(cashfree,times(1)).createOrder(any(),eq(buyer));
+        assertEquals(5,jdbc.queryForObject("SELECT count(*) FROM order_money_units u JOIN order_lines_snapshot l ON l.id=u.order_line_fk JOIN order_snapshot o ON o.id=l.order_fk WHERE o.order_id=?",Integer.class,original.getOrder().getOrderId()));
+    }
+    @Test void operationNamespaceIsScopedToTheAuthenticatedBuyer() {
+        var firstRequest=request();var original=orderService.placeOrder(firstRequest);
+        fixture();var otherRequest=request();otherRequest.setOperationId(firstRequest.getOperationId());
+        var other=orderService.placeOrder(otherRequest);
+        assertNotEquals(original.getOrder().getOrderId(),other.getOrder().getOrderId());
+        assertEquals(buyer.getEmail(),other.getOrder().getCustomer().getEmail());
+    }
+    @Test void aFreshQuoteAndDifferentIntentCanLegitimatelyCreateAnotherCheckout() {
+        var original=orderService.placeOrder(request());
+        var quote=cartService.getCart(new com.mercato.Utils.CartContext(buyer.getUserId(),null));
+        var fresh=request();fresh.setExpectedCartVersion(quote.getVersion());fresh.setExpectedTotal(quote.getTotal());
+        var other=orderService.placeOrder(fresh);
+        assertNotEquals(original.getOrder().getOrderId(),other.getOrder().getOrderId());
+    }
+    @Test void missingIntentIdentityOrVersionFailsBeforeQuoteAndReservationEffects() {
+        long before=orders.count();var missingOperation=request();missingOperation.setOperationId(null);
+        assertThrows(com.mercato.ExceptionHandler.CustomBadRequestException.class,()->orderService.placeOrder(missingOperation));
+        var missingVersion=request();missingVersion.setExpectedCartVersion(null);
+        assertThrows(com.mercato.ExceptionHandler.CustomBadRequestException.class,()->orderService.placeOrder(missingVersion));
+        assertEquals(before,orders.count());assertEquals(0L,jdbc.queryForObject("SELECT version FROM carts WHERE id=?",Long.class,cartId));
+        assertEquals(1,reserved(first));assertEquals(4,reserved(second));verifyNoInteractions(cashfree);
+    }
+    @Test void simultaneousIntentReplaysNeverHoldDatabaseLocksOverGatewayIo() throws Exception {
+        var request=request();var entered=new CountDownLatch(1);var release=new CountDownLatch(1);var calls=new java.util.concurrent.atomic.AtomicInteger();
+        var identities=new java.util.concurrent.ConcurrentLinkedQueue<String>();
+        when(cashfree.createOrder(any(),eq(buyer))).thenAnswer(call->{
+            assertFalse(org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive());
+            com.mercato.Entity.fulfillment.Order order=call.getArgument(0);identities.add(order.getOrderId());
+            if(calls.incrementAndGet()==1){entered.countDown();await(release);}
+            return new CashfreeOrderResponse("same-provider-order","same-session");
+        });
+        var pool=Executors.newFixedThreadPool(2);long before=orders.count();
+        try {
+            var a=pool.submit(()->orderService.placeOrder(request));assertTrue(entered.await(10,TimeUnit.SECONDS));
+            var b=pool.submit(()->orderService.placeOrder(request));var second=b.get(10,TimeUnit.SECONDS);release.countDown();
+            assertEquals(second.getOrder().getOrderId(),a.get(10,TimeUnit.SECONDS).getOrder().getOrderId());
+            assertEquals(1,new HashSet<>(identities).size());assertEquals(before+1,orders.count());
+        }finally{release.countDown();pool.shutdownNow();}
+    }
+    @Test void reducedAndThenIncreasedSelectionDoesNotLoseItsNewQuantities() {
+        var placed=orderService.placeOrder(request());var context=new com.mercato.Utils.CartContext(buyer.getUserId(),null);
+        var update=new com.mercato.Payloads.Request.CartItemRequestDTO();update.setProductId(second);update.setQuantity(2);
+        cartService.updateProductQuantityInCart(update,context);cartService.addProductToCart(add(second,3),context);
+        tx.executeWithoutResult(status->{var order=orders.lockByOrderId(placed.getOrder().getOrderId()).orElseThrow();cartService.removePurchasedItems(cartService.getCartForOrderAllocation(buyer,order),order);});
+        assertEquals(5,jdbc.queryForObject("SELECT quantity FROM cart_items i JOIN products p ON p.id=i.product_fk WHERE cart_fk=? AND p.product_id=?",Integer.class,cartId,second));
+    }
+    @Test void oversizedCheckoutFailsBeforeRenewalOrNewIntentEffects() {
+        jdbc.update("UPDATE cart_items SET quantity=2147483647 WHERE cart_fk=?",cartId);
+        var quote=cartService.getCart(new com.mercato.Utils.CartContext(buyer.getUserId(),null));var request=request();request.setExpectedCartVersion(quote.getVersion());request.setExpectedTotal(quote.getTotal());
+        long before=orders.count();int held=holdCount();
+        var failure=assertThrows(com.mercato.ExceptionHandler.CustomBadRequestException.class,()->orderService.placeOrder(request));
+        assertTrue(failure.getMessage().contains("10000"));assertEquals(before,orders.count());assertEquals(held,holdCount());
+        assertEquals(1,reserved(first));assertEquals(4,reserved(second));verifyNoInteractions(cashfree);
+        assertEquals(4294967294L,jdbc.queryForObject("SELECT sum(quantity::bigint) FROM cart_items WHERE cart_fk=?",Long.class,cartId));
+    }
+    @Test void guestOnlyMergeKeepsTheChosenPriceAndDiscountAfterListingChanges() {
+        String token="guest-"+UUID.randomUUID();String guestProduct="G-"+UUID.randomUUID().toString().substring(0,8);
+        tx.executeWithoutResult(status->{
+            var category=categories.findAll().get(0);
+            var p=products.saveAndFlush(Product.builder().productId(guestProduct).productName("Guest selection").description("Synthetic guest selection").primaryImageUrl("/images/test.jpg").category(category).seller(buyer).retailPrice(new BigDecimal("100.00")).discountPercent(new BigDecimal("25.00")).physicalQty(20).build());
+            var guest=new Cart();guest.setGuestToken(token);carts.saveAndFlush(guest);guest.addProduct(p,2);carts.saveAndFlush(guest);guest.getCartItems().forEach(reservations::reserve);
+            p.setRetailPrice(new BigDecimal("200.00"));p.setDiscountPercent(BigDecimal.ZERO);products.saveAndFlush(p);
+        });
+        cartService.mergeGuestCartOnLogin(buyer.getUserId(),token);
+        tx.executeWithoutResult(status->{var item=carts.findById(cartId).orElseThrow().findItemByProductId(guestProduct).orElseThrow();
+            assertEquals(new BigDecimal("75.00"),item.getItemPrice());assertEquals(new BigDecimal("100.00"),item.getSelectedRetailPrice());assertEquals(new BigDecimal("25.00"),item.getSelectedDiscountPercent());assertEquals(2,item.getQuantity());});
+    }
+    @Test void mergeTakesBothCartMutexesBeforeTakingAnyProductLocks() throws Exception {
+        String token="guest-"+UUID.randomUUID();Long guestId=tx.execute(status->{var guest=new Cart();guest.setGuestToken(token);carts.saveAndFlush(guest);guest.addProduct(products.findByProductId(first).orElseThrow(),2);carts.saveAndFlush(guest);guest.getCartItems().forEach(reservations::reserve);return guest.getId();});
+        assertTrue(guestId>cartId);var pool=Executors.newSingleThreadExecutor();var merge=new java.util.concurrent.atomic.AtomicReference<Future<?>>();
+        try {
+            tx.executeWithoutResult(status->{carts.lockById(guestId).orElseThrow();int owner=jdbc.queryForObject("SELECT pg_backend_pid()",Integer.class);
+                merge.set(pool.submit(()->cartService.mergeGuestCartOnLogin(buyer.getUserId(),token)));
+                try{waitUntilBlockedOrDone(merge.get(),owner);}catch(Exception e){throw new IllegalStateException(e);}
+                jdbc.execute("SET LOCAL lock_timeout='1s'");assertDoesNotThrow(()->products.findByProductIdForUpdate(first).orElseThrow());
+            });
+            merge.get().get(10,TimeUnit.SECONDS);
+            assertEquals(2,jdbc.queryForObject("SELECT quantity FROM cart_items i JOIN products p ON p.id=i.product_fk WHERE cart_fk=? AND p.product_id=?",Integer.class,cartId,first));
+        }finally{pool.shutdownNow();}
+    }
+    com.mercato.Payloads.Request.CartRequestDTO add(String id,int quantity) {
+        var item=new com.mercato.Payloads.Request.CartItemRequestDTO();item.setProductId(id);item.setQuantity(quantity);
+        var request=new com.mercato.Payloads.Request.CartRequestDTO();request.setCartItems(List.of(item));return request;
+    }
+    static void await(CountDownLatch latch){try{if(!latch.await(10,TimeUnit.SECONDS))throw new IllegalStateException("Synthetic latch timed out");}catch(InterruptedException ex){Thread.currentThread().interrupt();throw new IllegalStateException(ex);}}
+    void waitUntilBlockedOrDone(Future<?> request,int owner)throws Exception {
+        long deadline=System.nanoTime()+TimeUnit.SECONDS.toNanos(8);
+        while(!request.isDone() && System.nanoTime()<deadline) {
+            if(jdbc.queryForObject("SELECT count(*) FROM pg_stat_activity WHERE ?=ANY(pg_blocking_pids(pid))",Integer.class,owner)>0)return;
+            Thread.sleep(20);
+        }
+        if(!request.isDone())fail("Request neither completed nor reached the database mutex");
     }
     @Test void cleanupCannotDeleteAHoldRenewedWhileItWaitedForTheProductLock()throws Exception{
         // One product keeps this race independent of multi-product lock ordering.

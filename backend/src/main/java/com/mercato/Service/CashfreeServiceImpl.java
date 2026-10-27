@@ -29,7 +29,7 @@ public class CashfreeServiceImpl implements CashfreeService {
     public CashfreeServiceImpl(CashfreeGateway gateway,PaymentInbox inbox,OrderRepository orders,AuthUtil auth,DurableJobs jobs,PlatformTransactionManager transactions,@Value("${cashfree.return.url}")String returnUrl,@Value("${cashfree.notify.url}")String notifyUrl){this.gateway=gateway;this.inbox=inbox;this.orders=orders;this.auth=auth;this.jobs=jobs;this.tx=new TransactionTemplate(transactions);this.returnUrl=returnUrl;this.notifyUrl=notifyUrl;}
     public CashfreeOrderResponse createOrder(Order order,EcommUser user) {
         Map<String,Object> body=new LinkedHashMap<>();body.put("order_id",order.getOrderId());body.put("order_amount",order.getTotalAmount());body.put("order_currency",order.getCurrency());
-        body.put("customer_details",Map.of("customer_id",user.getUserId(),"customer_name",user.getUsername(),"customer_email",user.getEmail(),"customer_phone",order.getRecipientPhone()));
+        body.put("customer_details",Map.of("customer_id",order.getCustomerUserId()==null?user.getUserId():order.getCustomerUserId(),"customer_name",order.getCustomerName(),"customer_email",order.getCustomerEmail(),"customer_phone",order.getRecipientPhone()));
         body.put("order_meta",Map.of("return_url",returnUrl+"?order_id="+order.getOrderId(),"notify_url",notifyUrl));
         var result=gateway.post("/orders",body,"create-order:"+order.getOrderId());
         return new CashfreeOrderResponse(result.path("cf_order_id").asText(),result.path("payment_session_id").asText());

@@ -26,6 +26,8 @@ public interface CartService {
     void removePurchasedItems(Cart cart, com.mercato.Entity.fulfillment.Order order);
 
     Cart getCartByUser(EcommUser user);
+    Cart getCartForOrderAllocation(EcommUser user,com.mercato.Entity.fulfillment.Order order);
+    Cart lockCartForMutation(Long id);
 
     List<CartResponseDTO> getAllCarts();
 

@@ -20,7 +20,8 @@ import java.util.*;
         name = "order_snapshot",
         uniqueConstraints = {
                 @UniqueConstraint(name = "uk_order_order_id", columnNames = "order_id"),
-                @UniqueConstraint(name = "uk_order_payment_fk", columnNames = "payment_fk")
+                @UniqueConstraint(name = "uk_order_payment_fk", columnNames = "payment_fk"),
+                @UniqueConstraint(name="uk_order_checkout_intent",columnNames={"customer_user_id","checkout_operation_id"})
         },
         indexes = {
                 @Index(name = "idx_order_id", columnList = "order_id"),
@@ -51,6 +52,14 @@ public class Order {
 
     @Column(name = "customer_email", nullable = false, updatable = false)
     private String customerEmail;
+    @Column(updatable=false,length=100)
+    private String customerUserId;
+    @Column(updatable=false,length=120)
+    private String checkoutOperationId;
+    @Column(updatable=false,columnDefinition="text")
+    private String checkoutRequestBody;
+    @Column(updatable=false)
+    private Integer financialPolicyVersion;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -100,6 +109,8 @@ public class Order {
     private BigDecimal shippingCharge;
     @Column(name = "platform_fee", precision = 15, scale = 2, updatable = false)
     private BigDecimal platformFee;
+    @Column(precision=15,scale=2,updatable=false)
+    private BigDecimal handlingCharge;
 
     @Column(nullable = false, precision = 15, scale = 2, updatable = false)
     private BigDecimal totalAmount;

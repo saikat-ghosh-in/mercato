@@ -18,6 +18,8 @@ import java.util.Optional;
 
 @Repository
 public interface OrderRepository extends JpaRepository<Order, Long> {
+    @Query("select o.orderId,o.checkoutRequestBody from Order o where o.customerUserId=:buyer and o.checkoutOperationId=:operation")
+    List<Object[]> checkoutIntent(@Param("buyer")String buyer,@Param("operation")String operation);
     long countByCustomerEmail(String email);
     @Query("select new com.mercato.Payloads.Response.OrderSummaryDTO(o.orderId,o.orderStatus,o.paymentStatus,o.totalAmount,o.createdAt) from Order o where o.customerEmail=:email")
     org.springframework.data.domain.Page<OrderSummaryDTO> userActivityOrders(@Param("email") String email,org.springframework.data.domain.Pageable page);

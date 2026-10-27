@@ -66,7 +66,7 @@ class OrderRetryHoldServiceTest {
         order = new Order();
         order.addOrderLine(orderLine);
 
-        when(cartService.getCartByUser(user)).thenReturn(cart);
+        when(cartService.getCartForOrderAllocation(user,order)).thenReturn(cart);
         when(productRepository.findByProductIdForUpdate(PRODUCT_ID)).thenReturn(Optional.of(product));
     }
 
@@ -79,6 +79,13 @@ class OrderRetryHoldServiceTest {
         verify(cartReservationService).reserve(cartItem);
         verify(cartPricingService).applyCharges(cart);
         verify(cartRepository).save(cart);
+        org.junit.jupiter.api.Assertions.assertEquals(1L,cart.getVersion(),"Recreating bag selections invalidates its previous quote");
+    }
+    @Test void restoringReducedRetryQuantitiesInvalidatesTheCartQuote() {
+        cart.addProduct(product,1);
+        orderRetryHoldService.ensureCartHoldsForRetry(order,user);
+        org.junit.jupiter.api.Assertions.assertEquals(2,cart.getCartItems().get(0).getQuantity());
+        org.junit.jupiter.api.Assertions.assertEquals(1L,cart.getVersion());
     }
     @Test void retryCannotPayForAnUnapprovedProductAlreadyInTheBag() {
         cart.addProduct(product, 2);

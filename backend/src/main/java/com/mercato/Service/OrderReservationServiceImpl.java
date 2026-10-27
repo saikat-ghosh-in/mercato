@@ -95,6 +95,7 @@ public class OrderReservationServiceImpl implements OrderReservationService {
             return null;
         }
         return cart.findItemByProductId(orderLine.getProductId())
+                .filter(item->CartServiceImpl.sameSelection(item,orderLine))
                 .flatMap(cartItem -> cartReservationRepository
                         .findByCartItem_CartItemId(cartItem.getCartItemId()))
                 .orElse(null);
