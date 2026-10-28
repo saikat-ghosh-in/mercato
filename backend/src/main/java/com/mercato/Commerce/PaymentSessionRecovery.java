@@ -26,14 +26,23 @@ public class PaymentSessionRecovery {
             request.setDeliveryMethod(body.get(2).isNull()?null:com.mercato.Entity.cart.DeliveryMethod.valueOf(body.get(2).asText()));request.setExpectedCartVersion(body.get(3).longValue());request.setOperationId(operation);
         }catch(java.io.IOException e){throw new IllegalStateException("Stored checkout intent is unreadable",e);}
         var payment=order.getPayment();
-        boolean payable=order.getOrderStatus()==OrderStatus.CREATED && payment!=null && payment.getCapturedAt()==null && payment.getAuthorizedAt()==null && !payment.isFinancialHalt();
+        boolean payable=CheckoutPayability.payable(order);
         String session=payable?payment.getPaymentSessionId():null;
-        var out=new LinkedHashMap<String,Object>();out.put("operationId",operation);out.put("orderId",order.getOrderId());out.put("request",request);out.put("state",payable?(session==null||session.isBlank()?"REPLAY_CAPTURE":"PAYMENT_READY"):"ORDER_UPDATED");out.put("canReplayCapture",payable);out.put("paymentSessionId",session);out.put("order",OrderMapper.toDTO(order));return out;
+        var out=new LinkedHashMap<String,Object>();out.put("operationId",operation);out.put("orderId",order.getOrderId());out.put("request",request);out.put("state",payable?(session==null||session.isBlank()?"REPLAY_CAPTURE":"PAYMENT_READY"):"ORDER_UPDATED");out.put("canReplayCapture",payable);out.put("paymentSessionId",null);out.put("order",OrderMapper.toDTO(order));return out;
     }
     @Transactional(readOnly=true)
     public Object recover(String id){
+        return session(id,null);
+    }
+    /** Only the protected preparation command supplies a freshly guarded session. */
+    @Transactional(readOnly=true)
+    public Object prepared(String id,String preparedSession){
+        return session(id,preparedSession);
+    }
+    private Object session(String id,String preparedSession){
         var order=orders.findByOrderIdAndCustomerEmail(id,auth.getLoggedInUser().getEmail()).orElseThrow(()->new ResourceNotFoundException("Order","orderId",id));
-        var payment=order.getPayment();boolean canResume=order.getOrderStatus()==OrderStatus.CREATED&&payment!=null&&payment.getCapturedAt()==null&&payment.getPaymentSessionId()!=null;
-        var result=new LinkedHashMap<String,Object>();result.put("orderId",id);result.put("totalAmount",order.getTotalAmount());result.put("canResume",canResume);result.put("paymentSessionId",canResume?payment.getPaymentSessionId():null);result.put("status",order.getOrderStatus());result.put("deliveryAddress",OrderMapper.toDTO(order).getDeliveryAddress());return result;
+        var payment=order.getPayment();boolean canPrepare=CheckoutPayability.payable(order);
+        boolean canResume=canPrepare && preparedSession!=null && !preparedSession.isBlank() && preparedSession.equals(payment.getPaymentSessionId());
+        var result=new LinkedHashMap<String,Object>();result.put("orderId",id);result.put("totalAmount",order.getTotalAmount());result.put("canPrepare",canPrepare);result.put("canResume",canResume);result.put("paymentSessionId",canResume?preparedSession:null);result.put("status",order.getOrderStatus());result.put("deliveryAddress",OrderMapper.toDTO(order).getDeliveryAddress());return result;
     }
 }

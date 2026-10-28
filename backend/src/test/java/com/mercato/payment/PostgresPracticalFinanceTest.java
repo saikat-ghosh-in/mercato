@@ -42,6 +42,7 @@ class PostgresPracticalFinanceTest {
         @Bean(name={"clock","durableJobClock"}) Clock clock(){return Clock.fixed(NOW,ZoneOffset.UTC);}
         @Bean AuthUtil auth(){var auth=mock(AuthUtil.class);when(auth.getLoggedInUser()).thenAnswer(c->ACTOR.get());return auth;}
         @Bean CashfreeGateway gateway(){return mock(CashfreeGateway.class);}
+        @Bean CashfreeService cashfree(){return mock(CashfreeService.class);}
         @Bean ShipmentNotificationService mail(){return mock(ShipmentNotificationService.class);}
     }
     @DynamicPropertySource static void postgres(DynamicPropertyRegistry p){p.add("spring.datasource.url",()->DATABASE);p.add("spring.datasource.username",PostgresTestSupport::username);p.add("spring.datasource.password",PostgresTestSupport::password);p.add("spring.datasource.driver-class-name",()->"org.postgresql.Driver");p.add("spring.jpa.database-platform",()->"org.hibernate.dialect.PostgreSQLDialect");}

@@ -32,7 +32,7 @@ import static org.mockito.Mockito.*;
 
 /** Real transactions exercise expired-hold checkout and the cleanup/renewal lock race. */
 @SpringBootTest(classes=PostgresCheckoutReservationTest.Config.class,properties={
-    "spring.jpa.hibernate.ddl-auto=create-drop","spring.jpa.open-in-view=false","spring.flyway.enabled=false",
+    "spring.jpa.hibernate.ddl-auto=validate","spring.jpa.open-in-view=false","spring.flyway.enabled=true",
     "mercato.jobs.enabled=false"})
 @TestExecutionListeners(listeners=org.springframework.test.context.support.DependencyInjectionTestExecutionListener.class,
     mergeMode=TestExecutionListeners.MergeMode.REPLACE_DEFAULTS)
@@ -42,19 +42,22 @@ class PostgresCheckoutReservationTest {
     @EntityScan(basePackages={"com.mercato.Entity","com.mercato.Commerce","com.mercato.Jobs"})
     @EnableJpaRepositories(basePackages={"com.mercato.Repository","com.mercato.Commerce"})
     @Import({OrderServiceImpl.class,CartServiceImpl.class,CartReservationServiceImpl.class,CartPricingServiceImpl.class,PackageDeliveryPricing.class,
-        OrderRetryHoldService.class,OrderReservationServiceImpl.class,com.mercato.Commerce.PaidOrderAllocation.class})
+        OrderRetryHoldService.class,OrderReservationServiceImpl.class,com.mercato.Commerce.PaidOrderAllocation.class,
+        WorkflowCommands.class,FulfillmentCancellation.class,OrderLineUpdateServiceImpl.class,
+        com.mercato.Commerce.PaymentSessionRecovery.class,com.mercato.Jobs.DurableJobs.class,com.mercato.Jobs.JobStore.class,com.mercato.Controller.OrderController.class})
     static class Config {
-        @Bean WorkflowCommands workflowCommands(){return mock(WorkflowCommands.class);}
-        @Bean FulfillmentCancellation cancellation(){return mock(FulfillmentCancellation.class);}
         @Bean FulfillmentWorkflow workflow(){return new FulfillmentWorkflow(java.time.Clock.systemUTC(),new FulfillmentFunding());}
         @Bean AuthUtil auth(){return mock(AuthUtil.class);}
-        @Bean CashfreeService cashfree(){return mock(CashfreeService.class);}
+        @Bean com.mercato.Commerce.CashfreeGateway gateway(){return mock(com.mercato.Commerce.CashfreeGateway.class);}
+        @Bean com.mercato.Commerce.PaymentInbox inbox(){return mock(com.mercato.Commerce.PaymentInbox.class);}
+        @Bean CashfreeService cashfree(com.mercato.Commerce.CashfreeGateway gateway,com.mercato.Commerce.PaymentInbox inbox,OrderRepository orders,AuthUtil auth,com.mercato.Jobs.DurableJobs jobs,PlatformTransactionManager transactions){return spy(new CashfreeServiceImpl(gateway,inbox,orders,auth,jobs,transactions,"http://localhost/return","http://localhost/notify"));}
         @Bean CommissionService commissions(){return mock(CommissionService.class);}
-        @Bean OrderLineUpdateService updates(){return mock(OrderLineUpdateService.class);}
+        @Bean RefundService refundService(){return mock(RefundService.class);}
+        @Bean FulfillmentService fulfillments(){return mock(FulfillmentService.class);}
+        @Bean ShipmentNotificationService notifications(){return mock(ShipmentNotificationService.class);}
         @Bean java.time.Clock clock(){return java.time.Clock.systemUTC();}
         @Bean FulfillmentFunding funding(){return new FulfillmentFunding();}
         @Bean FulfillmentDeadlines deadlines(){return mock(FulfillmentDeadlines.class);}
-        @Bean com.mercato.Jobs.DurableJobs jobs(){return mock(com.mercato.Jobs.DurableJobs.class);}
         @Bean com.mercato.Commerce.RefundObligations refunds(){return mock(com.mercato.Commerce.RefundObligations.class);}
     }
     @DynamicPropertySource static void postgres(DynamicPropertyRegistry p){
@@ -70,12 +73,16 @@ class PostgresCheckoutReservationTest {
     @Autowired CartService cartService;
     @Autowired CashfreeService cashfree; @Autowired CommissionService commissions;
     @Autowired com.mercato.Commerce.PaidOrderAllocation allocation;
+    @Autowired com.mercato.Commerce.PaymentSessionRecovery recovery;
+    @Autowired com.mercato.Commerce.CashfreeGateway gateway;
+    @Autowired OrderLineUpdateService updates;
+    @Autowired com.mercato.Controller.OrderController controller;
     @Autowired PlatformTransactionManager transactions; @Autowired JdbcTemplate jdbc;
     static final java.util.concurrent.atomic.AtomicLong PHONES=new java.util.concurrent.atomic.AtomicLong(9990000000L);
     TransactionTemplate tx; EcommUser buyer; String first,second,addressId; Long cartId; BigDecimal total;
 
     @BeforeEach void fixture(){
-        tx=new TransactionTemplate(transactions);reset(auth,cashfree,commissions);
+        tx=new TransactionTemplate(transactions);reset(auth,cashfree,commissions,gateway);
         String key=UUID.randomUUID().toString().substring(0,8);first="HOLD-"+key+"-A";second="HOLD-"+key+"-B";
         tx.executeWithoutResult(status->{
             buyer=users.saveAndFlush(EcommUser.builder().username("hold"+key).email("hold"+key+"@mercato.invalid")
@@ -94,10 +101,11 @@ class PostgresCheckoutReservationTest {
             addressId=addresses.saveAndFlush(address).getAddressId();
         });
         when(auth.getLoggedInUser()).thenReturn(buyer);when(commissions.currentRate()).thenReturn(new BigDecimal("0.50"));
-        when(cashfree.createOrder(any(),eq(buyer))).thenAnswer(call->{
+        doAnswer(call->{
             assertFalse(org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive());
             return new CashfreeOrderResponse("test-cf-id","test-payment-session");
-        });
+        }).when(cashfree).createOrder(any(),eq(buyer));
+        when(gateway.get(anyString())).thenReturn(new com.fasterxml.jackson.databind.ObjectMapper().createObjectNode().put("order_status","ACTIVE").put("payment_session_id","test-payment-session"));
         doAnswer(call->{com.mercato.Entity.fulfillment.Order order=call.getArgument(0);order.getPayment().setPaymentSessionId("test-payment-session");return null;})
             .when(cashfree).initiatePayment(any(),any(),any());
     }
@@ -124,11 +132,11 @@ class PostgresCheckoutReservationTest {
     }
     @Test void uncertainCheckoutRetryKeepsTheOriginalMerchantIdentity() {
         var request=request();var identities=new ArrayList<String>();
-        when(cashfree.createOrder(any(),eq(buyer))).thenAnswer(call->{
+        doAnswer(call->{
             com.mercato.Entity.fulfillment.Order order=call.getArgument(0);identities.add(order.getOrderId());
             if(identities.size()==1)throw new IllegalStateException("Synthetic uncertain transport outcome");
             return new CashfreeOrderResponse("same-cf-id","recovered-session");
-        });
+        }).when(cashfree).createOrder(any(),eq(buyer));
         long before=orders.count();
         assertThrows(IllegalStateException.class,()->orderService.placeOrder(request));
         var response=orderService.placeOrder(request);
@@ -198,11 +206,124 @@ class PostgresCheckoutReservationTest {
         assertEquals(2,jdbc.queryForObject("SELECT sum(quantity) FROM cart_items WHERE cart_fk=?",Integer.class,cartId));
     }
     String twoUnitCheckout() {
+        return orderService.placeOrder(twoUnitRequest()).getOrder().getOrderId();
+    }
+    OrderCaptureRequestDTO twoUnitRequest() {
         var context=new com.mercato.Utils.CartContext(buyer.getUserId(),null);cartService.deleteProductFromCart(second,context);
         var update=new com.mercato.Payloads.Request.CartItemRequestDTO();update.setProductId(first);update.setQuantity(2);cartService.updateProductQuantityInCart(update,context);
         jdbc.update("UPDATE products SET physical_qty=2 WHERE product_id=?",first);
         var quote=cartService.getCart(context);var request=request();request.setExpectedCartVersion(quote.getVersion());request.setExpectedTotal(quote.getTotal());
-        return orderService.placeOrder(request).getOrder().getOrderId();
+        return request;
+    }
+    @Test void exactUncertainReplayRestoresMissingSelectionBeforePaymentAtExactStock(){exactReplayRestores(false);}
+    @Test void exactUncertainReplayRestoresReducedSelectionBeforePaymentAtExactStock(){exactReplayRestores(true);}
+    void exactReplayRestores(boolean reduce){
+        var request=twoUnitRequest();
+        doThrow(new IllegalStateException("Synthetic uncertain create")).when(cashfree).createOrder(any(),eq(buyer));
+        assertThrows(IllegalStateException.class,()->orderService.placeOrder(request));
+        String id=jdbc.queryForObject("SELECT order_id FROM order_snapshot WHERE checkout_operation_id=?",String.class,request.getOperationId());
+        editSelection(reduce);doReturn(new CashfreeOrderResponse("recovered-cf","recovered-session")).when(cashfree).createOrder(any(),eq(buyer));
+        orderService.placeOrder(request);assertRetryAllocation(id);
+    }
+    void editSelection(boolean reduce){
+        var context=new com.mercato.Utils.CartContext(buyer.getUserId(),null);
+        if(reduce){var update=new com.mercato.Payloads.Request.CartItemRequestDTO();update.setProductId(first);update.setQuantity(1);cartService.updateProductQuantityInCart(update,context);}
+        else cartService.deleteProductFromCart(first,context);
+    }
+    void assertRetryAllocation(String id){
+        assertEquals(2,reserved(first));
+        assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM order_lines_snapshot l JOIN cart_items i ON i.cart_item_id=l.retry_cart_item_id AND i.selection_generation=l.retry_selection_generation WHERE l.order_fk=(SELECT id FROM order_snapshot WHERE order_id=?)",Integer.class,id));
+        tx.executeWithoutResult(t->{var o=orders.lockByOrderId(id).orElseThrow();o.getPayment().setCapturedAt(Instant.now());o.getPayment().setCapturedAmount(o.getTotalAmount());});
+        allocation.allocate(id);allocation.allocate(id);
+        assertEquals(2,reserved(first));assertEquals(0,holdCount());
+        assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM order_reservations WHERE order_fk=(SELECT id FROM order_snapshot WHERE order_id=?)",Integer.class,id));
+    }
+    @Test void exactReplayRejectsUnrelatedAdequateHoldBeforeGatewayExposure(){
+        var request=twoUnitRequest();orderService.placeOrder(request);editSelection(false);
+        cartService.addProductToCart(add(first,2),new com.mercato.Utils.CartContext(buyer.getUserId(),null));clearInvocations(cashfree,gateway);
+        assertThrows(InsufficientInventoryException.class,()->orderService.placeOrder(request));verifyNoInteractions(cashfree,gateway);
+        assertEquals(2,reserved(first));assertEquals(2,jdbc.queryForObject("SELECT sum(quantity) FROM cart_items WHERE cart_fk=?",Integer.class,cartId));
+    }
+    @Test void recoveredReadyIntentAndByOrderLookupStayReadOnlyThenPrepareThroughRetry()throws Exception{
+        var request=twoUnitRequest();String id=orderService.placeOrder(request).getOrder().getOrderId();editSelection(false);
+        long version=jdbc.queryForObject("SELECT version FROM carts WHERE id=?",Long.class,cartId);clearInvocations(gateway);
+        var intent=(Map<?,?>)recovery.recoverIntent(request.getOperationId());assertEquals("PAYMENT_READY",intent.get("state"));assertNull(intent.get("paymentSessionId"));
+        var lookup=(Map<?,?>)recovery.recover(id);assertEquals(false,lookup.get("canResume"));assertEquals(true,lookup.get("canPrepare"));assertNull(lookup.get("paymentSessionId"));
+        assertEquals(version,jdbc.queryForObject("SELECT version FROM carts WHERE id=?",Long.class,cartId));assertEquals(0,holdCount());verifyNoInteractions(gateway);
+        var mvc=org.springframework.test.web.servlet.setup.MockMvcBuilders.standaloneSetup(controller).build();
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/user/orders/"+id+"/payment-session"))
+            .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isOk())
+            .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header().string("Cache-Control","private, no-store"))
+            .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.paymentSessionId").value("test-payment-session"));
+        assertRetryAllocation(id);
+    }
+    @Test void recoveredSessionPostRejectsUnrelatedAdequateHoldWithoutExposingPayment()throws Exception{
+        var request=twoUnitRequest();String id=orderService.placeOrder(request).getOrder().getOrderId();editSelection(false);
+        cartService.addProductToCart(add(first,2),new com.mercato.Utils.CartContext(buyer.getUserId(),null));clearInvocations(cashfree,gateway);
+        var mvc=org.springframework.test.web.servlet.setup.MockMvcBuilders.standaloneSetup(controller).setControllerAdvice(new com.mercato.ExceptionHandler.GlobalExceptionHandler()).build();
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/user/orders/"+id+"/payment-session"))
+            .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isConflict())
+            .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.availableQty").value(0))
+            .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.paymentSessionId").doesNotExist());
+        assertEquals(2,reserved(first));assertEquals(2,jdbc.queryForObject("SELECT sum(quantity) FROM cart_items WHERE cart_fk=?",Integer.class,cartId));verifyNoInteractions(cashfree,gateway);
+    }
+    @Test void partialUnpaidCancellationClosesOriginalCheckoutAndCommitsTerminationOnce(){cancelledCheckout(false,false);}
+    @Test void wholeUnpaidCancellationClosesOriginalCheckoutAndCommitsTerminationOnce(){cancelledCheckout(true,false);}
+    @Test void uncertainUnpaidCancellationCannotCreateGatewayOnExactReplay(){cancelledCheckout(true,true);}
+    void cancelledCheckout(boolean whole,boolean uncertain){
+        var request=twoUnitRequest();
+        if(uncertain)doThrow(new IllegalStateException("Synthetic uncertain create")).when(cashfree).createOrder(any(),eq(buyer));
+        if(uncertain)assertThrows(IllegalStateException.class,()->orderService.placeOrder(request));else orderService.placeOrder(request);
+        String id=jdbc.queryForObject("SELECT order_id FROM order_snapshot WHERE checkout_operation_id=?",String.class,request.getOperationId());
+        if(whole){var cancel=new com.mercato.Payloads.Request.OrderCancelRequestDTO();cancel.setOrderId(id);cancel.setReason("Changed decision");cancel.setExpectedVersion(0L);cancel.setOperationId("whole-cancel");orderService.cancelOrder(cancel,com.mercato.Entity.fulfillment.TransitionTrigger.CUSTOMER);orderService.cancelOrder(cancel,com.mercato.Entity.fulfillment.TransitionTrigger.CUSTOMER);}
+        else {var cancel=lineCancel(id,1);updates.updateOrderLine(cancel,com.mercato.Entity.fulfillment.TransitionTrigger.CUSTOMER);updates.updateOrderLine(cancel,com.mercato.Entity.fulfillment.TransitionTrigger.CUSTOMER);}
+        assertTermination(id,1);assertClosedRecovery(request,id);clearInvocations(cashfree,gateway);
+        assertThrows(com.mercato.ExceptionHandler.CustomBadRequestException.class,()->orderService.placeOrder(request));
+        assertThrows(com.mercato.ExceptionHandler.CustomBadRequestException.class,()->orderService.retryPayment(id));verifyNoInteractions(cashfree,gateway);assertTermination(id,1);
+        assertEquals(whole?2:1,jdbc.queryForObject("SELECT cancelled_qty FROM order_lines_snapshot WHERE order_fk=(SELECT id FROM order_snapshot WHERE order_id=?)",Integer.class,id));
+    }
+    com.mercato.Payloads.Request.OrderLineUpdateRequestDTO lineCancel(String id,int qty){
+        var r=new com.mercato.Payloads.Request.OrderLineUpdateRequestDTO();r.setFulfillmentId(jdbc.queryForObject("SELECT fulfillment_id FROM order_lines_snapshot WHERE order_fk=(SELECT id FROM order_snapshot WHERE order_id=?)",String.class,id));r.setOrderLineNumber(1);r.setAction(com.mercato.Entity.fulfillment.OrderLineAction.CANCEL);r.setQty(qty);r.setReason("Changed decision");r.setExpectedVersion(0L);r.setOperationId("cancel-quantity");return r;
+    }
+    void assertTermination(String id,int count){for(String key:List.of("terminate:","reconcile-cancel:"))assertEquals(count,jdbc.queryForObject("SELECT count(*) FROM durable_jobs WHERE business_key=?",Integer.class,key+id));}
+    void assertClosedRecovery(OrderCaptureRequestDTO request,String id){
+        var intent=(Map<?,?>)recovery.recoverIntent(request.getOperationId());assertEquals("ORDER_UPDATED",intent.get("state"));assertNull(intent.get("paymentSessionId"));
+        var byOrder=(Map<?,?>)recovery.recover(id);assertEquals(false,byOrder.get("canResume"));assertEquals(false,byOrder.get("canPrepare"));assertNull(byOrder.get("paymentSessionId"));
+    }
+    @Test void currentAuthorizationAndFinancialHaltFenceEveryRecoveryAndReplay(){
+        for(String evidence:List.of("authorization","halt","capture")){
+            if(!evidence.equals("authorization"))fixture();var request=twoUnitRequest();String id=orderService.placeOrder(request).getOrder().getOrderId();
+            tx.executeWithoutResult(t->{var p=orders.lockByOrderId(id).orElseThrow().getPayment();if(evidence.equals("authorization"))p.setAuthorizedAt(Instant.now());else if(evidence.equals("halt"))p.setFinancialHalt(true);else{p.setCapturedAt(Instant.now());p.setCapturedAmount(new BigDecimal("200.00"));}});
+            assertClosedRecovery(request,id);clearInvocations(cashfree,gateway);
+            assertThrows(com.mercato.ExceptionHandler.CustomBadRequestException.class,()->orderService.placeOrder(request));
+            assertThrows(com.mercato.ExceptionHandler.CustomBadRequestException.class,()->orderService.retryPayment(id));verifyNoInteractions(cashfree,gateway);
+        }
+    }
+    @Test void cancellationDuringCreateCommitsPostNetworkTerminationWithoutExposingSession()throws Exception{cancelDuringNetwork(false,false,false);}
+    @Test void cancellationDuringResumeCommitsTerminationWithoutExposingSession()throws Exception{cancelDuringNetwork(true,false,false);}
+    @Test void cancellationDuringUncertainCreateCommitsPostNetworkTermination()throws Exception{cancelDuringNetwork(false,true,false);}
+    @Test void cancellationDuringUncertainResumeCommitsPostNetworkTermination()throws Exception{cancelDuringNetwork(true,true,false);}
+    @Test void cancellationDuringMissingProviderRecoveryCommitsPostNetworkTermination()throws Exception{cancelDuringNetwork(true,false,true);}
+    void cancelDuringNetwork(boolean resume,boolean uncertain,boolean missing)throws Exception{
+        var request=twoUnitRequest();String existing=resume?orderService.placeOrder(request).getOrder().getOrderId():null;
+        var entered=new CountDownLatch(1);var release=new CountDownLatch(1);var pool=Executors.newSingleThreadExecutor();
+        if(resume&&!missing)when(gateway.get(anyString())).thenAnswer(call->{assertFalse(org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive());entered.countDown();await(release);if(uncertain)throw new IllegalStateException("Synthetic uncertain transport");return new com.fasterxml.jackson.databind.ObjectMapper().createObjectNode().put("order_status","ACTIVE").put("payment_session_id","late-session");});
+        else {
+            if(missing)when(gateway.get(anyString())).thenThrow(new com.mercato.Commerce.CashfreeGateway.GatewayFailure(404,"order_not_found"));
+            doAnswer(call->{assertFalse(org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive());entered.countDown();await(release);if(uncertain)throw new IllegalStateException("Synthetic uncertain transport");return new CashfreeOrderResponse("late-cf","late-session");}).when(cashfree).createOrder(any(),eq(buyer));
+        }
+        try{
+            var pending=pool.submit(()->resume?orderService.retryPayment(existing):orderService.placeOrder(request).getPaymentSessionId());assertTrue(entered.await(10,TimeUnit.SECONDS));
+            String id=resume?existing:jdbc.queryForObject("SELECT order_id FROM order_snapshot WHERE checkout_operation_id=?",String.class,request.getOperationId());
+            updates.updateOrderLine(lineCancel(id,1),com.mercato.Entity.fulfillment.TransitionTrigger.CUSTOMER);
+            // Simulate the worker having observed a missing provider order before create completed.
+            jdbc.update("UPDATE durable_jobs SET status='SUCCEEDED' WHERE business_key IN (?,?)","terminate:"+id,"reconcile-cancel:"+id);
+            release.countDown();var failure=assertThrows(ExecutionException.class,()->pending.get(10,TimeUnit.SECONDS));
+            if(uncertain)assertInstanceOf(IllegalStateException.class,failure.getCause());else assertInstanceOf(com.mercato.ExceptionHandler.CustomBadRequestException.class,failure.getCause());
+            assertClosedRecovery(request,id);assertTermination(id,1);
+            assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM durable_jobs WHERE business_key=?",Integer.class,"terminate-after-payment-io:"+id));
+            assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM durable_jobs WHERE business_key=?",Integer.class,"reconcile-after-payment-io:"+id));
+        }finally{release.countDown();pool.shutdownNow();}
     }
     @Test void replayAfterBagEditsReturnsTheOriginalSnapshotAndSession() {
         var request=request();var original=orderService.placeOrder(request);
@@ -239,12 +360,12 @@ class PostgresCheckoutReservationTest {
     @Test void simultaneousIntentReplaysNeverHoldDatabaseLocksOverGatewayIo() throws Exception {
         var request=request();var entered=new CountDownLatch(1);var release=new CountDownLatch(1);var calls=new java.util.concurrent.atomic.AtomicInteger();
         var identities=new java.util.concurrent.ConcurrentLinkedQueue<String>();
-        when(cashfree.createOrder(any(),eq(buyer))).thenAnswer(call->{
+        doAnswer(call->{
             assertFalse(org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive());
             com.mercato.Entity.fulfillment.Order order=call.getArgument(0);identities.add(order.getOrderId());
             if(calls.incrementAndGet()==1){entered.countDown();await(release);}
             return new CashfreeOrderResponse("same-provider-order","same-session");
-        });
+        }).when(cashfree).createOrder(any(),eq(buyer));
         var pool=Executors.newFixedThreadPool(2);long before=orders.count();
         try {
             var a=pool.submit(()->orderService.placeOrder(request));assertTrue(entered.await(10,TimeUnit.SECONDS));

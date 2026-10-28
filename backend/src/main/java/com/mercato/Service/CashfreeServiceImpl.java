@@ -47,9 +47,22 @@ public class CashfreeServiceImpl implements CashfreeService {
         // Reconciliation catches a capture racing with the termination request even if its webhook is delayed.
         jobs.enqueue("RECONCILE_ORDER","reconcile-cancel:"+merchantOrderId,Map.of("orderId",merchantOrderId));
     }
+    @Transactional
+    public void closePaymentAfterIo(Order order) {
+        if(order.getOrderStatus()==OrderStatus.CANCELLED || order.getOrderLines().stream().anyMatch(line->line.getCancelledQty()>0)) {
+            // The initial cancellation jobs may already have observed a missing provider order
+            // while create was in flight. These distinct stable keys verify its eventual result.
+            jobs.enqueue("TERMINATE_ORDER","terminate-after-payment-io:"+order.getOrderId(),Map.of("orderId",order.getOrderId()));
+            jobs.enqueue("RECONCILE_ORDER","reconcile-after-payment-io:"+order.getOrderId(),Map.of("orderId",order.getOrderId()));
+        }
+    }
     public void handleWebhookEvent(String payload,String signature,String timestamp){inbox.receive(payload.getBytes(StandardCharsets.UTF_8),signature,timestamp);}
     public String retryPayment(Order order,EcommUser user) {
-        if(order.getOrderStatus()!=OrderStatus.CREATED || order.getPayment().getCapturedAt()!=null)throw new CustomBadRequestException("Order is not payable");
+        if(!CheckoutPayability.payable(order))throw new CustomBadRequestException("Order is not payable");
+        try {return resumePayment(order,user);}
+        catch(RuntimeException failure){tx.executeWithoutResult(t->closePaymentAfterIo(orders.lockByOrderId(order.getOrderId()).orElseThrow()));throw failure;}
+    }
+    private String resumePayment(Order order,EcommUser user) {
         JsonNode state;
         try {state=gateway.get("/orders/"+order.getOrderId());}
         catch(CashfreeGateway.GatewayFailure failure){
@@ -57,15 +70,22 @@ public class CashfreeServiceImpl implements CashfreeService {
             // A failed/ambiguous initial POST keeps its durable merchant order ID.
             // Recover that same checkout instead of creating an unrelated local order.
             var created=createOrder(order,user);
-            return tx.execute(t->{var locked=orders.lockByOrderId(order.getOrderId()).orElseThrow();
-                if(locked.getOrderStatus()!=OrderStatus.CREATED || locked.getPayment().getCapturedAt()!=null)throw new CustomBadRequestException("Order is not payable");
-                initiatePayment(locked,PaymentMethod.UNKNOWN,created);return created.getPaymentSessionId();});
+            return finishResume(order.getOrderId(),created,created.getPaymentSessionId());
         }
         if(!"ACTIVE".equals(state.path("order_status").asText()))throw new CustomBadRequestException("Payment is no longer available for this order. Refresh its status.");
         String session=state.path("payment_session_id").asText();
         if(session.isBlank())throw new com.mercato.Jobs.TransientJobException("Gateway checkout session is not available yet");
-        tx.executeWithoutResult(t->{var locked=orders.lockByOrderId(order.getOrderId()).orElseThrow();if(locked.getOrderStatus()!=OrderStatus.CREATED || locked.getPayment().getCapturedAt()!=null)throw new CustomBadRequestException("Order is not payable");locked.getPayment().setPaymentSessionId(session);});
-        return session;
+        return finishResume(order.getOrderId(),null,session);
+    }
+    private String finishResume(String orderId,CashfreeOrderResponse created,String session) {
+        var result=tx.execute(t->{var locked=orders.lockByOrderId(orderId).orElseThrow();
+            if(!CheckoutPayability.payable(locked)){closePaymentAfterIo(locked);return null;}
+            if(created!=null)initiatePayment(locked,PaymentMethod.UNKNOWN,created);
+            else locked.getPayment().setPaymentSessionId(session);
+            return session;});
+        // Reject only after the transaction commits any termination/reconciliation work.
+        if(result==null)throw new CustomBadRequestException("Order changed while opening payment. Review its current status.");
+        return result;
     }
     public String syncPaymentAndRefund(String orderId) {
         String email=auth.getLoggedInUser().getEmail();

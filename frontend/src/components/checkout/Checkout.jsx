@@ -171,10 +171,14 @@ const CheckoutSession = () => {
     setPlacingOrder(true);
     setPaymentError("");
     try {
+      if (recovered && recoveryAction(recovered) === "payment") {
+        navigate(`cashfree-payment?orderId=${encodeURIComponent(recovered.orderId)}`);
+        return;
+      }
       const request = intent.payload({ addressId: selectedAddress?.addressId, expectedTotal: total, deliveryMethod, expectedCartVersion:cartVersion });
       const query = new URLSearchParams(location.search); query.set("checkoutIntent",request.operationId);
       navigate({pathname:"/checkout",search:query.toString()},{replace:true});
-      const response = recovered && recoveryAction(recovered) === "payment" ? recovered : await dispatch(placeOrder(request));
+      const response = await dispatch(placeOrder(request));
       if (!current()) return;
       if (!response.paymentSessionId || response.order?.paymentSummary?.status === "SUCCESS") {
         navigate(`/orders?orderId=${encodeURIComponent(response.order.orderId)}`); return;

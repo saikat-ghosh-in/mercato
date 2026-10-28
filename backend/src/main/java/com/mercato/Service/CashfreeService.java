@@ -14,6 +14,8 @@ public interface CashfreeService {
 
     void terminateOrder(String cfOrderId);
 
+    void closePaymentAfterIo(Order order);
+
     void handleWebhookEvent(String payload, String signature, String timestamp);
 
     String retryPayment(Order order, EcommUser user);

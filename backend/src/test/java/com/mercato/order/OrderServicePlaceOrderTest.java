@@ -44,6 +44,7 @@ class OrderServicePlaceOrderTest {
     @Mock private CartReservationService cartReservationService;
     @Mock private ProductRepository productRepository;
     @Mock private OrderLineUpdateService orderLineUpdateService;
+    @Mock private OrderRetryHoldService orderRetryHoldService;
     @Mock private CommissionService commissions;
     @Mock private org.springframework.transaction.PlatformTransactionManager transactions;
     @Mock private com.mercato.Repository.SellerApplicationRepository sellerApplications;

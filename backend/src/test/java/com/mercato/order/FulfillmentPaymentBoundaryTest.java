@@ -22,7 +22,7 @@ class FulfillmentPaymentBoundaryTest {
     private final RefundService refunds = mock(RefundService.class);
     private final ShipmentNotificationService mail = mock(ShipmentNotificationService.class);
     private final AuthUtil auth = mock(AuthUtil.class);
-    private final OrderLineUpdateServiceImpl service = new OrderLineUpdateServiceImpl(lines, orders, reservations, refunds, mail, auth, new FulfillmentWorkflow(java.time.Clock.systemUTC(),new FulfillmentFunding()),mock(WorkflowCommands.class));
+    private final OrderLineUpdateServiceImpl service = new OrderLineUpdateServiceImpl(lines, orders, reservations, refunds, mock(CashfreeService.class), mail, auth, new FulfillmentWorkflow(java.time.Clock.systemUTC(),new FulfillmentFunding()),mock(WorkflowCommands.class));
     private Order order;
     private OrderLine line;
 

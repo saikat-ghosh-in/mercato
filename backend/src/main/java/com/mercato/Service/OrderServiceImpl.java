@@ -58,20 +58,31 @@ public class OrderServiceImpl implements OrderService {
         String orderId=tx.execute(status -> prepareOrder(request,buyer));
         // Intent lookup may hold the user/cart mutex, but never locks an existing
         // order. Commit that transaction before entering the order-first protocol.
-        Order draft=tx.execute(status->{var order=ownedOrder(orderId,buyer);org.hibernate.Hibernate.initialize(order.getPayment());return order;});
+        Order draft=tx.execute(status->{var order=ownedOrder(orderId,buyer);requirePayable(order);
+            orderRetryHoldService.ensureCartHoldsForRetry(order,buyer);
+            org.hibernate.Hibernate.initialize(order.getPayment());return order;});
         if(draft.getPayment().getPaymentSessionId()!=null && !draft.getPayment().getPaymentSessionId().isBlank())
-            return tx.execute(status->placement(ownedOrder(orderId,buyer)));
-        CashfreeOrderResponse gateway = cashfreeService.createOrder(draft, buyer);
-        return tx.execute(status -> {
+            return tx.execute(status->{var order=ownedOrder(orderId,buyer);requirePayable(order);return placement(order);});
+        CashfreeOrderResponse gateway;
+        try {gateway=cashfreeService.createOrder(draft,buyer);}
+        catch(RuntimeException failure){tx.executeWithoutResult(status->cashfreeService.closePaymentAfterIo(ownedOrder(orderId,buyer)));throw failure;}
+        var result=tx.execute(status -> {
             Order order=ownedOrder(draft.getOrderId(),buyer);
-            if(order.getOrderStatus()==OrderStatus.CANCELLED) {
-                cashfreeService.terminateOrder(order.getOrderId());
-                throw new CustomBadRequestException("Order was cancelled while opening payment");
+            if(!com.mercato.Commerce.CheckoutPayability.payable(order)) {
+                cashfreeService.closePaymentAfterIo(order);
+                return null;
             }
             if(order.getPayment().getCapturedAt()==null && (order.getPayment().getPaymentSessionId()==null || order.getPayment().getPaymentSessionId().isBlank()))
                 cashfreeService.initiatePayment(order,PaymentMethod.UNKNOWN,gateway);
             return placement(order);
         });
+        if(result==null)throw new CustomBadRequestException("Order changed while opening payment. Review its current status.");
+        return result;
+    }
+
+    private void requirePayable(Order order) {
+        if(!com.mercato.Commerce.CheckoutPayability.payable(order))
+            throw new CustomBadRequestException("Order is no longer payable. Review its current status.");
     }
 
     private Order ownedOrder(String orderId,EcommUser buyer) {
@@ -141,9 +152,7 @@ public class OrderServiceImpl implements OrderService {
           Order found = orderRepository.lockByOrderId(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order", "orderId", orderId));
         if(!currentUser.getEmail().equals(found.getCustomerEmail()))throw new ResourceNotFoundException("Order", "orderId", orderId);
-        if (!OrderStatus.CREATED.equals(found.getOrderStatus())) {
-            throw new CustomBadRequestException("Order is not in a payable state");
-        }
+        requirePayable(found);
         orderRetryHoldService.ensureCartHoldsForRetry(found, currentUser);
         // Gateway I/O runs after commit with OSIV disabled. Resolve the only lazy
         // association needed by the detached payment snapshot before leaving here.

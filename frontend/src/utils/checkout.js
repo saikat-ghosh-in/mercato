@@ -9,7 +9,7 @@ export function createCheckoutIntent(makeId = () => crypto.randomUUID()) {
   };
 }
 export function recoveryAction(recovery) {
-  if (recovery?.canReplayCapture && recovery.state === "PAYMENT_READY" && recovery.paymentSessionId?.trim()) return "payment";
+  if (recovery?.canReplayCapture && recovery.state === "PAYMENT_READY") return "payment";
   if (recovery?.canReplayCapture && recovery.state === "REPLAY_CAPTURE") return "replay";
   return "order";
 }

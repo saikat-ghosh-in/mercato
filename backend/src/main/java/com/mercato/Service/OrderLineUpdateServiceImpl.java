@@ -18,6 +18,7 @@ public class OrderLineUpdateServiceImpl implements OrderLineUpdateService {
     private final OrderRepository orderRepository;
     private final OrderReservationService orderReservationService;
     private final RefundService refundService;
+    private final CashfreeService cashfreeService;
     private final ShipmentNotificationService shipmentNotificationService;
     private final AuthUtil authUtil;
     private final FulfillmentWorkflow workflow;
@@ -61,7 +62,13 @@ public class OrderLineUpdateServiceImpl implements OrderLineUpdateService {
         orderRepository.saveAndFlush(order);
         var result=OrderLineMapper.toDTO(line);result.setWorkflow(workflow.project(line,trigger));
         commands.record(order,line,request,trigger,actor,qty,unaccepted,acceptedOnly,preparingOnly,result);
-        if(request.getAction()==OrderLineAction.CANCEL)refundService.processRefundIfRequired(order);
+        if(request.getAction()==OrderLineAction.CANCEL) {
+            var payment=order.getPayment();
+            if(payment!=null && payment.getCapturedAt()==null
+                && (payment.getCapturedAmount()==null || payment.getCapturedAmount().signum()==0))
+                cashfreeService.terminateOrder(order.getOrderId());
+            refundService.processRefundIfRequired(order);
+        }
         if(request.getAction()==OrderLineAction.SHIP)shipmentNotificationService.notifyShippedIfNeeded(order);
         return result;
     }

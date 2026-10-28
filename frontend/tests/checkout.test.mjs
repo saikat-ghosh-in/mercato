@@ -24,6 +24,7 @@ test("recovery only offers a payable session or exact safe replay and otherwise 
   assert.equal(typeof checkout.recoveryAction,"function");
   const order={orderId:"original",totalAmount:612};
   assert.equal(checkout.recoveryAction({state:"PAYMENT_READY",canReplayCapture:true,paymentSessionId:"safe",order}),"payment");
+  assert.equal(checkout.recoveryAction({state:"PAYMENT_READY",canReplayCapture:true,paymentSessionId:null,order}),"payment");
   assert.equal(checkout.recoveryAction({state:"REPLAY_CAPTURE",canReplayCapture:true,order}),"replay");
   assert.equal(checkout.recoveryAction({state:"ORDER_UPDATED",canReplayCapture:false,order}),"order");
   assert.equal(checkout.recoveryAction({state:"PAYMENT_READY",canReplayCapture:false,paymentSessionId:"old",order}),"order");

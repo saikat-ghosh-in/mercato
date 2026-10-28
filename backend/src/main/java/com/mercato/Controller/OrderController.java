@@ -86,7 +86,13 @@ public class OrderController {
     }
 
     @GetMapping("/user/orders/{orderId}/payment-session")
-    public ResponseEntity<Object> paymentSession(@PathVariable String orderId) {return ResponseEntity.ok().cacheControl(org.springframework.http.CacheControl.noStore()).body(recovery.recover(orderId));}
+    public ResponseEntity<Object> paymentSession(@PathVariable String orderId) {return ResponseEntity.ok().header("Cache-Control","private, no-store").body(recovery.recover(orderId));}
+
+    @PostMapping("/user/orders/{orderId}/payment-session")
+    public ResponseEntity<Object> preparePaymentSession(@PathVariable String orderId) {
+        String session=orderService.retryPayment(orderId);
+        return ResponseEntity.ok().header("Cache-Control","private, no-store").body(recovery.prepared(orderId,session));
+    }
 
     @GetMapping("/user/checkout-intents/{operationId}")
     public ResponseEntity<Object> checkoutIntent(@PathVariable String operationId){return ResponseEntity.ok().header("Cache-Control","private, no-store").body(recovery.recoverIntent(operationId));}
