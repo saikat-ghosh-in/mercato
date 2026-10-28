@@ -1,0 +1,50 @@
+# Final I1/I2 fix evidence
+
+Checkpoint: working on `stg`, base `e75c3726ae08a9b8ec5ef2cadafe1c6fe1b29cf7`.
+Binding final-fix brief and core branch review read in full. Only I1/I2 and their regressions are in scope.
+Initial worktree contains unstaged README.md and backend/src/main/resources/application-local.properties; preserve both and exclude controller documents from the commit.
+
+Root causes confirmed: placeOrder exact intent replay bypasses retry hold preparation and checks cancellation after returning a stored session; PaymentSessionRecovery has inconsistent current-state gates and GET has no preparation; quantity cancellation invokes refund handling without durable provider termination. Post-create termination is followed by a thrown exception inside the same transaction and rolls back.
+
+No push, SSH, deployment, external payment/email, or subagents were used.
+
+## Confirmed regressions and interim evidence
+
+- Initial sandbox invocation could not open the PostgreSQL loopback socket (`java.net.SocketException: Permission denied`). Repeated with scoped local-socket escalation. This environmental error is not counted as behavioral RED.
+- `backend/target/run-final-fix-tests.py PostgresCheckoutReservationTest red`: **30 tests, 9 failures, 0 errors/skips**. Expected failures: exact replay missing/reduced holds (0/1 rather than 2), unrelated adequate hold incorrectly exposes payment, partial/whole/uncertain unpaid cancellation has no durable termination, authorization by-order recovery remains payable, and create/resume cancellation races return a session. Log: `backend/target/final-fix-red.log`.
+- Endpoint RED after core changes: `... 'PostgresCheckoutReservationTest,OrderServicePlaceOrderTest,FulfillmentPaymentBoundaryTest' green2`: **39 tests, 1 failure, 0 errors/skips**; actual protected POST handoff returned405 before endpoint implementation; all original nine failures passed. Log: `backend/target/final-fix-green2.log`.
+- Read-only session-exposure RED: `... 'PostgresCheckoutReservationTest#recoveredReadyIntentAndByOrderLookupStayReadOnlyThenPrepareThroughRetry' read-only-red`: **1 test, 1 expected failure**, lookup still returned `test-payment-session` instead of null. Log: `backend/target/final-fix-read-only-red.log`.
+- Browser RED with the actual Checkout and CashfreePayment components: **3/5 passed, 2 failed** on missing protected preparation. First run in the sandbox could not launch Edge; rerun outside that restriction produced these behavioral results. Log: `backend/target/final-fix-browser-red.log`.
+- Interim browser GREEN **5/5**, before the later removal of session data from intent GET. Sessionless-ready client RED: `node --test tests/checkout.test.mjs` fails expected `payment` versus actual `order`. These are interim results; final fresh gates follow below.
+- Two transient test-compilation issues (new constructor dependency and a generic Class ternary) were corrected in test fixtures; neither is counted as behavioral RED.
+
+## Implementation contract
+
+- `CheckoutPayability.payable(Order)` is the shared immutable-checkout gate: CREATED, no confirmation/allocation/full-refund closure, payment present, no capture timestamp/positive captured amount, authorization timestamp/ID/positive authorized amount or financial halt, and nonempty unchanged pending quantities. placeOrder, retryPayment, both recovery reads and the post-network finish use it.
+- `placeOrder` commits intent lookup before entering the existing **order → buyer/cart → sorted product** locking protocol. Under the order lock it reuses `OrderRetryHoldService.ensureCartHoldsForRetry` before either a stored-session return or gateway creation. Missing/reduced selections gain the existing explicit retry binding; unrelated adequate selections retain their independent hold and trigger shortage before gateway exposure. Original checkout operation/body, merchant order ID, prices and original selection provenance remain unchanged.
+- Lookup GET `/api/user/checkout-intents/{operationId}` retains PAYMENT_READY/REPLAY_CAPTURE/ORDER_UPDATED routing but never returns a raw session. GET `/api/user/orders/{orderId}/payment-session` is metadata only (`canPrepare`, `canResume=false`, session=null). Both remain private/no-store, read-only, gateway-free and hold-free.
+- Protected POST `/api/user/orders/{orderId}/payment-session` runs existing retryPayment (hold preparation and guarded provider lookup/recovery), then returns `PaymentSessionRecovery.prepared` details only when the supplied freshly prepared session still matches the current payable order. Authentication, MFA, CSRF, ownership and ingress configuration are unchanged.
+- Checkout PAYMENT_READY navigates by order ID without storing/using a raw recovered session. CashfreePayment's existing RTK request uses POST; initial/reload handoff and every explicit reopen require this preparation before the SDK opens. Account epochs fence late responses; URL/local/session storage gain no private payment data.
+- Uncaptured quantity cancellation atomically queues existing `TERMINATE_ORDER` key `terminate:{merchantOrderId}` and `RECONCILE_ORDER` key `reconcile-cancel:{merchantOrderId}` along with the quantities and command. Funded cancellation continues through existing attributed refund handling.
+- Cancellation while gateway creation/resume is in flight additionally queues stable `terminate-after-payment-io:{merchantOrderId}` and `reconcile-after-payment-io:{merchantOrderId}` using the same handlers. This catches an initial cancellation worker already completing on provider404 before create finishes. Post-network success or transport failure rechecks under the order lock; a rejected result is thrown **after commit**, so queued work survives. All provider I/O occurs outside DB transactions/locks.
+
+## Final fresh verification
+
+All final commands exited0 against the final source state. No full local suite was rerun.
+
+1. From backend: `C:/Users/007sa/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/python.exe target/run-final-fix-tests.py 'PostgresCheckoutReservationTest,PostgresQuantityWorkflowTest,PostgresPracticalFinanceTest,CashfreeFinalizeConcurrencyTest,OrderServicePlaceOrderTest,OrderRetryHoldServiceTest,OrderReservationServiceImplTest,CartSelectionProvenanceTest,CashfreeCheckoutSnapshotTest,FulfillmentPaymentBoundaryTest,CheckoutIntentResponseTest,SessionSecurityTest' final-focused`.
+   The helper reads only local DB credentials without printing them, requires loopback5099, sets Java17 and the existing static ByteBuddy agent, and invokes `mvnw.cmd -q -DargLine=-javaagent:C:/Users/007sa/.m2/repository/net/bytebuddy/byte-buddy-agent/1.17.8/byte-buddy-agent-1.17.8.jar -Dtest=<the exact list above> test`.
+   **152 tests / 12 suites / 0 failures / 0 errors / 0 skips**. Fresh suite XML timestamps:2026-10-28T11:03:45.7373170Z through11:04:37.8579695Z. Log: `backend/target/final-fix-final-focused.log`.
+   Counts: checkoutPG34, quantityPG42, practicalFinancePG8, capture/concurrencyPG30, cartProvenance5, reservation9, retryHold5, placeOrder4, immutableGatewayBody1, paymentBoundary5, intentHeaders1, sessionSecurity8.
+   CheckoutPG includes exact uncertain replay missing/reduced at exactstock, independent unrelated hold rejection before exposure, read-only metadata lookups then actual protected POST preparation and allocation once, POST409 independent-stock rejection, partial/whole/uncertain unpaid cancellation with durable dedup, exact/retry/recovery fencing for capture/authorization/halt, and five latch cases: create, ACTIVE resume, uncertain create, uncertain resume, provider404 recreation. The initial termination jobs are deliberately markedSUCCEEDED during the latch tests, proving post-network work commits under distinct stable keys. Existing late-capture full-refund and funded partial-cancellation survivor regressions pass.
+2. From frontend: `npm test`: **95/95**, log `backend/target/final-fix-client-green.log`.
+3. `npm run lint`: exit0, log `backend/target/final-fix-lint.log`.
+4. `npm run build`: exit0, log `backend/target/final-fix-build.log`; existing large-chunk advisory only.
+5. With `PLAYWRIGHT_MODULE=C:/Users/007sa/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright/index.mjs`, `node --test tests/checkout.browser.mjs`: **5/5**, log `backend/target/final-fix-browser-final.log`. Actual Checkout/CashfreePayment and RTK request contract, compiled CSS, headless Edge, mocked transport/SDK. Covers sessionless PAYMENT_READY → preparationPOST → SDK, reload waiting, closed/reopen rejection, late account fencing, exact immutable replay/409/address behavior, no browser persistence,320/390px and reduced motion. Screenshots remain in ignored `backend/target/task56-browser/`.
+6. `git diff --check`: exit0. Self-review limited to the17 amended backend/frontend source/test paths and their immediate existing lock/security/job dependencies; no additional issue found. No schema migration, new job handler/engine, pricing/policy change or security configuration change.
+
+## Limits and handoff
+
+Provider and SMTP transports remain mocked. No claim of live gateway, deployment, hardware-phone, or commercial readiness is made. Existing framework/error-path log noise and Vite chunk advisory remain; logs are not described as pristine. Exact-final-HEAD full CI and beta/live-browser release gates remain controller work. Authorization activation remainsOFF. README.md, application-local.properties and controller review/docs remain unstaged and unchanged by this agent.
+
+Final commit: `b8d2f30820181f9b934ae033ad3d947551d17b83` — `Fence checkout replay and recovery with stock and payment state`. One ordinary commit,17 source/test paths, no skip-netlify marker. Verified `git show --stat` matches the scoped index; staged index is empty after commit. Remaining unstaged paths: controller DEPLOY.md/review document, preserved README.md and backend/src/main/resources/application-local.properties. This report stays in the workspace and is excluded from the commit.

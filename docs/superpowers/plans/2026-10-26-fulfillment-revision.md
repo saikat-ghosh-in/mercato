@@ -2,17 +2,21 @@
 
 Approved specification: the user's 26 October 2026 implementation request in this chat. This file is its execution map. Implement task-by-task with Superpowers subagent-driven development, regression tests before fixes, scoped review and focused commits.
 
+## Delivery status — 28 October 2026
+
+The reduced side-project scope is delivered on `stg` and beta as **v0.1.0-beta.5**, source `b8d2f30820181f9b934ae033ad3d947551d17b83`. Final review fixes, CI, additive V9–V14 installation, matching frontend publication/unlock and live sandbox payment/partial/full refunds are complete. See [final evidence and limitations](../../FULFILLMENT_REVISION_REVIEW.md). Main and production remain unchanged. The older parcel/returns/authorization engine tasks below are deferred backlog, not unfinished requirements of this delivery.
+
 ## 27 October scope adjustment: working side-project beta
 
 **Latest follow-up:** the user reiterated that this only needs to work as a side project. Finish current checkout, quantity, refund and finance fixes; reuse the existing versioned admin shipping actions and add a small delivery action. Defer the previously proposed parcel and customer-return systems, further workflow engines and infrastructure. Complete existing-screen integration, truthful policies, core validation and beta deployment. This supersedes the basic shipment/return entities and endpoints in the older execution sections.
 
 Latest user instruction: “this is just my side project and not a real ecommerce business … not everything has to be perfect. Just make it work.” Prioritize a working sandbox beta and stop expanding the remaining enterprise scope. Completed increments stay intact.
 
-Remaining must-haves are reliable checkout/retry/cart behavior; accurate immutable unit prices, quoted fees, commission and partial/full refunds; seller acceptance/preparation/packing/cancellation after partial customer cancellation; basic admin shipping/tracking/delivery; basic customer return request and admin receipt/approval/refund/restock; understandable seller/admin financial totals; and desktop/mobile validation followed by `stg`/beta delivery. Keep existing marketplace, account and secure-session features.
+Delivered core scope: reliable checkout/retry/cart behavior; immutable unit prices, quoted fees, commission and partial/full refunds; quantity-based seller acceptance/preparation/packing/cancellation; existing admin shipping plus delivery; shared seller/admin finance; current-screen integration; automated desktop/mobile checks and the recorded live beta journeys. Customer-return requests and parcel/tracking systems remain deferred. Existing marketplace, account and secure-session features are retained.
 
 Defer automatic delayed-authorization settlement/expiry machinery and activation, sophisticated logistics/RTO automation, condition-deduction/return-shipping exception engines, seller fault-cost disputes/reserves/recovery, extensive operational analytics and other speculative enterprise infrastructure. Keep authorization activation OFF and ordinary Cashfree sandbox collection working; the reviewed reader safely recognizes unexpected/uncertain evidence. Existing advanced code does not need removal, but no further expansion is required for this beta. Policies/UI must accurately describe the implemented core flow.
 
-Use4B1 for the necessary monetary/checkout foundation,4B2 for practical attributed refunds/funding/shared finance, then a basic logistics/returns increment and UI integration. Final validation still covers critical money/stock/ownership/idempotency and realistic desktop/mobile journeys. Review findings that affect working core flows are fixed; cosmetic or hypothetical edge polish is recorded for later. The older detailed sections below remain a reference/backlog where they exceed this narrowed scope. `main`/production remain unchanged; restore the user-approved beta publishing hold after the compatible rollout.
+Use4B1 for the monetary/checkout foundation,4B2 for attributed refunds/funding/shared finance, then the existing admin SHIP/small DELIVER and UI integration; no new logistics/returns engine. Final validation still covers critical money/stock/ownership/idempotency and realistic desktop/mobile journeys. Review findings that affect working core flows are fixed; cosmetic or hypothetical edge polish is recorded for later. The older detailed sections below remain a reference/backlog where they exceed this narrowed scope. `main`/production remain unchanged; restore the user-approved beta publishing hold after the compatible rollout.
 
 ## Global constraints
 

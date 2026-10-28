@@ -1,8 +1,8 @@
 # Fulfillment revision validation evidence
 
-## Current beta scope — 27 October 2026
+## Current beta scope — 28 October 2026
 
-The latest repeated user direction prioritizes a working side project. Acceptance now covers ordinary sandbox checkout, quantity-based seller actions, accurate fees/refunds/commission, existing admin shipping plus a delivery command, and usable desktop/mobile screens. Implementation and integrated validation are still in progress; the historical results below are tied to their recorded commits.
+The latest repeated user direction prioritizes a working side project. Acceptance now covers ordinary sandbox checkout, quantity-based seller actions, accurate fees/refunds/commission, existing admin shipping plus a delivery command, and usable desktop/mobile screens. Beta.5 is deployed. The final live results and remaining limits are recorded at the end; earlier candidate results remain tied to their recorded commits.
 
 Delayed authorization/capture activation remains **off**. New parcel tracking and in-app customer-return systems, advanced RTO, condition deductions, seller cost disputes/reserves, and enterprise operations are deferred. Existing internal refund hooks are not an exposed returns feature. Older checklist entries for those features are backlog, not prerequisites for this sandbox beta. Policies and screens must describe only the supported flow. Nothing here authorizes production or real-money launch.
 
@@ -35,6 +35,7 @@ These decisions are recorded in execution order so they remain reviewable after 
 13. Bind explicitly restored retry selections separately from immutable original quote lineage. Preserve unrelated bag selections and check independent stock before payment retry. Cost: two nullable binding fields and migration V12.
 14. On the user's repeated instruction to stop overengineering, defer even the previously proposed parcel/customer-return systems. Finish the existing admin shipping/delivery actions and current-screen integration instead. Cost: in-app returns and parcel tracking stay backlog; current payment/refund fixes remain.
 15. Combine the small admin-action and frontend-wiring changes into one implementation/review unit with separate backend/frontend commits. Cost: a slightly broader integration diff, with fewer handoffs and no additional subsystem.
+16. Use one fresh reviewer for the final core-task and whole-branch verdicts, then one combined checkout-fix wave and one scoped re-review. Cost: a broader review context instead of duplicate reviewers; both Important findings were reproduced, fixed and cleared before release.
 
 ## Refund and shared-finance core
 
@@ -138,3 +139,42 @@ Independent review found two blocking merge cases not covered by that initial ru
 `capturedAt` remains a compatibility observation anchor. `captureVerifiedAt` records current verification, and nullable `providerCapturedAt` records only a qualified provider date with explicit provenance. Unknown provider dates are not replaced by payment initiation time. Legacy policies stay unknown; new records default to `CAPTURE_ON_AUTH`. Authorization allocation and settlement activation remain disabled. Partial capture requires the next unit-attribution increment before fulfillment; release evidence still requires the later financial state integration. No beta installation or enabled-account proof is claimed for this candidate.
 
 GitHub [Application checks40377258704](https://github.com/saikat-ghosh-in/mercato/actions/runs/40377258704) passed for exact reviewed reader head `f7ebe571c1aebff7ce9dd20c005dd928b7758870`, including PostgreSQL, frontend, Linux operations and advisory checks. The approved beta publishing hold remains active; the OCI beta backend still awaits the coordinated complete revision.
+
+## Final integration review
+
+The final review of `e75c372` found two integration defects: exact checkout replay/session recovery skipped the existing retry stock preflight; cancellation did not consistently invalidate the old immutable payment decision or persist gateway termination. A single bounded fix wave covers both using the existing stock-hold, protected retry and durable termination mechanisms. Its real PostgreSQL RED gate reproduced nine failures across 30 tests before production edits; release remains held until the amended paths pass and receive scoped re-review.
+
+For an unpaid partial cancellation, the original fixed-total payment decision must close. The remaining quantities stay recorded; the app must not silently reprice that checkout or cancel its survivors. Funded partial cancellation retains its attributed refund and surviving fulfillment flow. GET recovery remains private/no-store and free of cart mutations or provider calls.
+
+Final fix local gates:152 backend tests across12 suites, including34 real-PostgreSQL checkout cases, passed with0 failures/errors/skips. The frontend passed95 tests, lint, build and5 compiled-CSS checkout/payment Browser cases. Coverage includes read-only sessionless GET recovery, protected POST preparation, exact-intent missing/reduced/unrelated holds, stale payability, durable termination and cancellation during gateway I/O. Five latch races cover create, resume, transport uncertainty and provider-order recreation. These results cover the amended code; complete CI and live deployment checks remain separate gates.
+
+Scoped final re-review cleared both findings on `b8d2f30820181f9b934ae033ad3d947551d17b83` with no new Critical/Important issues. [Application checks40677562282](https://github.com/saikat-ghosh-in/mercato/actions/runs/40677562282) passed for that exact commit, including the complete PostgreSQL/backend and Linux gates. The matching held Netlify candidate is `6ae1d78ff1205e567ccb3fed`. Release `v0.1.0-beta.5` targets that commit; installation/live acceptance is recorded below when complete.
+
+Review records: [Initial final integration review](./review/fulfillment/final-core-review.md), [fix evidence](./review/fulfillment/final-checkout-fix-evidence.md), [scoped re-review](./review/fulfillment/final-checkout-rereview.md).
+
+
+## Deployed beta.5 acceptance — 28 October 2026
+
+**Installed:** [v0.1.0-beta.5](https://github.com/saikat-ghosh-in/mercato/releases/tag/v0.1.0-beta.5), source `b8d2f30820181f9b934ae033ad3d947551d17b83`, on `mercato-beta` only. [Application checks40677562282](https://github.com/saikat-ghosh-in/mercato/actions/runs/40677562282) and [Release backend40678120791](https://github.com/saikat-ghosh-in/mercato/actions/runs/40678120791) both succeeded. The installed69,382,363-byte JAR passed its released checksum. Flyway upgraded V8→V14 successfully;2 existing users and7 products remained. Existing MFA credentials/session survived the upgrade. Beta PID became3737227; production stayed active under its unchanged PID1098123. No production/main, environment-key or database-reset changes were made.
+
+Netlify deploy `6ae1d78ff1205e567ccb3fed`, exact same source, is published at [Mercato beta](https://mercato-in-beta.netlify.app/). Its5 rewrites, header rule, secure-ingress plugin and Edge Function deployed successfully. The approved temporary publishing lock was removed; auto-publishing is enabled again. [Published/unlocked evidence](./review/fulfillment/beta5-published.jpg).
+
+### Live checks performed
+
+- Session and CSRF bootstrap returned valid JSON; private responses use no-store; cookies are Secure, HttpOnly, host-only and SameSite=Lax. Direct origin requests returned403. Enforced static CSP permits the sandbox form handoff and nosniff remains present. The final external check from OCI repeated all these successfully in1.044 seconds for session bootstrap.
+- Existing admin finance/orders/details loaded under the user's normal launchadmin+MFA session. The old partly cancelled order retained its quantities and explicitly displayed its prospective legacy-adoption restriction. No history was invented or bypassed.
+- Bag quantities increased and decreased serially, returning the six-unit badge and backend total to₹7,172. The checkout control remained in place during updates. A clearly labelled **Beta Test — no shipment** address was added through the normal form and automatically became the sole/default address. Expedited changed the backend total to₹7,221; Standard restored₹7,172.
+- At390px, checkout had one visible fixed payment action, working search/Help/All products access, and equal document scroll/client widths375px. [Live mobile checkout](./review/fulfillment/beta5-checkout-mobile.jpg).
+- Continue to payment reached the actual hosted Cashfree **sandbox**. Its explicit Test Wallet simulator stated no real debit occurs. Simulated SUCCESS returned to Mercato, which verified payment, allocated once, confirmed new order `ORD-20261028-0353A264154B`, and cleared the purchased bag quantities. [Hosted sandbox](./review/fulfillment/beta5-sandbox-checkout.jpg), [payment confirmed](./review/fulfillment/beta5-payment-confirmed.jpg).
+- Customer cancellation of2/4 bowl units kept the order Confirmed and its4 other units intact. The₹118 merchandise refund became SUCCESS in both Cashfree and Mercato, while fixed fees stayed retained. [Partial refund](./review/fulfillment/beta5-partial-refund.jpg).
+- To clean up the paid sandbox test, all remaining units were cancelled through the ordinary customer action. Four successful provider refunds—₹118,₹1,900,₹155 and₹4,999—sum to the exact₹7,172 capture, including residual fees. The database records REFUNDED/CANCELLED, all6 financial units CANCELLED, verified capture and exactly one successful allocation job. No goods were shipped; reservations were released. Cashfree read-only verification confirms every refund SUCCESS and its actual response includes refund currency and payment identity. This closes the earlier live refund-shape evidence gap for the tested ordinary wallet contract.
+- The old by-order payment URL showed a visible “couldn’t be resumed” error with order navigation and did not reopen Cashfree. The original checkout intent resolved to the same existing order, without another merchant order. [Closed payment](./review/fulfillment/beta5-closed-payment.jpg).
+- At320px, the custom sort menu worked; draft Electronics+ascending-price applied atomically, hid the drawer, returned2 correctly sorted products and restored Filter-button focus. Document scroll/client widths were305px. [Live catalog](./review/fulfillment/beta5-catalog-320.jpg). Help kept3 independent accordion sections open, with no horizontal overflow at the same width. [Live Help](./review/fulfillment/beta5-help-320.jpg). Temporary viewport overrides were reset.
+
+### Practical limits
+
+The live test used ordinary sandbox wallet collection, not delayed card capture. Authorization activation remains OFF. Quantity/SLA ownership, seller accept/prepare/pack/cancel, admin ship/deliver, concurrency and shared finance are covered by the PostgreSQL and isolated Browser gates above. A newly paid order's complete live seller-to-delivery journey was not forced through its one-hour seller hold; no dates or permissions were edited to simulate it. Existing legacy orders requiring adoption stay locked for review; use a new sandbox order for the new workflow.
+
+One navigation stalled blank and succeeded on reload; another session-bootstrap attempt reported a recoverable network error while this computer's independent HTTPS probe failed with TLS EOF. Subsequent fresh-tab browsing and the same full ingress checks from OCI passed. This is recorded as an observed transient connection limitation, not a blanket claim that every network path is flawless. The admin session later expired normally, and the fresh guest Account menu correctly offered Sign in.
+
+Hardware-phone testing, enabled-account preauthorization, real-money readiness, tax documents, carrier/payout integration, customer-return/parcel/dispute systems and automatic off-instance backup/dead-man alerts remain outside this reduced sandbox delivery. No paid services were provisioned. Framework negative-path log noise and the existing bundle-size advisory remain. README.md and local configuration edits were preserved.

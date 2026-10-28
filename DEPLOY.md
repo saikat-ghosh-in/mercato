@@ -406,7 +406,7 @@ Verify the dump with `sudo pg_restore --list /opt/mercato-beta/backups/<actual-f
 Then update only beta:
 
 ```bash
-bash ~/redeploy-beta.sh v0.1.0-beta.4
+bash ~/redeploy-beta.sh v0.1.0-beta.5
 sudo journalctl -u mercato-beta -n 100 --no-pager
 ```
 
