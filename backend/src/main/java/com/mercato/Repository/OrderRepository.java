@@ -35,6 +35,10 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     Optional<Order> lockByOrderId(@Param("orderId") String orderId);
 
     @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("select o from Order o where o.id=(select distinct l.order.id from OrderLine l where l.fulfillmentId=:fulfillmentId)")
+    Optional<Order> lockByFulfillmentId(@Param("fulfillmentId") String fulfillmentId);
+
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
     @Query("select o from Order o where o.id=(select l.order.id from OrderLine l where l.fulfillmentId=:fulfillmentId and l.orderLineNumber=:lineNumber)")
     Optional<Order> lockByFulfillment(@Param("fulfillmentId")String fulfillmentId,@Param("lineNumber")int lineNumber);
 
@@ -43,6 +47,10 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     @EntityGraph(attributePaths = {"orderLines"})
     Optional<Order> findByOrderIdAndCustomerEmail(String orderId, String email);
+
+    @EntityGraph(attributePaths={"orderLines"})
+    @Query("select o from Order o where o.orderId=:id and ((o.customerUserId is not null and o.customerUserId=:customerId) or (o.customerUserId is null and o.customerEmail=:email))")
+    Optional<Order> findOwnedForShipment(@Param("id")String id,@Param("customerId")String customerId,@Param("email")String email);
 
     @EntityGraph(attributePaths = {"orderLines"})
     List<Order> findByCustomerEmail(String email);

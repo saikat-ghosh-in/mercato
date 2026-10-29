@@ -36,6 +36,7 @@ class PostgresQuantityWorkflowTest {
     static final String DATABASE=PostgresTestSupport.database();
     static final Instant CONFIRMED=Instant.parse("2026-10-26T00:00:00Z");
     static final ThreadLocal<String> IDENTITY=ThreadLocal.withInitial(()->"seller@test.invalid");
+    static final ThreadLocal<String> CUSTOMER_ID=new ThreadLocal<>();
     static class MutableClock extends Clock {
         final AtomicReference<Instant> value=new AtomicReference<>(CONFIRMED.plusSeconds(7200));
         public ZoneId getZone(){return ZoneOffset.UTC;}
@@ -45,8 +46,9 @@ class PostgresQuantityWorkflowTest {
     @Configuration @EnableAutoConfiguration
     @EntityScan(basePackages={"com.mercato.Entity","com.mercato.Commerce","com.mercato.Jobs"})
     @EnableJpaRepositories(basePackages={"com.mercato.Repository","com.mercato.Commerce"})
-    @Import({SellerOrderVisibility.class,FulfillmentServiceImpl.class,com.mercato.Auth.AuthEmailJobHandler.class,com.mercato.Mail.AuthenticationMailGuard.class,com.mercato.Mail.MailActivity.class,com.mercato.Mail.TrackedMailSender.class,com.mercato.Mail.BrandedMailSender.class,com.mercato.Controller.FulfillmentWorkflowController.class,WorkflowAdoption.class,OrderServiceImpl.class,OrderLineUpdateServiceImpl.class,FulfillmentWorkflow.class,FulfillmentFunding.class,WorkflowCommands.class,FulfillmentCancellation.class,FulfillmentDeadlines.class,FulfillmentSlaMetrics.class,FulfillmentNoticeGuard.class,OrderReservationServiceImpl.class,DurableJobs.class,JobStore.class})
+    @Import({ShipmentService.class,SellerOrderVisibility.class,FulfillmentServiceImpl.class,com.mercato.Auth.AuthEmailJobHandler.class,com.mercato.Mail.AuthenticationMailGuard.class,com.mercato.Mail.MailActivity.class,com.mercato.Mail.TrackedMailSender.class,com.mercato.Mail.BrandedMailSender.class,com.mercato.Controller.FulfillmentWorkflowController.class,WorkflowAdoption.class,OrderServiceImpl.class,OrderLineUpdateServiceImpl.class,FulfillmentWorkflow.class,FulfillmentFunding.class,WorkflowCommands.class,FulfillmentCancellation.class,FulfillmentDeadlines.class,FulfillmentSlaMetrics.class,FulfillmentNoticeGuard.class,OrderReservationServiceImpl.class,DurableJobs.class,JobStore.class})
     static class Config {
+        @Bean DelhiveryClient carrier(){return mock(DelhiveryClient.class);}
         @Bean CartService carts(){return mock(CartService.class);}
         @Bean CashfreeService gateway(){return mock(CashfreeService.class);}
         @Bean CartReservationService cartHolds(){return mock(CartReservationService.class);}
@@ -55,7 +57,7 @@ class PostgresQuantityWorkflowTest {
         @Bean com.mercato.Commerce.RefundObligations refundObligations(){return mock(com.mercato.Commerce.RefundObligations.class);}
         @Bean AuditEvents auditEvents(){return new AuditEvents();}
         @Bean(name={"clock","durableJobClock"}) MutableClock clock(){return new MutableClock();}
-        @Bean AuthUtil auth(){var a=mock(AuthUtil.class);when(a.getLoggedInUser()).thenAnswer(c->{var user=new EcommUser();user.setEmail(IDENTITY.get());return user;});return a;}
+        @Bean AuthUtil auth(){var a=mock(AuthUtil.class);when(a.getLoggedInUser()).thenAnswer(c->{var user=new EcommUser();user.setEmail(IDENTITY.get());user.setUserId(CUSTOMER_ID.get());return user;});return a;}
         @Bean RefundService refunds(){return mock(RefundService.class);}
         @Bean ShipmentNotificationService mail(){return mock(ShipmentNotificationService.class);}
         @Bean TestMailbox smtpMailbox(){return new TestMailbox();}
@@ -77,6 +79,7 @@ class PostgresQuantityWorkflowTest {
     @Autowired com.mercato.Controller.FulfillmentWorkflowController workflowController;
     @DynamicPropertySource static void postgres(DynamicPropertyRegistry p){p.add("spring.datasource.url",()->DATABASE);p.add("spring.datasource.username",PostgresTestSupport::username);p.add("spring.datasource.password",PostgresTestSupport::password);p.add("spring.datasource.driver-class-name",()->"org.postgresql.Driver");p.add("spring.jpa.database-platform",()->"org.hibernate.dialect.PostgreSQLDialect");}
     @AfterAll static void cleanup(@Autowired ConfigurableApplicationContext context){context.close();PostgresTestSupport.cleanup();}
+    @Autowired ShipmentService shipmentService;@Autowired ShipmentRepository parcels;@Autowired DelhiveryClient carrier;
     @Autowired FulfillmentService fulfillments;
     @Autowired OrderLineRepository lines;@Autowired OrderRepository orders;@Autowired ProductRepository products;@Autowired CategoryRepository categories;
     @Autowired OrderReservationRepository reservations;@Autowired OrderLineUpdateService updates;
@@ -88,7 +91,7 @@ class PostgresQuantityWorkflowTest {
     @BeforeEach void fixture(TestInfo test){
         jdbc.update("UPDATE order_snapshot SET workflow_review_required=true");
         jdbc.update("DELETE FROM durable_job_retry_audit");jdbc.update("DELETE FROM durable_jobs");
-        reset(refundService);
+        reset(refundService,carrier);CUSTOMER_ID.remove();
         smtpMailbox.sent.clear();
         auditEvents.events.clear();auditEvents.reject=false;clock.value.set(CONFIRMED.plusSeconds(7200));IDENTITY.set("seller@test.invalid");tx=new TransactionTemplate(transactions);
         orderId="QTY-"+UUID.randomUUID().toString().substring(0,12);fulfillment=orderId+"-F";
@@ -98,6 +101,7 @@ class PostgresQuantityWorkflowTest {
             var o=new Order();o.setOrderId(orderId);o.setCustomerName("Buyer");o.setCustomerEmail("buyer@test.invalid");o.setOrderStatus(OrderStatus.CREATED);o.setPaymentStatus(PaymentStatus.SUCCESS);o.setCurrency("INR");o.setSubtotal(new BigDecimal("100"));o.setCharges(BigDecimal.ZERO);o.setTotalAmount(new BigDecimal("100"));o.setRecipientName("Buyer");o.setRecipientPhone("9999999999");o.setDeliveryAddressLine1("Synthetic address");o.setDeliveryCity("City");o.setDeliveryState("State");o.setDeliveryPincode("123456");
             var l=new OrderLine();l.setFulfillmentId(fulfillment);l.setOrderLineNumber(1);l.setProductId(p.getProductId());l.setProductName(p.getProductName());l.setUnitPrice(BigDecimal.TEN);l.setOrderedQty(10);l.setLineTotal(new BigDecimal("100"));l.setOrderLineStatus(OrderLineStatus.CREATED);l.setSellerEmail("seller@test.invalid");l.setSellerName("Seller");o.addOrderLine(l);
             var payment=new Payment();payment.setAmount(o.getTotalAmount());payment.setCurrency("INR");payment.setPaymentMethod(PaymentMethod.UNKNOWN);payment.setStatus(PaymentStatus.SUCCESS);payment.setCapturedAt(CONFIRMED);payment.setCapturedAmount(o.getTotalAmount());o.attachPayment(payment);o.confirmOrder();o.setAllocationCompletedAt(CONFIRMED);if(!test.getTestMethod().orElseThrow().getName().startsWith("unknown"))o.establishConfirmation(CONFIRMED);
+            if(test.getTestMethod().orElseThrow().getName().startsWith("stableCustomer"))o.setCustomerUserId("a-different-customer-id");
             orders.saveAndFlush(o);
             reservations.save(OrderReservation.builder().order(o).orderLine(l).product(p).reservedQty(10).build());
         });
@@ -110,6 +114,87 @@ class PostgresQuantityWorkflowTest {
         updates.updateOrderLine(request(OrderLineAction.MARK_PACKED,10,2,"pack"),TransitionTrigger.SELLER);
     }
     void currentCaptureProof(){tx.executeWithoutResult(t->{var p=orders.lockByOrderId(orderId).orElseThrow().getPayment();p.setCaptureVerifiedAt(CONFIRMED);p.setCaptureEvidenceId("synthetic-reader-proof");});}
+    @Test void parcelSchemaIsAdditiveAndDoesNotInventLegacyShipments() {
+        assertEquals(1,jdbc.queryForObject("select count(*) from information_schema.tables where table_schema=current_schema() and table_name='shipments'",Integer.class));
+        assertEquals(0,jdbc.queryForObject("select count(*) from shipments where order_fk=(select id from order_snapshot where order_id=?)",Integer.class,orderId));
+    }
+    ShipmentService.Handoff handoff(String operation,long version,String awb,int qty){return new ShipmentService.Handoff(operation,version,awb,true,List.of(new ShipmentService.Item(1,qty)));}
+    @Test void parcelsAreAtomicScopedIdempotentAndDeliveredWithoutAnotherStockDeduction() {
+        packAll();currentCaptureProof();
+        var request=handoff("parcel-one",3,"001"+orderId,4);
+        var first=shipmentService.create(fulfillment,TransitionTrigger.SELLER,request);
+        assertEquals(4,snapshot().getShippedQty());assertEquals(1,first.shipments().size());
+        assertEquals(first,shipmentService.create(fulfillment,TransitionTrigger.SELLER,request));
+        assertThrows(org.springframework.web.server.ResponseStatusException.class,()->shipmentService.create(fulfillment,TransitionTrigger.SELLER,handoff("parcel-one",3,request.waybill(),3)));
+        var second=shipmentService.create(fulfillment,TransitionTrigger.SELLER,handoff("parcel-two",4,"002"+orderId,6));
+        assertEquals(2,second.shipments().size());assertEquals(10,snapshot().getShippedQty());
+        int physical=products.findByProductId(orderId+"-P").orElseThrow().getPhysicalQty();assertEquals(10,physical);
+        IDENTITY.set("buyer@test.invalid");assertEquals(2,shipmentService.read(orderId,TransitionTrigger.CUSTOMER,false).shipments().size());
+        IDENTITY.set("foreign@test.invalid");assertThrows(com.mercato.ExceptionHandler.ResourceNotFoundException.class,()->shipmentService.read(orderId,TransitionTrigger.CUSTOMER,false));
+        assertThrows(com.mercato.ExceptionHandler.ResourceNotFoundException.class,()->shipmentService.read(fulfillment,TransitionTrigger.SELLER,true));
+        IDENTITY.set("seller@test.invalid");
+        var delivery=new ShipmentService.Change("delivered-one",5L,"Received by customer",null);
+        var delivered=shipmentService.change(first.shipments().get(0).id(),delivery,true);
+        assertEquals(4,snapshot().getDeliveredQty());assertEquals(delivered,shipmentService.change(first.shipments().get(0).id(),delivery,true));
+        var other=second.shipments().stream().filter(s->!s.id().equals(first.shipments().get(0).id())).findFirst().orElseThrow();
+        shipmentService.change(other.id(),new ShipmentService.Change("delivered-two",6L,"Received by customer",null),true);
+        assertEquals(10,snapshot().getDeliveredQty());assertEquals(physical,products.findByProductId(orderId+"-P").orElseThrow().getPhysicalQty());
+        assertEquals(4,jdbc.queryForObject("select count(*) from durable_jobs where business_key like 'parcel-mail:%' and cast(payload as jsonb)->>'to'='buyer@test.invalid'",Integer.class));
+    }
+    @Test void heldAndUnfundedParcelHandoffsCannotChangeInventory() {
+        packAll();clock.value.set(CONFIRMED.plusSeconds(3599));
+        assertThrows(com.mercato.ExceptionHandler.ResourceNotFoundException.class,()->shipmentService.read(fulfillment,TransitionTrigger.SELLER,true));
+        assertThrows(com.mercato.ExceptionHandler.ResourceNotFoundException.class,()->shipmentService.create(fulfillment,TransitionTrigger.SELLER,handoff("held",3,"H"+orderId,1)));
+        clock.value.set(CONFIRMED.plusSeconds(7200));
+        assertThrows(com.mercato.ExceptionHandler.CustomBadRequestException.class,()->shipmentService.create(fulfillment,TransitionTrigger.SELLER,handoff("unfunded",3,"U"+orderId,1)));
+        assertEquals(0,snapshot().getShippedQty());assertTrue(shipmentService.read(fulfillment,TransitionTrigger.SELLER,true).shipments().isEmpty());
+    }
+    @Test void providerDeliveryIsForwardOnlyIdempotentAndOutsideTransaction() {
+        packAll();currentCaptureProof();var result=shipmentService.create(fulfillment,TransitionTrigger.SELLER,handoff("tracked",3,"AWB"+orderId,10));
+        var parcel=result.shipments().get(0);clock.value.set(clock.instant().plusSeconds(60));when(carrier.enabled()).thenReturn(true);
+        var reverse=new DelhiveryClient.Update(parcel.waybill(),"Delivered","DL",clock.instant(),null,List.of(),true);
+        when(carrier.fetch(anyCollection())).thenAnswer(c->{assertFalse(org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive());return new DelhiveryClient.Result(Map.of(parcel.waybill(),reverse),false);});
+        shipmentService.process(List.of(parcel.id()));assertEquals(0,snapshot().getDeliveredQty());
+        var forward=new DelhiveryClient.Update(parcel.waybill(),"Delivered","DL",clock.instant(),null,List.of(),false);
+        when(carrier.fetch(anyCollection())).thenReturn(new DelhiveryClient.Result(Map.of(parcel.waybill(),forward),false));
+        shipmentService.process(List.of(parcel.id()));shipmentService.process(List.of(parcel.id()));
+        assertEquals(10,snapshot().getDeliveredQty());assertEquals(10,products.findByProductId(orderId+"-P").orElseThrow().getPhysicalQty());
+        assertEquals("DELIVERED",shipmentService.read(fulfillment,TransitionTrigger.SELLER,true).shipments().get(0).status());
+    }
+    @Test void correctedWaybillFencesAnAlreadyInFlightDeliveryResponse() {
+        packAll();currentCaptureProof();var result=shipmentService.create(fulfillment,TransitionTrigger.SELLER,handoff("corrected",3,"OLD"+orderId,10));
+        var parcel=result.shipments().get(0);when(carrier.enabled()).thenReturn(true);clock.value.set(clock.instant().plusSeconds(60));
+        when(carrier.fetch(anyCollection())).thenAnswer(c->{
+            shipmentService.change(parcel.id(),new ShipmentService.Change("fix-awb",4L,"Correct carrier reference","NEW"+orderId),false);
+            return new DelhiveryClient.Result(Map.of(parcel.waybill(),new DelhiveryClient.Update(parcel.waybill(),"Delivered","DL",clock.instant(),null,List.of(),false)),false);
+        });
+        shipmentService.process(List.of(parcel.id()));assertEquals(0,snapshot().getDeliveredQty());
+        assertEquals("NEW"+orderId,shipmentService.read(fulfillment,TransitionTrigger.SELLER,true).shipments().get(0).waybill());
+    }
+    @Test void parcelHandoffAndSellerCancellationSerializeOnTheOrderLock() throws Exception {
+        packAll();currentCaptureProof();var entered=new CountDownLatch(1);var release=new CountDownLatch(1);var pool=Executors.newFixedThreadPool(2);
+        try{
+            var shipping=pool.submit(()->{IDENTITY.set("seller@test.invalid");return tx.execute(t->{orders.lockByOrderId(orderId).orElseThrow();entered.countDown();try{assertTrue(release.await(10,TimeUnit.SECONDS));}catch(InterruptedException e){throw new RuntimeException(e);}return shipmentService.create(fulfillment,TransitionTrigger.SELLER,handoff("raced-shipment",3,"RACE"+orderId,10));});});
+            assertTrue(entered.await(10,TimeUnit.SECONDS));
+            var cancelling=pool.submit(()->{IDENTITY.set("seller@test.invalid");return updates.updateOrderLine(request(OrderLineAction.CANCEL,10,3,"raced-cancellation"),TransitionTrigger.SELLER);});
+            release.countDown();shipping.get(10,TimeUnit.SECONDS);assertThrows(ExecutionException.class,()->cancelling.get(10,TimeUnit.SECONDS));
+            assertEquals(10,snapshot().getShippedQty());assertEquals(0,snapshot().getCancelledQty());assertEquals(10,products.findByProductId(orderId+"-P").orElseThrow().getPhysicalQty());
+        }finally{release.countDown();pool.shutdownNow();}
+    }
+    @Test void trackingRefreshCooldownAndInvalidDatesRetainTheLastKnownState() {
+        packAll();currentCaptureProof();var result=shipmentService.create(fulfillment,TransitionTrigger.SELLER,handoff("cooldown",3,"COOL"+orderId,10));var parcel=result.shipments().get(0);when(carrier.enabled()).thenReturn(true);
+        shipmentService.refresh(fulfillment,TransitionTrigger.SELLER,true);shipmentService.refresh(fulfillment,TransitionTrigger.SELLER,true);
+        assertEquals(1,jdbc.queryForObject("select count(*) from durable_jobs where job_type='DELHIVERY_TRACK'",Integer.class));
+        when(carrier.fetch(anyCollection())).thenReturn(new DelhiveryClient.Result(Map.of(parcel.waybill(),new DelhiveryClient.Update(parcel.waybill(),"Delivered","DL",clock.instant().plusSeconds(3600),null,List.of(),false)),false));
+        shipmentService.process(List.of(parcel.id()));assertEquals(0,snapshot().getDeliveredQty());assertEquals("SHIPPED",shipmentService.read(fulfillment,TransitionTrigger.SELLER,true).shipments().get(0).status());
+    }
+    @Test void stableCustomerIdentityPreventsRecycledEmailShipmentAccess() {
+        IDENTITY.set("buyer@test.invalid");
+        assertThrows(com.mercato.ExceptionHandler.ResourceNotFoundException.class,()->shipmentService.read(orderId,TransitionTrigger.CUSTOMER,false));
+        CUSTOMER_ID.set("a-different-customer-id");IDENTITY.set("changed-email@test.invalid");
+        assertNotNull(shipmentService.read(orderId,TransitionTrigger.CUSTOMER,false));
+        CUSTOMER_ID.remove();
+    }
     @Test void heldSellerReadsAndCommandsAreUnavailableUntilExactRelease() {
         clock.value.set(CONFIRMED.plusSeconds(3600).minusNanos(1000));
         assertTrue(fulfillments.getOpenFulfillmentOrders().stream().noneMatch(f->fulfillment.equals(f.getFulfillmentId())));

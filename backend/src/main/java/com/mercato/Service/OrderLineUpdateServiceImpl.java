@@ -27,6 +27,14 @@ public class OrderLineUpdateServiceImpl implements OrderLineUpdateService {
 
     @Override @Transactional
     public OrderLineResponseDTO updateOrderLine(OrderLineUpdateRequestDTO request, TransitionTrigger trigger) {
+        return apply(request,trigger,false);
+    }
+    OrderLineResponseDTO applyParcel(OrderLineUpdateRequestDTO request,TransitionTrigger trigger) {
+        if(!org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive())throw new IllegalStateException("Parcel transitions require the aggregate transaction");
+        if(request.getAction()!=OrderLineAction.SHIP && request.getAction()!=OrderLineAction.DELIVER)throw new IllegalArgumentException("Parcel action required");
+        return apply(request,trigger,true);
+    }
+    private OrderLineResponseDTO apply(OrderLineUpdateRequestDTO request,TransitionTrigger trigger,boolean parcel) {
         if(request==null||request.getFulfillmentId()==null||request.getFulfillmentId().isBlank()||request.getOrderLineNumber()==null||request.getOrderLineNumber()<1||request.getAction()==null||request.getQty()==null||request.getQty()<=0)
             throw new CustomBadRequestException("Fulfillment, line, action and positive quantity are required");
         if(request.getReason()!=null&&request.getReason().length()>500)throw new CustomBadRequestException("Reason is too long");
@@ -41,7 +49,7 @@ public class OrderLineUpdateServiceImpl implements OrderLineUpdateService {
         var repeated=commands.replay(order,request,trigger,actor);
         if(repeated!=null)return repeated;
         int qty=request.getQty();
-        workflow.require(line,trigger,request.getAction(),qty);
+        workflow.require(line,parcel?TransitionTrigger.ADMIN:trigger,request.getAction(),qty);
         var from=line.getOrderLineStatus();
         int unaccepted=line.getOrderedQty()-line.getCancelledQty()-line.getAcceptedQty();
         int acceptedOnly=line.getAcceptedQty()-line.getPreparingQty();
@@ -71,7 +79,7 @@ public class OrderLineUpdateServiceImpl implements OrderLineUpdateService {
                 cashfreeService.terminateOrder(order.getOrderId());
             refundService.processRefundIfRequired(order);
         }
-        if(request.getAction()==OrderLineAction.SHIP)shipmentNotificationService.notifyShippedIfNeeded(order);
+        if(!parcel && request.getAction()==OrderLineAction.SHIP)shipmentNotificationService.notifyShippedIfNeeded(order);
         return result;
     }
     private void authorize(OrderLine line,TransitionTrigger trigger) {

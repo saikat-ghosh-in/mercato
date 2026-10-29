@@ -18,7 +18,7 @@ public class WorkflowCommands {
     private final JdbcTemplate jdbc; private final ObjectMapper json; private final FulfillmentWorkflow workflow; private final org.springframework.context.ApplicationEventPublisher events;
     public WorkflowCommands(JdbcTemplate jdbc,ObjectMapper json,FulfillmentWorkflow workflow,org.springframework.context.ApplicationEventPublisher events){this.jdbc=jdbc;this.json=json;this.workflow=workflow;this.events=events;}
     public static void requireExternalOperation(String operation) {
-        if(operation==null||operation.isBlank()||operation.length()>120||operation.startsWith("accept-timeout:")||operation.startsWith("scope:")||operation.startsWith("whole:"))
+        if(operation==null||operation.isBlank()||operation.length()>120||operation.startsWith("accept-timeout:")||operation.startsWith("scope:")||operation.startsWith("whole:")||operation.startsWith("parcel:"))
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"A valid client operationId is required; internal command namespaces are reserved");
     }
     private String body(OrderLineUpdateRequestDTO r,TransitionTrigger trigger,String actor) {
