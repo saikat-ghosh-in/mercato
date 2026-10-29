@@ -72,7 +72,7 @@ const OrderCard = ({ ord, onClick, onResumePayment, resumingOrderId }) => {
           <div className="flex items-center gap-2 flex-wrap mb-0.5">
             <p className="text-sm font-semibold text-gray-900 break-words">Order #{ord.orderId}</p>
             <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${color}`}>
-              <StatusIcon size={10} /> {workflowLabel(ord)}
+              <StatusIcon size={10} /> {workflowLabel(ord, 'customer')}
             </span>
           </div>
           <p className="text-xs text-gray-500 flex flex-wrap items-center gap-1">

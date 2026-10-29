@@ -121,10 +121,10 @@ const OrderDetail = ({ orderId, onBack }) => {
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <p className="text-sm font-semibold text-gray-900 line-clamp-1">{line.product?.productName}</p>
-                                    <p className="text-xs text-gray-400">Qty: {line.quantity ?? line.orderedQty} · {formatCurrency(line.product?.unitPrice)} each</p>
+                                    <p className="text-xs text-gray-400">Qty {line.orderedQty ?? line.quantity} · {formatCurrency(line.product?.unitPrice)} each</p>
                                 </div>
                                 <span className="text-sm font-semibold text-gray-900 shrink-0">{formatCurrency(line.lineTotal)}</span>
-                                <div className="w-full space-y-3"><WorkflowProgress record={line} /><div className="flex flex-wrap gap-2">
+                                <div className="w-full space-y-3"><WorkflowProgress record={line} showQuantity={false} /><div className="flex flex-wrap gap-2">
                                     {[["ACCEPT","Accept"],["START_PREPARING","Start preparing"],["MARK_PACKED","Mark as packed"],["SHIP","Mark shipped"],["DELIVER","Mark delivered"],["CANCEL","Cancel units"]].map(([action,label]) => <QuantityCommand key={`${epoch}:${line.fulfillmentId}:${line.orderLineNumber}:${action}`} label={label} cancellation={action==='CANCEL'} maximum={actionMaximum(line,action)} version={order.workflow?.version} endpoint="/fulfillment/commands" makeBody={(qty,reason) => ({fulfillmentId:line.fulfillmentId,orderLineNumber:line.orderLineNumber,action,qty,...(action==='CANCEL'?{reason}:{})})} onComplete={fetchOrder} disabled={loading} />)}
                                 </div></div>
                             </div>

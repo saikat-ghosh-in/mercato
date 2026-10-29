@@ -46,3 +46,39 @@ test('whole cancellation fails closed for review, missing lines and invalid revi
   assert.equal(workflow.canCancelWhole({workflow:{version:2,reviewRequired:true},orderLines:[line]}),false);
   assert.equal(workflow.canCancelWhole({workflow:{version:2},orderLines:[]}),false);
 });
+
+test('compact summaries show one cancelled state without redundant quantity buckets', () => {
+  assert.deepEqual(workflow.workflowSummary?.({workflow:{state:'CANCELLED',orderedQty:1,cancelledQty:1,shippedQty:0,deliveredQty:0}}, 'customer'),
+    {quantity:1,label:'Cancelled',segments:[]});
+});
+
+test('mixed summaries partition cumulative quantities without counting preparation twice', () => {
+  const record={workflow:{state:'CONFIRMED',orderedQty:10,cancelledQty:2,acceptedQty:8,preparingQty:7,packedQty:6,shippedQty:5,deliveredQty:2}};
+  assert.deepEqual(workflow.workflowSummary?.(record, 'customer'), {quantity:10,label:'Processing',segments:[
+    {label:'Processing',quantity:3},{label:'Shipped',quantity:3},{label:'Delivered',quantity:2},{label:'Cancelled',quantity:2},
+  ]});
+});
+
+test('unconfirmed active quantities await payment and never imply processing', () => {
+  assert.deepEqual(workflow.workflowSummary?.({workflow:{state:'AWAITING_FUNDING',orderedQty:4,cancelledQty:1,shippedQty:0,deliveredQty:0}}, 'customer'),
+    {quantity:4,label:'Awaiting payment',segments:[{label:'Awaiting payment',quantity:3},{label:'Cancelled',quantity:1}]});
+});
+
+test('customer preparation stages collapse while operational labels stay specific', () => {
+  for(const [state,label] of [['CONFIRMED','Confirmed'],['ACCEPTED','Accepted'],['PREPARING','Preparing'],['PACKED','Packed']]) {
+    const record={workflow:{state,orderedQty:2,cancelledQty:0,shippedQty:0,deliveredQty:0}};
+    assert.deepEqual(workflow.workflowSummary?.(record, 'customer'),{quantity:2,label:'Processing',segments:[]});
+    assert.equal(workflow.workflowSummary?.(record).label,label);
+  }
+});
+
+test('legacy missing counters retain known quantity and status without inventing history', () => {
+  assert.deepEqual(workflow.workflowSummary?.({orderedQty:3,orderLineStatus:'FULFILLED'}, 'customer'),{quantity:3,label:'Shipped',segments:[]});
+  assert.deepEqual(workflow.workflowSummary?.({orderStatus:'CREATED',orderLines:[{quantity:2},{orderedQty:3}]}, 'customer'),{quantity:5,label:'Awaiting payment',segments:[]});
+  assert.deepEqual(workflow.workflowSummary?.({orderLineStatus:'PROCESSING'}, 'customer'),{quantity:null,label:'Processing (legacy)',segments:[]});
+});
+
+test('incomplete or inconsistent counts never become a fabricated mixed breakdown', () => {
+  assert.deepEqual(workflow.workflowSummary?.({workflow:{state:'PACKED',orderedQty:5,cancelledQty:1,shippedQty:2}}, 'customer'),{quantity:5,label:'Processing',segments:[]});
+  assert.deepEqual(workflow.workflowSummary?.({workflow:{state:'CONFIRMED',orderedQty:2,cancelledQty:1,shippedQty:3,deliveredQty:0}}, 'customer'),{quantity:2,label:'Processing',segments:[]});
+});

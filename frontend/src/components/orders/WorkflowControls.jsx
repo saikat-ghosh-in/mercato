@@ -1,22 +1,24 @@
 import { useEffect, useState } from 'react';
 import api, { session } from '../../backend/api';
-import { createSubmission, remainingUntil, workflowLabel, cancellationPolicy } from '../../utils/fulfillment';
+import { createSubmission, remainingUntil, workflowSummary, cancellationPolicy } from '../../utils/fulfillment';
 import ModalFrame from '../shared/ModalFrame';
 import Accordion from '../shared/Accordion';
 
-export function WorkflowProgress({record, showState=true}) {
+export function WorkflowProgress({record, showState=true, showQuantity=true, audience='operations'}) {
   const workflow = record?.workflow;
+  const {quantity, label, segments} = workflowSummary(record, audience);
   return <div className="space-y-2">
-    {showState && <p className="text-sm font-semibold text-gray-900">{workflowLabel(record)}</p>}
-    <dl className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-600">
-      {['ordered','accepted','preparing','packed','shipped','delivered','cancelled'].map(stage => {
-        const qty = workflow?.[stage + 'Qty'] ?? record?.[stage + 'Qty'];
-        return qty == null ? null : <div key={stage}>
-          <dt className="inline capitalize">{stage}: </dt>
-          <dd className="inline font-semibold tabular-nums">{qty}</dd>
-        </div>;
-      })}
-    </dl>
+    {(showState || (showQuantity && quantity !== null)) && <p className="text-sm font-semibold text-gray-900">
+      {showQuantity && quantity !== null && <span className="tabular-nums">Qty {quantity}</span>}
+      {showState && showQuantity && quantity !== null && ' · '}
+      {showState && label}
+    </p>}
+    {segments.length > 0 && <dl aria-label="Quantity breakdown" className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-600">
+      {segments.map(segment => <div key={segment.label}>
+        <dt className="inline">{segment.label}: </dt>
+        <dd className="inline font-semibold tabular-nums">{segment.quantity}</dd>
+      </div>)}
+    </dl>}
     {workflow?.reviewRequired && <p role="status" className="text-sm text-amber-800">Workflow review required: {workflow.reviewReason || 'Actions await verification.'}</p>}
   </div>;
 }

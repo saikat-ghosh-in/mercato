@@ -33,7 +33,7 @@ async function fixture(component='seller', setup) {
   try {
   const page=await browser.newPage({viewport:{width:390,height:844}});
   page.setDefaultTimeout(5000);
-  await page.route('http://localhost:4178/**', route => route.fulfill({contentType:'text/html',body:'<div id="root"></div>'}));
+  await page.route('http://localhost:4178/**', route => route.fulfill({contentType:'text/html',body:'<p class="text-xs text-gray-500 p-2">Synthetic fixture - no real orders</p><div id="root"></div>'}));
   await page.goto('http://localhost:4178/');
   const assets=await readdir(new URL('../dist/assets/',import.meta.url));
   for (const asset of assets.filter(name=>name.endsWith('.css'))) await page.addStyleTag({content:(await readFile(new URL('../dist/assets/'+asset,import.meta.url),'utf8')) .replace(/@import\s*(?:url\([^)]*\)|"[^"]*"|'[^']*')\s*;/g,'')});
@@ -55,7 +55,7 @@ async function fixture(component='seller', setup) {
     window.fixturePost=async (url,body)=>{window.posts.push({url,body}); if(window.mode==='network') throw Error('offline'); if(window.mode==='conflict'){window.version=4;throw {response:{status:409}};} if(body.action==='ACCEPT'){window.line.acceptedQty+=body.qty;}else if(body.action==='CANCEL'){window.line.cancelledQty+=body.qty;}else if(body.action==='SHIP'){window.line.shippedQty+=body.qty;}else if(body.action==='DELIVER'){window.line.workflow.deliveredQty+=body.qty;}window.version++; return {data:window.record()};};
   }, component);
   if(setup) await page.evaluate(setup);
-  await mkdir(new URL('../../backend/target/task3-browser/',import.meta.url),{recursive:true});
+  await mkdir(new URL('../../backend/target/delhivery-m1-browser/',import.meta.url),{recursive:true});
   await page.addScriptTag({content:bundle.outputFiles[0].text});
   return {browser,page};
   } catch(error){await browser.close();throw error;}
@@ -87,12 +87,12 @@ test('seller quantities validate, retry identical uncertain payload, retain draf
     posts=await page.evaluate(()=>window.posts);
     assert.notEqual(posts[3].body.operationId,posts[2].body.operationId); assert.equal(posts[3].body.expectedVersion,4);
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth),false);
-    await mkdir(new URL('../../backend/target/task3-browser/',import.meta.url),{recursive:true});
-    await page.screenshot({path:fileURLToPath(new URL('../../backend/target/task3-browser/seller-mobile.png',import.meta.url)),fullPage:true});
+    await mkdir(new URL('../../backend/target/delhivery-m1-browser/',import.meta.url),{recursive:true});
+    await page.screenshot({path:fileURLToPath(new URL('../../backend/target/delhivery-m1-browser/seller-mobile.png',import.meta.url)),fullPage:true});
     await page.setViewportSize({width:768,height:1024});
-    await page.screenshot({path:fileURLToPath(new URL('../../backend/target/task3-browser/seller-tablet.png',import.meta.url)),fullPage:true});
+    await page.screenshot({path:fileURLToPath(new URL('../../backend/target/delhivery-m1-browser/seller-tablet.png',import.meta.url)),fullPage:true});
     await page.setViewportSize({width:1440,height:1000});
-    await page.screenshot({path:fileURLToPath(new URL('../../backend/target/task3-browser/seller-desktop.png',import.meta.url)),fullPage:true});
+    await page.screenshot({path:fileURLToPath(new URL('../../backend/target/delhivery-m1-browser/seller-desktop.png',import.meta.url)),fullPage:true});
   } finally {await browser.close();}
 });
 
@@ -115,10 +115,10 @@ test('customer mode cancels repeatedly after preparation elsewhere and preserves
     await page.getByRole('button',{name:'Cancel units',exact:true}).click();
     assert.equal(await page.getByLabel('Quantity',{exact:true}).getAttribute('max'),'1');
     assert.equal(await page.getByLabel('I confirm this cancellation.').isChecked(),false);
-    await page.screenshot({path:fileURLToPath(new URL('../../backend/target/task3-browser/customer-mobile.png',import.meta.url)),fullPage:true});
+    await page.screenshot({path:fileURLToPath(new URL('../../backend/target/delhivery-m1-browser/customer-mobile.png',import.meta.url)),fullPage:true});
     await page.setViewportSize({width:1440,height:1000});
     assert.ok((await page.getByRole('dialog').locator('.modal-frame').boundingBox()).width<=448);
-    await page.screenshot({path:fileURLToPath(new URL('../../backend/target/task3-browser/customer-desktop.png',import.meta.url)),fullPage:true});
+    await page.screenshot({path:fileURLToPath(new URL('../../backend/target/delhivery-m1-browser/customer-desktop.png',import.meta.url)),fullPage:true});
   } finally {await browser.close();}
 });
 
@@ -168,7 +168,7 @@ test('admin ships and delivers only supported quantities with stable retry and m
       await page.setViewportSize({width,height:844});
       assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'admin detail must fit mobile');
       await page.getByRole('button',{name:'Back',exact:true}).focus();await page.keyboard.press('Tab');assert.notEqual(await page.evaluate(()=>document.activeElement.tagName),'BODY');
-      await page.screenshot({path:fileURLToPath(new URL(`../../backend/target/task3-browser/admin-core-${width}.png`,import.meta.url)),fullPage:true});
+      await page.screenshot({path:fileURLToPath(new URL(`../../backend/target/delhivery-m1-browser/admin-core-${width}.png`,import.meta.url)),fullPage:true});
     }
   }finally{await browser.close();}
 });
@@ -184,7 +184,7 @@ test('finance keeps collections, platform accrual and marketplace seller earning
     assert.equal(await page.getByText('Average earnings / order',{exact:true}).count(),1);
     await page.getByText(/Recognition basis: Verified observations/).waitFor();
     assert.equal(await page.getByText('Revenue',{exact:true}).count(),0);
-    for(const width of [320,390]){await page.setViewportSize({width,height:844});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await page.screenshot({path:fileURLToPath(new URL(`../../backend/target/task3-browser/finance-core-${width}.png`,import.meta.url)),fullPage:true});}
+    for(const width of [320,390]){await page.setViewportSize({width,height:844});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await page.screenshot({path:fileURLToPath(new URL(`../../backend/target/delhivery-m1-browser/finance-core-${width}.png`,import.meta.url)),fullPage:true});}
   }finally{await browser.close();}
 });
 
@@ -268,7 +268,7 @@ test('customer order list refreshes on back navigation after quantity cancellati
     await page.getByRole('button',{name:'Confirm cancel units',exact:true}).click();
     await page.getByRole('dialog').waitFor({state:'hidden'});
     await page.getByRole('button',{name:'All orders',exact:true}).click();
-    await page.getByText('Packed',{exact:true}).waitFor();
+    await page.getByText('Processing',{exact:true}).waitFor();
     await page.getByRole('button',{name:'View order O1',exact:true}).click();
     await page.getByRole('button',{name:'All orders',exact:true}).waitFor();
     await page.evaluate(()=>{const get=window.fixtureGet;window.fixtureGet=url=>url.includes('summary')?Promise.reject(Error('offline summary')):get(url);});
@@ -349,4 +349,70 @@ test('admin initial detail failure shows recovery, retries successfully and can 
     await page.getByRole('button',{name:'Back to orders',exact:true}).click();
     await page.getByRole('row').filter({hasText:'O1'}).waitFor();
   } finally {await browser.close();}
+});
+
+test('compact customer summaries show disjoint mixed quantities and fit mobile and desktop',async()=>{
+  const {browser,page}=await fixture('customer',()=>{
+    window.line.orderedQty=10;window.line.cancelledQty=2;window.line.acceptedQty=8;
+    window.line.workflow.preparingQty=7;window.line.workflow.packedQty=6;
+    window.line.shippedQty=5;window.line.workflow.deliveredQty=2;
+  });
+  try {
+    await page.getByText('Qty 10 · Processing',{exact:true}).waitFor();
+    const breakdowns=page.getByRole('definition',{name:''});
+    assert.deepEqual(await breakdowns.allTextContents(),['3','3','2','2','3','3','2','2']);
+    assert.equal(await page.getByText(/ordered:|accepted:|preparing:|packed:/i).count(),0);
+    const policy=page.getByRole('button',{name:'Cancellation and refund policy',exact:true});
+    assert.equal(await policy.getAttribute('aria-expanded'),'false');
+    await page.emulateMedia({reducedMotion:'reduce'});
+    await policy.focus();await page.keyboard.press('Enter');
+    assert.equal(await policy.getAttribute('aria-expanded'),'true');
+    await page.keyboard.press('Enter');
+    assert.equal(await policy.getAttribute('aria-expanded'),'false');
+    await mkdir(new URL('../../backend/target/delhivery-m1-browser/',import.meta.url),{recursive:true});
+    for(const width of [320,390,1440]){
+      await page.setViewportSize({width,height:1000});
+      assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'customer summary must fit');
+      await page.screenshot({path:fileURLToPath(new URL(`../../backend/target/delhivery-m1-browser/customer-mixed-${width}.png`,import.meta.url)),fullPage:true});
+    }
+  }finally{await browser.close();}
+});
+
+test('one cancelled item has a single compact state and no quantity breakdown',async()=>{
+  const {browser,page}=await fixture('customer',()=>{
+    window.line.orderedQty=1;window.line.cancelledQty=1;window.line.acceptedQty=0;
+    window.line.workflow.preparingQty=0;window.line.workflow.packedQty=0;
+  });
+  try{
+    await page.getByText('Qty 1 · Cancelled',{exact:true}).waitFor();
+    assert.equal(await page.locator('dl[aria-label="Quantity breakdown"]').count(),0);
+    assert.equal(await page.locator('p').filter({hasText:/^Qty 1$/}).count(),1,'order total remains visible');
+    assert.equal(await page.getByRole('button',{name:'Cancel units',exact:true}).count(),0);
+    await page.screenshot({path:fileURLToPath(new URL('../../backend/target/delhivery-m1-browser/customer-cancelled-390.png',import.meta.url)),fullPage:true});
+  }finally{await browser.close();}
+});
+
+test('operational details retain Packed while admin line quantity appears only once',async()=>{
+  for(const role of ['seller','admin']){
+    const {browser,page}=await fixture(role,()=>{
+      window.line.orderedQty=2;window.line.cancelledQty=0;window.line.acceptedQty=2;
+      window.line.workflow.preparingQty=2;window.line.workflow.packedQty=2;
+    });
+    try{
+      if(role==='seller') await page.getByRole('button',{name:'View fulfillment F1'}).click();
+      else await page.getByRole('row').filter({hasText:'O1'}).click();
+      await page.getByText('Packed',{exact:true}).first().waitFor();
+      assert.equal(await page.locator('dl[aria-label="Quantity breakdown"]').count(),0);
+      assert.equal(await page.getByText('Qty 2 · Packed',{exact:true}).count(),1,'order summary retains quantity and stage');
+      if(role==='admin') assert.equal(await page.getByText('Qty 2 · ₹300.00 each',{exact:true}).count(),1);
+      await page.emulateMedia({reducedMotion:'reduce'});
+      for(const width of [320,390,1440]){
+        await page.setViewportSize({width,height:1000});
+        assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),`${role} summary must fit`);
+        await page.getByRole('button',{name:'Back',exact:true}).focus();await page.keyboard.press('Tab');
+        assert.notEqual(await page.evaluate(()=>document.activeElement.tagName),'BODY');
+        await page.screenshot({path:fileURLToPath(new URL(`../../backend/target/delhivery-m1-browser/${role}-packed-${width}.png`,import.meta.url)),fullPage:true});
+      }
+    }finally{await browser.close();}
+  }
 });

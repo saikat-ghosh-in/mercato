@@ -67,7 +67,7 @@ const StatusBanner = ({ order }) => {
       <div className="flex items-center gap-3 px-5 py-4">
         <StatusIcon size={22} className={iconColor} />
         <div className="flex-1 min-w-0">
-          <p className="text-base font-semibold text-gray-900">{workflowLabel(order)}</p>
+          <p className="text-base font-semibold text-gray-900">{workflowLabel(order, 'customer')}</p>
           <p className="text-xs text-gray-500 mt-0.5">Progress is shown separately for each quantity.</p>
         </div>
       </div>
@@ -145,7 +145,7 @@ const OrderLineItem = ({ line, version, onLineUpdate, refreshing }) => {
           <p className="text-xs text-gray-400 mt-0.5">
             by {sellerName}&nbsp;·&nbsp;{formatCurrency(line.product?.unitPrice)} / unit
           </p>
-          <div className="mt-2"><WorkflowProgress record={line} /></div>
+          <div className="mt-2"><WorkflowProgress record={line} audience="customer" /></div>
           <div className="mt-2"><QuantityCommand label="Cancel units" cancellation maximum={actionMaximum(line,'CANCEL')} version={version} endpoint="/user/fulfillment/commands" makeBody={(qty,reason) => ({fulfillmentId:line.fulfillmentId,orderLineNumber:line.orderLineNumber,action:'CANCEL',qty,reason})} onComplete={onLineUpdate} disabled={refreshing} /></div>
         </div>
 
@@ -211,7 +211,7 @@ const OrderDetails = ({ orderId }) => {
         <PageHeading title={"Order #" + order.orderId} description={"Placed on " + formatDate(order.createdAt)}><button type="button" className="button button-outline" onClick={() => navigate("/orders")}><MdArrowBack aria-hidden="true" /> All orders</button></PageHeading>
 
         {error && <p role="alert" className="text-sm text-red-700">{error} <button className="text-link" onClick={fetchOrder}>Retry refresh</button></p>}
-        <div className="surface p-4 mb-4 space-y-3"><WorkflowProgress record={order} /><p className="text-sm text-gray-600">You can repeatedly cancel unprepared units, even when other units have advanced. Preparation ends cancellation eligibility for those units.</p><QuantityCommand key={`${epoch}:${orderId}:whole`} label="Cancel entire order" cancellation whole maximum={canCancelOrder ? 1 : 0} version={order.workflow?.version} endpoint="/user/fulfillment/cancellations" makeBody={(_qty,reason) => ({orderId:order.orderId,reason})} onComplete={fetchOrder} disabled={loading} /><CancellationPolicy /></div>
+        <div className="surface p-4 mb-4 space-y-3"><WorkflowProgress record={order} audience="customer" showState={false} /><p className="text-sm text-gray-600">You can repeatedly cancel unprepared units, even when other units have advanced. Preparation ends cancellation eligibility for those units.</p><QuantityCommand key={`${epoch}:${orderId}:whole`} label="Cancel entire order" cancellation whole maximum={canCancelOrder ? 1 : 0} version={order.workflow?.version} endpoint="/user/fulfillment/cancellations" makeBody={(_qty,reason) => ({orderId:order.orderId,reason})} onComplete={fetchOrder} disabled={loading} /><CancellationPolicy /></div>
         {/* Status banner */}
         <StatusBanner order={order} onRetrySuccess={() => fetchOrder(true)} />
 
