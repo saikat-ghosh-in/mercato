@@ -392,7 +392,7 @@ Validate with `sudo visudo -c`. Do not grant unrestricted passwordless sudo. The
 
 ## 11. Subsequent releases: your usual redeploy command
 
-The fulfillment beta remains a **side-project sandbox**. Keep Cashfree authorization/delayed-capture activation disabled and use ordinary sandbox payment collection. Existing admin shipping/delivery actions are the target flow. New parcel and customer-return systems, advanced RTO, deductions and seller disputes are deferred. Do not enable account-wide card preauthorization to try out unfinished features.
+The fulfillment beta remains a **side-project sandbox**. Keep Cashfree authorization/delayed-capture activation disabled and use ordinary sandbox payment collection. The tracking revision adds seller parcel handoff and Delhivery **staging** tracking, with audited admin manual delivery when carrier access is unavailable. It does not book pickups or labels. Customer returns, advanced RTO, deductions and seller disputes remain deferred. Do not enable account-wide card preauthorization to try out unfinished features.
 
 For each beta update, publish a **new prerelease tag from tested `stg`** and wait for its **Release backend** job/assets. Before a release containing new migrations, take a private recovery dump of the installed beta database on OCI:
 
@@ -406,13 +406,15 @@ Verify the dump with `sudo pg_restore --list /opt/mercato-beta/backups/<actual-f
 Then update only beta:
 
 ```bash
-bash ~/redeploy-beta.sh v0.1.0-beta.5
+bash ~/redeploy-beta.sh v0.1.0-beta.6
 sudo journalctl -u mercato-beta -n 100 --no-pager
 ```
 
 Replace the example with the actual tag. The beta wrapper fixes the directory, service and site explicitly; the generic release script otherwise defaults to production. The updated script downloads/verifies the JAR, rejects changed content under an existing tag, preserves the previous artifact, installs by atomic rename, restarts the service and checks session JSON through Netlify. Retrying the same unchanged release after a failed restart is supported. Future additive migrations run automatically on startup; do not recreate this fresh database for routine updates.
 
-The beta Netlify project deploys its `stg` frontend separately; verify frontend/backend compatibility for each release. Preserve `.env`, the MFA encryption key, uploads, database and signing keys across redeploys. A failed readiness check requires investigation; do not automatically restore the old bearer-token application or roll back an incompatible database schema.
+The beta Netlify project deploys its `stg` frontend separately; verify frontend/backend compatibility for each release. For the tracking revision, milestone commits use `[skip netlify]`: install the compatible backend first, then trigger a deploy from the current `stg` on **mercato-in-beta** and verify its source commit. Keep the separate production project unchanged. Preserve `.env`, the MFA encryption key, uploads, database and signing keys across redeploys. A failed readiness check requires investigation; do not automatically restore the old bearer-token application or roll back an incompatible database schema.
+
+Delhivery access is optional: leave `DELHIVERY_ENABLED=false` until a staging token and a manifested test waybill from the same account are available. Configure credentials only in the beta backend environment. Follow [Delhivery staging setup](docs/DELHIVERY_SETUP.md) after the matching tracking release is installed; mocked tests do not prove carrier connectivity.
 
 ## 12. Delete obsolete beta data and artifacts after acceptance
 
