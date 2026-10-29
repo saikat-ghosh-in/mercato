@@ -20,10 +20,10 @@
 - [x] Pure behavior regressions, actual shared component CSS Browser at320/390 and desktop, frontend tests/lint/build; focused UI-only commit/checkpoint.
 
 ## Milestone2 — seller privacy during remorse
-- [ ] One authoritative visibility rule using existing server releaseAt/Clock, confirmedAt+1h (legacy effective release preserved); no new publication table or second waiting period.
-- [ ] Filter seller list/details/search, dashboard counts, finance/order-report/export and order notifications before projection/aggregation/pagination. Held/unconfirmed own IDs404; foreign IDs404. Customer/admin scopes unchanged. At exact release seller can see current survivors and act immediately; later capture/refresh does not restart hold.
-- [ ] Explicit seller command route/context (including dual admin/seller) and existing mutation guards. Reuse RELEASE mail job; fully cancelled held fulfillment creates no incoming-work task/notification, but cancelled historical views may show it only after release. Keep48h acceptance from release and current soft preparation-review policy.
-- [ ] Real PostgreSQL read/aggregate/detail/dual-role/time-boundary and cancellation regressions, targeted finance/mail/permission tests, frontend endpoint adaptation if needed; focused commit/checkpoint.
+- [x] One authoritative visibility rule using existing server releaseAt/Clock, confirmedAt+1h (legacy effective release preserved); no new publication table or second waiting period.
+- [x] Filter seller list/details/search, dashboard counts, finance/order-report/export and order notifications before projection/aggregation/pagination. Held/unconfirmed own IDs404; foreign IDs404. Customer/admin scopes unchanged. At exact release seller can see current survivors and act immediately; later capture/refresh does not restart hold.
+- [x] Explicit seller command route/context (including dual admin/seller) and existing mutation guards. Reuse RELEASE mail job; fully cancelled held fulfillment creates no incoming-work task/notification, but cancelled historical views may show it only after release. Keep48h acceptance from release and current soft preparation-review policy.
+- [x] Real PostgreSQL read/aggregate/detail/dual-role/time-boundary and cancellation regressions, targeted finance/mail/permission tests, frontend endpoint adaptation if needed; focused commit/checkpoint.
 
 ## Milestone3 — shipments and Delhivery
 - [ ] Add minimal shipment + shipment-item persistence (next additive Flyway), scope one seller fulfillment/parcel to exact line quantities; permit partial/multiple parcels. Track waybill/status/provider timestamps, last check/error and sanitized history; no invented legacy shipments/dates.

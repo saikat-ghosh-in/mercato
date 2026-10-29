@@ -9,7 +9,7 @@ Delhivery token/test waybills are not yet configured. The carrier client remains
 ## Milestone checkpoints
 
 1. Compact summaries — complete, source`5342153d67fb1955850b4e2d006667ff3d0f492b`.101 frontend tests,15 CSS Browser cases, lint/build passed; scoped spec/quality review approved. Existing chunk advisory remains Minor. Screenshots are synthetic, not live beta.
-2. Seller privacy and release — pending.
+2. Seller privacy and release — complete, source `afee9bcd6f0936f0d8f05233524609f2c21ff10f`. 84 focused backend tests, final 48-test workflow verification, 101 frontend tests, four affected CSS Browser cases, clean lint and successful build; scoped spec/quality review approved.
 3. Shipments and Delhivery — pending.
 
 ## Decisions and boundaries
@@ -26,3 +26,5 @@ Delhivery token/test waybills are not yet configured. The carrier client remains
 Baseline frontend95/95 passed; exact current baseline source19fa53e had previously passed full Application checks40696571411. New milestone evidence and provider/Browser limitations will be recorded here before final handoff.
 
 Milestone1: [evidence](review/delhivery/milestone-1-evidence.md), [review](review/delhivery/milestone-1-review.md), [cancelled390px](review/delhivery/compact-cancelled-390.png), [mixed320px](review/delhivery/compact-mixed-320.png).
+
+Milestone2: [evidence](review/delhivery/milestone-2-evidence.md), [review](review/delhivery/milestone-2-review.md). Local checkpoint only; beta still runs the previous release until the compatible shipment revision is ready.
