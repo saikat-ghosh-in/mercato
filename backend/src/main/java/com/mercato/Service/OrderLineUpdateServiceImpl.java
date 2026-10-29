@@ -23,6 +23,7 @@ public class OrderLineUpdateServiceImpl implements OrderLineUpdateService {
     private final AuthUtil authUtil;
     private final FulfillmentWorkflow workflow;
     private final WorkflowCommands commands;
+    private final SellerOrderVisibility visibility;
 
     @Override @Transactional
     public OrderLineResponseDTO updateOrderLine(OrderLineUpdateRequestDTO request, TransitionTrigger trigger) {
@@ -35,6 +36,7 @@ public class OrderLineUpdateServiceImpl implements OrderLineUpdateService {
         var line=order.getOrderLines().stream().filter(l->request.getFulfillmentId().equals(l.getFulfillmentId()) && request.getOrderLineNumber()==l.getOrderLineNumber()).findFirst()
             .orElseThrow(()->new ResourceNotFoundException("OrderLine","fulfillmentId",request.getFulfillmentId()));
         authorize(line,trigger);
+        if(trigger==TransitionTrigger.SELLER)visibility.requireVisible(order);
         String actor=trigger==TransitionTrigger.SYSTEM?"SYSTEM":authUtil.getLoggedInUser().getEmail();
         var repeated=commands.replay(order,request,trigger,actor);
         if(repeated!=null)return repeated;
@@ -73,7 +75,7 @@ public class OrderLineUpdateServiceImpl implements OrderLineUpdateService {
         return result;
     }
     private void authorize(OrderLine line,TransitionTrigger trigger) {
-        if(trigger==TransitionTrigger.SELLER && !line.getSellerEmail().equals(authUtil.getLoggedInUser().getEmail()))throw new ForbiddenOperationException("Seller does not own this line");
+        if(trigger==TransitionTrigger.SELLER && !line.getSellerEmail().equals(authUtil.getLoggedInUser().getEmail()))throw new ResourceNotFoundException("OrderLine","fulfillmentId",line.getFulfillmentId());
         if(trigger==TransitionTrigger.CUSTOMER && !line.getOrder().getCustomerEmail().equals(authUtil.getLoggedInUser().getEmail()))throw new ForbiddenOperationException("Customer does not own this order");
     }
     private void syncOrderStatus(Order order) {

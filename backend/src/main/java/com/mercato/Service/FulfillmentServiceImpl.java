@@ -22,6 +22,7 @@ public class FulfillmentServiceImpl implements FulfillmentService {
     private final OrderLineRepository orderLineRepository;
     private final AuthUtil authUtil;
     private final FulfillmentWorkflow workflow;
+    private final SellerOrderVisibility visibility;
 
     @Override
     @Transactional(readOnly = true)
@@ -29,7 +30,7 @@ public class FulfillmentServiceImpl implements FulfillmentService {
         EcommUser seller = authUtil.getLoggedInUser();
 
         List<OrderLine> lines = orderLineRepository
-                .findAllBySellerEmail(seller.getEmail());
+                .findAllBySellerEmail(seller.getEmail(),visibility.now());
 
         return groupByFulfillmentId(lines, true);
     }
@@ -40,7 +41,7 @@ public class FulfillmentServiceImpl implements FulfillmentService {
         EcommUser seller = authUtil.getLoggedInUser();
 
         List<OrderLine> lines = orderLineRepository
-                .findAllBySellerEmail(seller.getEmail());
+                .findAllBySellerEmail(seller.getEmail(),visibility.now());
 
         return groupByFulfillmentId(lines, false);
     }
@@ -51,7 +52,7 @@ public class FulfillmentServiceImpl implements FulfillmentService {
         EcommUser seller = authUtil.getLoggedInUser();
 
         List<OrderLine> lines = orderLineRepository
-                .findAllByFulfillmentIdAndSellerEmail(fulfillmentId, seller.getEmail());
+                .findAllByFulfillmentIdAndSellerEmail(fulfillmentId, seller.getEmail(),visibility.now());
 
         if (lines.isEmpty()) {
             throw new ResourceNotFoundException("FulfillmentOrder", "fulfillmentId", fulfillmentId);

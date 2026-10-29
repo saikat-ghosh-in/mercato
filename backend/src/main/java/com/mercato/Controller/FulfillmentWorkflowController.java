@@ -16,6 +16,11 @@ public class FulfillmentWorkflowController {
         if(request.getOperationId()==null||request.getExpectedVersion()==null)throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"operationId and expectedVersion are required");
         return updates.updateOrderLine(request,auth.resolveTransitionTrigger());
     }
+    @PostMapping("/seller/fulfillment/commands") public OrderLineResponseDTO sellerCommand(@RequestBody OrderLineUpdateRequestDTO request) {
+        WorkflowCommands.requireExternalOperation(request.getOperationId());
+        return updates.updateOrderLine(request,com.mercato.Entity.fulfillment.TransitionTrigger.SELLER);
+    }
+    @PostMapping("/seller/fulfillment/cancellations") public Object sellerCancel(@RequestBody com.mercato.Payloads.Request.FulfillmentCancelRequest request){WorkflowCommands.requireExternalOperation(request.getOperationId());return cancellation.cancel(request,com.mercato.Entity.fulfillment.TransitionTrigger.SELLER);}
     @PostMapping("/user/fulfillment/commands") public OrderLineResponseDTO customerCommand(@RequestBody OrderLineUpdateRequestDTO request) {
         WorkflowCommands.requireExternalOperation(request.getOperationId());
         return updates.updateOrderLine(request,com.mercato.Entity.fulfillment.TransitionTrigger.CUSTOMER);

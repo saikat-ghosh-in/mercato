@@ -12,8 +12,8 @@ import java.util.*;
 
 @Service
 public class RefundObligations {
-    private final RefundRepository refunds;private final OrderRepository orders;private final DurableJobs jobs;
-    public RefundObligations(RefundRepository refunds,OrderRepository orders,DurableJobs jobs){this.refunds=refunds;this.orders=orders;this.jobs=jobs;}
+    private final RefundRepository refunds;private final OrderRepository orders;private final DurableJobs jobs;private final com.mercato.Service.SellerOrderVisibility visibility;
+    public RefundObligations(RefundRepository refunds,OrderRepository orders,DurableJobs jobs,com.mercato.Service.SellerOrderVisibility visibility){this.visibility=visibility;this.refunds=refunds;this.orders=orders;this.jobs=jobs;}
     @Transactional public void full(Order order,String reason) {
         order.setAutomaticFullRefund(true);
         boolean changed=false;
@@ -73,10 +73,11 @@ public class RefundObligations {
     private void notify(Order order,Refund refund,boolean done){
         String phase=done?"completed":"initiated";
         jobs.enqueue("AUTH_EMAIL","refund-notice:"+refund.getRefundId()+":"+phase+":customer",Map.of("to",order.getCustomerEmail(),"subject","Mercato refund "+phase,"text","Your refund of ₹"+refund.getAmount()+" for order "+order.getOrderId()+" has been "+phase+". Reference: "+refund.getRefundId()+". You can follow its status in Your orders."));
+        if(!visibility.visible(order))return;
         var affected=new TreeMap<String,String>();
         for(var a:refund.getAllocations()){var l=a.getUnit().getOrderLine();if(l.getSellerEmail()!=null)affected.put(l.getSellerEmail(),l.getFulfillmentId());}
         // A full legacy obligation affects every line; no buyer amount or other seller identity is disclosed.
         if(refund.getAllocations().isEmpty())for(var l:order.getOrderLines())if(l.getSellerEmail()!=null)affected.put(l.getSellerEmail(),l.getFulfillmentId());
-        affected.forEach((email,fulfillment)->jobs.enqueue("AUTH_EMAIL","refund-notice:"+refund.getRefundId()+":"+phase+":seller:"+email,Map.of("to",email,"subject","Mercato order refund "+phase,"text","A refund affecting your items in fulfillment "+fulfillment+" has been "+phase+". See Seller Dashboard for item status and earnings.")));
+        affected.forEach((email,fulfillment)->jobs.enqueue("AUTH_EMAIL","refund-notice:"+refund.getRefundId()+":"+phase+":seller:"+email,Map.of("to",email,"orderId",order.getOrderId(),"sellerEmail",email,"subject","Mercato order refund "+phase,"text","A refund affecting your items in fulfillment "+fulfillment+" has been "+phase+". See Seller Dashboard for item status and earnings.")));
     }
 }

@@ -15,13 +15,14 @@ import java.util.*;
 @Service @RequiredArgsConstructor
 public class FinancialUnitHooks {
     private final OrderRepository orders;private final FulfillmentFunding funding;private final RefundObligations refunds;
-    private final WorkflowCommands commands;private final AuthUtil auth;private final Clock clock;
+    private final WorkflowCommands commands;private final AuthUtil auth;private final Clock clock;private final SellerOrderVisibility visibility;
     public record UnitView(String unitId,int orderLineNumber,String fulfillmentId,String stage,String refundState,long buyerTotalPaise){}
     @Transactional(readOnly=true)
     public List<UnitView> units(String orderId){
         var actor=auth.getLoggedInUser();var o=orders.findByOrderId(orderId).orElseThrow(()->new ResourceNotFoundException("Order","orderId",orderId));
         boolean buyer=actor.getUserId()!=null&&actor.getUserId().equals(o.getCustomerUserId()) || actor.getEmail().equals(o.getCustomerEmail());
         if(!actor.isAdmin()&&!buyer&&o.getOrderLines().stream().noneMatch(l->actor.isSeller()&&actor.getEmail().equals(l.getSellerEmail())))throw new ForbiddenOperationException("Order ownership required");
+        if(!actor.isAdmin()&&!buyer)visibility.requireVisible(o);
         var out=new ArrayList<UnitView>();
         for(var l:o.getOrderLines())if(actor.isAdmin()||buyer||actor.getEmail().equals(l.getSellerEmail()))for(var u:l.getMoneyUnits()){
             String state="NONE";long committed=0,success=0;boolean attention=false,waiting=false;

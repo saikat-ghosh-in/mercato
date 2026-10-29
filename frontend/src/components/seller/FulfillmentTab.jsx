@@ -1,6 +1,6 @@
 import { LoadingLayout } from "../shared/LoadingStates";
 import ActionArrow from "../shared/ActionArrow";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   MdLocalShipping, MdCheckCircle, MdAccessTime,
   MdCancel, MdHourglassEmpty,
@@ -69,7 +69,7 @@ const FulfillmentDetail = ({ fulfillmentId, onBack }) => {
       <WorkflowProgress record={fo} />
       <WorkflowDeadlines workflow={fo.workflow} receivedAt={receivedAt} onRelease={fetchFo} />
       <p className="text-xs text-gray-600">Accept within 48 hours after seller actions unlock. Preparation review is independent. Physical shipment is recorded by Mercato logistics after handoff.</p>
-      <QuantityCommand key={`${epoch}:${fulfillmentId}:cancel-all`} label="Cancel all remaining" whole cancellation maximum={fo.orderLines?.reduce((total,line) => total + actionMaximum(line, 'CANCEL'),0) || 0} version={fo.workflow?.version} endpoint="/fulfillment/cancellations" makeBody={(_qty,reason) => ({orderId:fo.orderId,fulfillmentId,reason})} onComplete={fetchFo} disabled={loading} />
+      <QuantityCommand key={`${epoch}:${fulfillmentId}:cancel-all`} label="Cancel all remaining" whole cancellation maximum={fo.orderLines?.reduce((total,line) => total + actionMaximum(line, 'CANCEL'),0) || 0} version={fo.workflow?.version} endpoint="/seller/fulfillment/cancellations" makeBody={(_qty,reason) => ({orderId:fo.orderId,fulfillmentId,reason})} onComplete={fetchFo} disabled={loading} />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
         {/* Order lines */}
@@ -102,7 +102,7 @@ const FulfillmentDetail = ({ fulfillmentId, onBack }) => {
                         </div>
                         <div className="mt-2"><WorkflowProgress record={line} showState={false} /></div>
                         <div className="flex items-center gap-2 mt-2.5 flex-wrap">
-                          {[['ACCEPT','Accept'],['START_PREPARING','Start preparing'],['MARK_PACKED','Mark as packed'],['CANCEL','Cancel units']].map(([action,label]) => <QuantityCommand key={action} label={label} maximum={actionMaximum(line,action)} version={fo.workflow?.version} cancellation={action==='CANCEL'} endpoint="/fulfillment/commands" makeBody={(qty,reason) => ({fulfillmentId:line.fulfillmentId || fulfillmentId,orderLineNumber:line.orderLineNumber,action,qty,...(action==='CANCEL' ? {reason} : {})})} onComplete={fetchFo} disabled={loading} />)}
+                          {[['ACCEPT','Accept'],['START_PREPARING','Start preparing'],['MARK_PACKED','Mark as packed'],['CANCEL','Cancel units']].map(([action,label]) => <QuantityCommand key={action} label={label} maximum={actionMaximum(line,action)} version={fo.workflow?.version} cancellation={action==='CANCEL'} endpoint="/seller/fulfillment/commands" makeBody={(qty,reason) => ({fulfillmentId:line.fulfillmentId || fulfillmentId,orderLineNumber:line.orderLineNumber,action,qty,...(action==='CANCEL' ? {reason} : {})})} onComplete={fetchFo} disabled={loading} />)}
                         </div>
                       </div>
                     </div>
@@ -208,7 +208,19 @@ const FulfillmentTab = () => {
   const selectedId = selection?.epoch === epoch ? selection.id : null;
   const setSelectedId = id => setSelection(id ? {id,epoch} : null);
   const [search, setSearch] = useState('');
-  const refreshLists = () => { active.refresh(); closed.refresh(); metrics.refresh(); };
+  const refreshActive = active.refresh;
+  const refreshClosed = closed.refresh;
+  const refreshMetrics = metrics.refresh;
+  const refreshLists = () => { refreshActive(); refreshClosed(); refreshMetrics(); };
+  useEffect(() => {
+    const refresh = () => {
+      if (document.visibilityState === 'visible') { refreshActive(); refreshClosed(); refreshMetrics(); }
+    };
+    window.addEventListener('focus', refresh);
+    document.addEventListener('visibilitychange', refresh);
+    const interval = window.setInterval(refresh, 60000);
+    return () => { window.removeEventListener('focus', refresh); document.removeEventListener('visibilitychange', refresh); window.clearInterval(interval); };
+  }, [refreshActive, refreshClosed, refreshMetrics]);
 
   if (selectedId) return (
     <FulfillmentDetail

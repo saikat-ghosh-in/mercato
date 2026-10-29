@@ -15,8 +15,8 @@ import java.util.*;
 @Service
 public class FulfillmentCancellation {
     private final OrderRepository orders;private final FulfillmentWorkflow policy;private final WorkflowCommands commands;
-    private final OrderLineUpdateService updates;private final AuthUtil auth;private final ObjectMapper json;
-    public FulfillmentCancellation(OrderRepository orders,FulfillmentWorkflow policy,WorkflowCommands commands,OrderLineUpdateService updates,AuthUtil auth,ObjectMapper json){this.orders=orders;this.policy=policy;this.commands=commands;this.updates=updates;this.auth=auth;this.json=json;}
+    private final SellerOrderVisibility visibility;private final OrderLineUpdateService updates;private final AuthUtil auth;private final ObjectMapper json;
+    public FulfillmentCancellation(OrderRepository orders,FulfillmentWorkflow policy,WorkflowCommands commands,OrderLineUpdateService updates,AuthUtil auth,ObjectMapper json,SellerOrderVisibility visibility){this.visibility=visibility;this.orders=orders;this.policy=policy;this.commands=commands;this.updates=updates;this.auth=auth;this.json=json;}
     @Transactional public List<OrderLineResponseDTO> cancel(FulfillmentCancelRequest request,TransitionTrigger actor) {
         if(request==null||request.getOrderId()==null||request.getReason()==null||request.getReason().isBlank()||request.getReason().length()>500)
             throw new CustomBadRequestException("Order and cancellation reason are required");
@@ -28,7 +28,8 @@ public class FulfillmentCancellation {
         if(actor==TransitionTrigger.ADMIN && !explicit && request.getFulfillmentId()==null)throw new CustomBadRequestException("Admin must select fulfillment or explicit units");
         if(actor==TransitionTrigger.SELLER && request.getFulfillmentId()==null)throw new CustomBadRequestException("Seller must select a fulfillment");
         List<OrderLine> scoped=o.getOrderLines().stream().filter(l->request.getFulfillmentId()==null||request.getFulfillmentId().equals(l.getFulfillmentId())).toList();
-        if(scoped.isEmpty()||actor==TransitionTrigger.SELLER&&scoped.stream().anyMatch(l->!identity.equals(l.getSellerEmail())))throw new ForbiddenOperationException("Seller does not own fulfillment");
+        if(scoped.isEmpty()||actor==TransitionTrigger.SELLER&&scoped.stream().anyMatch(l->!identity.equals(l.getSellerEmail())))throw new ResourceNotFoundException("FulfillmentOrder","fulfillmentId",request.getFulfillmentId());
+        if(actor==TransitionTrigger.SELLER)visibility.requireVisible(o);
         String body=encode(Arrays.asList("CANCEL_SCOPE",request,actor,identity));
         String replay=commands.stored(o,request.getOperationId(),request.getExpectedVersion(),body);
         if(replay!=null){try{return json.readValue(replay,new TypeReference<List<OrderLineResponseDTO>>(){});}catch(Exception e){throw new IllegalStateException(e);}}

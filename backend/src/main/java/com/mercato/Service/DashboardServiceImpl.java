@@ -35,6 +35,7 @@ public class DashboardServiceImpl implements DashboardService {
     private final UserRepository userRepository;
     private final AuthUtil authUtil;
     private final MarketplaceFinanceService finance;
+    private final SellerOrderVisibility visibility;
 
     @Override
     @Transactional(readOnly = true)
@@ -135,6 +136,7 @@ public class DashboardServiceImpl implements DashboardService {
             );
         }
         String sellerEmail = seller.getEmail();
+        Instant visibleAt=visibility.now();
 
         Instant startOfToday = LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant();
         Instant endOfToday = startOfToday.plus(1, ChronoUnit.DAYS);
@@ -144,28 +146,28 @@ public class DashboardServiceImpl implements DashboardService {
         BigDecimal allTimeRevenue = finance.netEarnings(seller,false,Instant.EPOCH,Instant.parse("9999-12-31T00:00:00Z"));
         BigDecimal thisMonthRevenue = finance.netEarnings(seller,false,startOfMonth,endOfToday);
         BigDecimal todayRevenue = finance.netEarnings(seller,false,startOfToday,endOfToday);
-        BigDecimal averageRevenuePerOrder = orderLineRepository.countTotalOrdersBySeller(sellerEmail)==0?BigDecimal.ZERO:allTimeRevenue.divide(BigDecimal.valueOf(orderLineRepository.countTotalOrdersBySeller(sellerEmail)),2,java.math.RoundingMode.HALF_UP);
+        BigDecimal averageRevenuePerOrder = orderLineRepository.countTotalOrdersBySeller(sellerEmail,visibleAt)==0?BigDecimal.ZERO:allTimeRevenue.divide(BigDecimal.valueOf(orderLineRepository.countTotalOrdersBySeller(sellerEmail,visibleAt)),2,java.math.RoundingMode.HALF_UP);
 
         RevenueStats revenueStats = new RevenueStats(
                 allTimeRevenue, thisMonthRevenue, todayRevenue, averageRevenuePerOrder
         );
 
-        long totalOrders = orderLineRepository.countTotalOrdersBySeller(sellerEmail);
-        long todayCount = orderLineRepository.countOrdersBySellerCreatedBetween(sellerEmail, startOfToday, endOfToday);
+        long totalOrders = orderLineRepository.countTotalOrdersBySeller(sellerEmail,visibleAt);
+        long todayCount = orderLineRepository.countOrdersBySellerCreatedBetween(sellerEmail, startOfToday, endOfToday,visibleAt);
         long pendingPayment = orderLineRepository.countPendingPaymentBySeller(
-                sellerEmail,
+                sellerEmail,visibleAt,
                 List.of(
                         PaymentStatus.PENDING,
                         PaymentStatus.INITIATED
                 ));
         long activeOrders = orderLineRepository.countActiveOrdersBySeller(
-                sellerEmail,
+                sellerEmail,visibleAt,
                 List.of(
                         OrderLineStatus.CONFIRMED,
                         OrderLineStatus.PROCESSING,
                         OrderLineStatus.PARTIALLY_PROCESSED
                 ));
-        BigDecimal averageOrderValue = orderLineRepository.findAverageOrderValueBySeller(sellerEmail);
+        BigDecimal averageOrderValue = orderLineRepository.findAverageOrderValueBySeller(sellerEmail,visibleAt);
 
         OrderStats fulfillmentStats = new OrderStats(
                 totalOrders, todayCount, pendingPayment, activeOrders, averageOrderValue
@@ -173,7 +175,7 @@ public class DashboardServiceImpl implements DashboardService {
 
 
         List<TopSellingProductDTO> topSellingProducts =
-                orderLineRepository.findTopSellingProductsBySeller(sellerEmail)
+                orderLineRepository.findTopSellingProductsBySeller(sellerEmail,visibleAt)
                         .stream()
                         .map(row -> new TopSellingProductDTO(
                                 (String) row[0],
@@ -196,7 +198,7 @@ public class DashboardServiceImpl implements DashboardService {
                         .toList();
 
         Map<String, Long> statusBreakdown = orderLineRepository
-                .findOrderLineStatusBreakdownBySeller(sellerEmail)
+                .findOrderLineStatusBreakdownBySeller(sellerEmail,visibleAt)
                 .stream()
                 .collect(Collectors.toMap(
                         row -> row[0].toString(),

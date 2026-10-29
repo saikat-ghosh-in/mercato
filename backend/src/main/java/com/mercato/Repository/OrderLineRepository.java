@@ -40,27 +40,35 @@ public interface OrderLineRepository extends JpaRepository<OrderLine, Long> {
     );
 
     @EntityGraph(attributePaths = {"order", "stateTransitions"})
-    List<OrderLine> findAllBySellerEmail(String sellerEmail);
+    @Query("select l from OrderLine l join l.order o where l.sellerEmail=:sellerEmail and " + com.mercato.Service.SellerOrderVisibility.ORDER_PREDICATE)
+    List<OrderLine> findAllBySellerEmail(@Param("sellerEmail") String sellerEmail,@Param("visibleAt") Instant visibleAt);
 
     @EntityGraph(attributePaths = {"order", "stateTransitions"})
-    List<OrderLine> findAllByFulfillmentIdAndSellerEmail(String fulfillmentId, String sellerEmail);
+    @Query("select l from OrderLine l join l.order o where l.fulfillmentId=:fulfillmentId and l.sellerEmail=:sellerEmail and " + com.mercato.Service.SellerOrderVisibility.ORDER_PREDICATE)
+    List<OrderLine> findAllByFulfillmentIdAndSellerEmail(@Param("fulfillmentId") String fulfillmentId,@Param("sellerEmail") String sellerEmail,@Param("visibleAt") Instant visibleAt);
 
     @Query("""
             SELECT COALESCE(SUM(ol.revenue), 0)
             FROM OrderLine ol
             WHERE ol.sellerEmail = :sellerEmail
+            AND ol.order.confirmedAt IS NOT NULL AND ol.order.sellerActionsAvailableAt IS NOT NULL
+            AND ol.order.sellerActionsAvailableAt <= :visibleAt
+            AND (ol.order.workflowPolicyAdoptedAt IS NULL OR ol.order.workflowPolicyAdoptedAt <= :visibleAt)
             """)
-    BigDecimal findRevenueBySeller(@Param("sellerEmail") String sellerEmail);
+    BigDecimal findRevenueBySeller(@Param("sellerEmail") String sellerEmail,@Param("visibleAt") Instant visibleAt);
 
     @Query("""
             SELECT COALESCE(SUM(ol.revenue), 0)
             FROM OrderLine ol
             WHERE ol.sellerEmail = :sellerEmail
+            AND ol.order.confirmedAt IS NOT NULL AND ol.order.sellerActionsAvailableAt IS NOT NULL
+            AND ol.order.sellerActionsAvailableAt <= :visibleAt
+            AND (ol.order.workflowPolicyAdoptedAt IS NULL OR ol.order.workflowPolicyAdoptedAt <= :visibleAt)
             AND ol.updatedAt >= :start AND ol.updatedAt < :end
             """)
     BigDecimal findRevenueBySellerBetween(@Param("sellerEmail") String sellerEmail,
                                           @Param("start") Instant start,
-                                          @Param("end") Instant end);
+                                          @Param("end") Instant end,@Param("visibleAt") Instant visibleAt);
 
     @Query("""
             SELECT COALESCE(AVG(fulfillmentRevenue), 0)
@@ -68,38 +76,52 @@ public interface OrderLineRepository extends JpaRepository<OrderLine, Long> {
                 SELECT SUM(ol.revenue) AS fulfillmentRevenue
                 FROM OrderLine ol
                 WHERE ol.sellerEmail = :sellerEmail
+            AND ol.order.confirmedAt IS NOT NULL AND ol.order.sellerActionsAvailableAt IS NOT NULL
+            AND ol.order.sellerActionsAvailableAt <= :visibleAt
+            AND (ol.order.workflowPolicyAdoptedAt IS NULL OR ol.order.workflowPolicyAdoptedAt <= :visibleAt)
                 GROUP BY ol.fulfillmentId
             )
             """)
-    BigDecimal findAverageRevenuePerOrderBySeller(@Param("sellerEmail") String sellerEmail);
+    BigDecimal findAverageRevenuePerOrderBySeller(@Param("sellerEmail") String sellerEmail,@Param("visibleAt") Instant visibleAt);
 
     @Query("""
             SELECT COUNT(DISTINCT ol.fulfillmentId)
             FROM OrderLine ol
             WHERE ol.sellerEmail = :sellerEmail
+            AND ol.order.confirmedAt IS NOT NULL AND ol.order.sellerActionsAvailableAt IS NOT NULL
+            AND ol.order.sellerActionsAvailableAt <= :visibleAt
+            AND (ol.order.workflowPolicyAdoptedAt IS NULL OR ol.order.workflowPolicyAdoptedAt <= :visibleAt)
             """)
-    long countTotalOrdersBySeller(@Param("sellerEmail") String sellerEmail);
+    long countTotalOrdersBySeller(@Param("sellerEmail") String sellerEmail,@Param("visibleAt") Instant visibleAt);
 
     @Query("""
             SELECT COUNT(DISTINCT ol.fulfillmentId)
             FROM OrderLine ol
             WHERE ol.sellerEmail = :sellerEmail
+            AND ol.order.confirmedAt IS NOT NULL AND ol.order.sellerActionsAvailableAt IS NOT NULL
+            AND ol.order.sellerActionsAvailableAt <= :visibleAt
+            AND (ol.order.workflowPolicyAdoptedAt IS NULL OR ol.order.workflowPolicyAdoptedAt <= :visibleAt)
             AND ol.createdAt BETWEEN :start AND :end
             """)
     long countOrdersBySellerCreatedBetween(
             @Param("sellerEmail") String sellerEmail,
             @Param("start") Instant start,
-            @Param("end") Instant end
+            @Param("end") Instant end,
+            @Param("visibleAt") Instant visibleAt
     );
 
     @Query("""
             SELECT COUNT(DISTINCT ol.fulfillmentId)
             FROM OrderLine ol
             WHERE ol.sellerEmail = :sellerEmail
+            AND ol.order.confirmedAt IS NOT NULL AND ol.order.sellerActionsAvailableAt IS NOT NULL
+            AND ol.order.sellerActionsAvailableAt <= :visibleAt
+            AND (ol.order.workflowPolicyAdoptedAt IS NULL OR ol.order.workflowPolicyAdoptedAt <= :visibleAt)
             AND ol.order.paymentStatus IN :statuses
             """)
     long countPendingPaymentBySeller(
             @Param("sellerEmail") String sellerEmail,
+            @Param("visibleAt") Instant visibleAt,
             @Param("statuses") List<PaymentStatus> statuses
     );
 
@@ -107,10 +129,14 @@ public interface OrderLineRepository extends JpaRepository<OrderLine, Long> {
             SELECT COUNT(DISTINCT ol.fulfillmentId)
             FROM OrderLine ol
             WHERE ol.sellerEmail = :sellerEmail
+            AND ol.order.confirmedAt IS NOT NULL AND ol.order.sellerActionsAvailableAt IS NOT NULL
+            AND ol.order.sellerActionsAvailableAt <= :visibleAt
+            AND (ol.order.workflowPolicyAdoptedAt IS NULL OR ol.order.workflowPolicyAdoptedAt <= :visibleAt)
             AND ol.orderLineStatus IN :statuses
             """)
     long countActiveOrdersBySeller(
             @Param("sellerEmail") String sellerEmail,
+            @Param("visibleAt") Instant visibleAt,
             @Param("statuses") List<OrderLineStatus> statuses
     );
 
@@ -120,10 +146,13 @@ public interface OrderLineRepository extends JpaRepository<OrderLine, Long> {
                 SELECT SUM(ol.lineTotal) AS fulfillmentTotal
                 FROM OrderLine ol
                 WHERE ol.sellerEmail = :sellerEmail
+            AND ol.order.confirmedAt IS NOT NULL AND ol.order.sellerActionsAvailableAt IS NOT NULL
+            AND ol.order.sellerActionsAvailableAt <= :visibleAt
+            AND (ol.order.workflowPolicyAdoptedAt IS NULL OR ol.order.workflowPolicyAdoptedAt <= :visibleAt)
                 GROUP BY ol.fulfillmentId
             )
             """)
-    BigDecimal findAverageOrderValueBySeller(@Param("sellerEmail") String sellerEmail);
+    BigDecimal findAverageOrderValueBySeller(@Param("sellerEmail") String sellerEmail,@Param("visibleAt") Instant visibleAt);
 
     @Query("""
             SELECT ol.productId, ol.productName,
@@ -131,11 +160,14 @@ public interface OrderLineRepository extends JpaRepository<OrderLine, Long> {
                    SUM(ol.unitPrice * ol.shippedQty) AS totalRevenue
             FROM OrderLine ol
             WHERE ol.sellerEmail = :sellerEmail
+            AND ol.order.confirmedAt IS NOT NULL AND ol.order.sellerActionsAvailableAt IS NOT NULL
+            AND ol.order.sellerActionsAvailableAt <= :visibleAt
+            AND (ol.order.workflowPolicyAdoptedAt IS NULL OR ol.order.workflowPolicyAdoptedAt <= :visibleAt)
             AND ol.shippedQty > 0
             GROUP BY ol.productId, ol.productName
             ORDER BY totalShippedQty DESC
             """)
-    List<Object[]> findTopSellingProductsBySeller(@Param("sellerEmail") String sellerEmail);
+    List<Object[]> findTopSellingProductsBySeller(@Param("sellerEmail") String sellerEmail,@Param("visibleAt") Instant visibleAt);
 
     @Query("""
             SELECT ol.productId, ol.productName,
@@ -152,7 +184,10 @@ public interface OrderLineRepository extends JpaRepository<OrderLine, Long> {
             SELECT ol.orderLineStatus, COUNT(ol)
             FROM OrderLine ol
             WHERE ol.sellerEmail = :sellerEmail
+            AND ol.order.confirmedAt IS NOT NULL AND ol.order.sellerActionsAvailableAt IS NOT NULL
+            AND ol.order.sellerActionsAvailableAt <= :visibleAt
+            AND (ol.order.workflowPolicyAdoptedAt IS NULL OR ol.order.workflowPolicyAdoptedAt <= :visibleAt)
             GROUP BY ol.orderLineStatus
             """)
-    List<Object[]> findOrderLineStatusBreakdownBySeller(@Param("sellerEmail") String sellerEmail);
+    List<Object[]> findOrderLineStatusBreakdownBySeller(@Param("sellerEmail") String sellerEmail,@Param("visibleAt") Instant visibleAt);
 }

@@ -76,7 +76,7 @@ test('seller quantities validate, retry identical uncertain payload, retain draf
     await page.getByRole('alert').waitFor();
     await page.getByRole('button',{name:'Confirm accept',exact:true}).click();
     let posts=await page.evaluate(()=>window.posts);
-    assert.deepEqual(posts[0],posts[1]); assert.equal(posts[0].body.expectedVersion,3); assert.ok(posts[0].body.operationId);
+    assert.deepEqual(posts[0],posts[1]); assert.equal(posts[0].url,"/seller/fulfillment/commands"); assert.equal(posts[0].body.expectedVersion,3); assert.ok(posts[0].body.operationId);
     await page.evaluate(()=>window.mode='conflict');
     await page.getByRole('button',{name:'Confirm accept',exact:true}).click();
     await page.getByRole('alert').filter({hasText:'changed'}).waitFor();
@@ -415,4 +415,36 @@ test('operational details retain Packed while admin line quantity appears only o
       }
     }finally{await browser.close();}
   }
+});
+
+test('seller incoming list revalidates on focus and each visible minute',async()=>{
+  const {browser,page}=await fixture('seller',()=>{
+    window.reads=[];const get=window.fixtureGet;window.fixtureGet=async(...args)=>{window.reads.push(args[0]);return get(...args);};
+    const interval=window.setInterval;window.setInterval=(fn,ms,...args)=>{if(ms===60000)window.minute=fn;return interval(fn,ms,...args);};
+  });
+  try {
+    await page.getByRole('button',{name:'View fulfillment F1'}).waitFor();
+    await page.evaluate(()=>{window.reads=[];window.dispatchEvent(new Event('focus'));});
+    await page.waitForFunction(()=>window.reads.includes('/seller/open-fulfillment-orders'));
+    await page.evaluate(()=>{window.reads=[];window.minute?.();});
+    await page.waitForFunction(()=>window.reads.includes('/seller/open-fulfillment-orders'));
+    await page.evaluate(()=>{window.reads=[];Object.defineProperty(document,'visibilityState',{configurable:true,value:'hidden'});window.minute();});
+    assert.deepEqual(await page.evaluate(()=>window.reads),[]);
+    assert.equal(await page.getByRole('button',{name:'View fulfillment F1'}).count(),1);
+  } finally {await browser.close();}
+});
+
+test('dual-role seller whole cancellation uses the explicit seller route',async()=>{
+  const {browser,page}=await fixture('seller');
+  try {
+    await page.getByRole('button',{name:'View fulfillment F1'}).click();
+    await page.getByRole('button',{name:'Cancel all remaining',exact:true}).click();
+    await page.getByLabel('Reason',{exact:true}).fill('Seller cancellation');
+    await page.getByLabel('I confirm this cancellation.').check();
+    await page.getByRole('button',{name:'Confirm cancel all remaining',exact:true}).click();
+    await page.getByRole('alert').waitFor();
+    const [post]=await page.evaluate(()=>window.posts);
+    assert.equal(post.url,'/seller/fulfillment/cancellations');
+    assert.equal(post.body.fulfillmentId,'F1');assert.equal(post.body.expectedVersion,3);assert.ok(post.body.operationId);
+  } finally {await browser.close();}
 });

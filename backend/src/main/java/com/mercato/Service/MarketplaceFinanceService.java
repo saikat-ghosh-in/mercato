@@ -21,6 +21,7 @@ public class MarketplaceFinanceService {
     private final SellerPromotionRepository promotions;
     private final AuthUtil auth;
     private final UserRepository users;
+    private final SellerOrderVisibility visibility;
     public static BigDecimal money(BigDecimal value) {return (value==null?BigDecimal.ZERO:value).setScale(2,RoundingMode.HALF_UP);}
     public static BigDecimal commission(BigDecimal gross, BigDecimal rate) { return money(gross.multiply(rate).divide(BigDecimal.valueOf(100))); }
     public static boolean paid(Order order) {
@@ -67,7 +68,7 @@ public class MarketplaceFinanceService {
     private Map<String,Object> calculate(EcommUser actor,boolean admin,LocalDate start,LocalDate end,Instant a,Instant b){
         Bucket total=new Bucket(); Map<String,Bucket> sellers=new LinkedHashMap<>();List<Map<String,Object>> ledger=new ArrayList<>();
         BigDecimal captured=BigDecimal.ZERO,refunded=BigDecimal.ZERO,platform=BigDecimal.ZERO,shipping=BigDecimal.ZERO,unknownCharges=BigDecimal.ZERO,pendingRefunds=BigDecimal.ZERO,unverifiedLegacyCollections=BigDecimal.ZERO,handling=BigDecimal.ZERO;
-        for(var order:orders.financialOrders(a,b,admin?null:actor.getEmail())) {
+        for(var order:orders.financialOrders(a,b,admin?null:actor.getEmail(),visibility.now())) {
             if(!paid(order)) {if(admin && order.getPayment()!=null && (order.getPayment().getCapturedAt()!=null || order.getPaymentStatus()==PaymentStatus.SUCCESS))unverifiedLegacyCollections=unverifiedLegacyCollections.add(order.getTotalAmount());continue;}
             // Actual collection and entitlement are different facts. A partial verified collection
             // never books the original full merchandise or makes it available for promotions.

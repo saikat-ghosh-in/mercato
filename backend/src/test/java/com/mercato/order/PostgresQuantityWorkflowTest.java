@@ -45,7 +45,7 @@ class PostgresQuantityWorkflowTest {
     @Configuration @EnableAutoConfiguration
     @EntityScan(basePackages={"com.mercato.Entity","com.mercato.Commerce","com.mercato.Jobs"})
     @EnableJpaRepositories(basePackages={"com.mercato.Repository","com.mercato.Commerce"})
-    @Import({com.mercato.Auth.AuthEmailJobHandler.class,com.mercato.Mail.AuthenticationMailGuard.class,com.mercato.Mail.MailActivity.class,com.mercato.Mail.TrackedMailSender.class,com.mercato.Mail.BrandedMailSender.class,com.mercato.Controller.FulfillmentWorkflowController.class,WorkflowAdoption.class,OrderServiceImpl.class,OrderLineUpdateServiceImpl.class,FulfillmentWorkflow.class,FulfillmentFunding.class,WorkflowCommands.class,FulfillmentCancellation.class,FulfillmentDeadlines.class,FulfillmentSlaMetrics.class,FulfillmentNoticeGuard.class,OrderReservationServiceImpl.class,DurableJobs.class,JobStore.class})
+    @Import({SellerOrderVisibility.class,FulfillmentServiceImpl.class,com.mercato.Auth.AuthEmailJobHandler.class,com.mercato.Mail.AuthenticationMailGuard.class,com.mercato.Mail.MailActivity.class,com.mercato.Mail.TrackedMailSender.class,com.mercato.Mail.BrandedMailSender.class,com.mercato.Controller.FulfillmentWorkflowController.class,WorkflowAdoption.class,OrderServiceImpl.class,OrderLineUpdateServiceImpl.class,FulfillmentWorkflow.class,FulfillmentFunding.class,WorkflowCommands.class,FulfillmentCancellation.class,FulfillmentDeadlines.class,FulfillmentSlaMetrics.class,FulfillmentNoticeGuard.class,OrderReservationServiceImpl.class,DurableJobs.class,JobStore.class})
     static class Config {
         @Bean CartService carts(){return mock(CartService.class);}
         @Bean CashfreeService gateway(){return mock(CashfreeService.class);}
@@ -77,6 +77,7 @@ class PostgresQuantityWorkflowTest {
     @Autowired com.mercato.Controller.FulfillmentWorkflowController workflowController;
     @DynamicPropertySource static void postgres(DynamicPropertyRegistry p){p.add("spring.datasource.url",()->DATABASE);p.add("spring.datasource.username",PostgresTestSupport::username);p.add("spring.datasource.password",PostgresTestSupport::password);p.add("spring.datasource.driver-class-name",()->"org.postgresql.Driver");p.add("spring.jpa.database-platform",()->"org.hibernate.dialect.PostgreSQLDialect");}
     @AfterAll static void cleanup(@Autowired ConfigurableApplicationContext context){context.close();PostgresTestSupport.cleanup();}
+    @Autowired FulfillmentService fulfillments;
     @Autowired OrderLineRepository lines;@Autowired OrderRepository orders;@Autowired ProductRepository products;@Autowired CategoryRepository categories;
     @Autowired OrderReservationRepository reservations;@Autowired OrderLineUpdateService updates;
     @Autowired FulfillmentDeadlines deadlines;@Autowired FulfillmentCancellation cancellation;@Autowired JobStore jobs;@Autowired DurableJobs queue;
@@ -84,7 +85,7 @@ class PostgresQuantityWorkflowTest {
     @Autowired RefundService refundService;
     @Autowired TestMailbox smtpMailbox;@Autowired com.mercato.Auth.AuthEmailJobHandler authEmailHandler;
     String orderId,fulfillment;TransactionTemplate tx;
-    @BeforeEach void fixture(){
+    @BeforeEach void fixture(TestInfo test){
         jdbc.update("UPDATE order_snapshot SET workflow_review_required=true");
         jdbc.update("DELETE FROM durable_job_retry_audit");jdbc.update("DELETE FROM durable_jobs");
         reset(refundService);
@@ -96,7 +97,8 @@ class PostgresQuantityWorkflowTest {
             var p=Product.builder().productId(orderId+"-P").productName("Quantity product").description("Synthetic quantity regression").primaryImageUrl("/test.jpg").category(c).retailPrice(BigDecimal.TEN).physicalQty(20).reservedQty(10).build();products.save(p);
             var o=new Order();o.setOrderId(orderId);o.setCustomerName("Buyer");o.setCustomerEmail("buyer@test.invalid");o.setOrderStatus(OrderStatus.CREATED);o.setPaymentStatus(PaymentStatus.SUCCESS);o.setCurrency("INR");o.setSubtotal(new BigDecimal("100"));o.setCharges(BigDecimal.ZERO);o.setTotalAmount(new BigDecimal("100"));o.setRecipientName("Buyer");o.setRecipientPhone("9999999999");o.setDeliveryAddressLine1("Synthetic address");o.setDeliveryCity("City");o.setDeliveryState("State");o.setDeliveryPincode("123456");
             var l=new OrderLine();l.setFulfillmentId(fulfillment);l.setOrderLineNumber(1);l.setProductId(p.getProductId());l.setProductName(p.getProductName());l.setUnitPrice(BigDecimal.TEN);l.setOrderedQty(10);l.setLineTotal(new BigDecimal("100"));l.setOrderLineStatus(OrderLineStatus.CREATED);l.setSellerEmail("seller@test.invalid");l.setSellerName("Seller");o.addOrderLine(l);
-            var payment=new Payment();payment.setAmount(o.getTotalAmount());payment.setCurrency("INR");payment.setPaymentMethod(PaymentMethod.UNKNOWN);payment.setStatus(PaymentStatus.SUCCESS);payment.setCapturedAt(CONFIRMED);payment.setCapturedAmount(o.getTotalAmount());o.attachPayment(payment);o.confirmOrder();o.setAllocationCompletedAt(CONFIRMED);o.establishConfirmation(CONFIRMED);orders.saveAndFlush(o);
+            var payment=new Payment();payment.setAmount(o.getTotalAmount());payment.setCurrency("INR");payment.setPaymentMethod(PaymentMethod.UNKNOWN);payment.setStatus(PaymentStatus.SUCCESS);payment.setCapturedAt(CONFIRMED);payment.setCapturedAmount(o.getTotalAmount());o.attachPayment(payment);o.confirmOrder();o.setAllocationCompletedAt(CONFIRMED);if(!test.getTestMethod().orElseThrow().getName().startsWith("unknown"))o.establishConfirmation(CONFIRMED);
+            orders.saveAndFlush(o);
             reservations.save(OrderReservation.builder().order(o).orderLine(l).product(p).reservedQty(10).build());
         });
     }
@@ -108,6 +110,76 @@ class PostgresQuantityWorkflowTest {
         updates.updateOrderLine(request(OrderLineAction.MARK_PACKED,10,2,"pack"),TransitionTrigger.SELLER);
     }
     void currentCaptureProof(){tx.executeWithoutResult(t->{var p=orders.lockByOrderId(orderId).orElseThrow().getPayment();p.setCaptureVerifiedAt(CONFIRMED);p.setCaptureEvidenceId("synthetic-reader-proof");});}
+    @Test void heldSellerReadsAndCommandsAreUnavailableUntilExactRelease() {
+        clock.value.set(CONFIRMED.plusSeconds(3600).minusNanos(1000));
+        assertTrue(fulfillments.getOpenFulfillmentOrders().stream().noneMatch(f->fulfillment.equals(f.getFulfillmentId())));
+        assertThrows(com.mercato.ExceptionHandler.ResourceNotFoundException.class,()->fulfillments.getFulfillmentOrder(fulfillment));
+        assertThrows(com.mercato.ExceptionHandler.ResourceNotFoundException.class,()->updates.updateOrderLine(request(OrderLineAction.ACCEPT,1,0,"held"),TransitionTrigger.SELLER));
+        IDENTITY.set("foreign@test.invalid");
+        assertThrows(com.mercato.ExceptionHandler.ResourceNotFoundException.class,()->fulfillments.getFulfillmentOrder(fulfillment));
+        assertThrows(com.mercato.ExceptionHandler.ResourceNotFoundException.class,()->updates.updateOrderLine(request(OrderLineAction.ACCEPT,1,0,"foreign"),TransitionTrigger.SELLER));
+        IDENTITY.set("seller@test.invalid");clock.value.set(CONFIRMED.plusSeconds(3600));
+        assertEquals(fulfillment,fulfillments.getFulfillmentOrder(fulfillment).getFulfillmentId());
+        assertEquals(1,updates.updateOrderLine(request(OrderLineAction.ACCEPT,1,0,"exact-release"),TransitionTrigger.SELLER).getAcceptedQty());
+        clock.value.set(CONFIRMED.plusSeconds(3600).plusNanos(1000));
+        assertEquals(fulfillment,fulfillments.getFulfillmentOrder(fulfillment).getFulfillmentId());
+    }
+    @Test void explicitSellerRoutesIgnoreAdminPrivilegeAndEnforceHold() throws Exception {
+        var auth=new AuthUtil(mock(com.mercato.Security.services.UserDetailsServiceImpl.class)){@Override public EcommUser getLoggedInUser(){var u=new EcommUser();u.setEmail(IDENTITY.get());return u;}};
+        var authentication=new org.springframework.security.authentication.UsernamePasswordAuthenticationToken("dual","unused",List.of(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_ADMIN"),new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_SELLER")));
+        org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(authentication);
+        try {
+            assertEquals(TransitionTrigger.ADMIN,auth.resolveTransitionTrigger());
+            var mvc=org.springframework.test.web.servlet.setup.MockMvcBuilders.standaloneSetup(workflowController).setControllerAdvice(new com.mercato.ExceptionHandler.GlobalExceptionHandler()).build();
+            clock.value.set(CONFIRMED.plusSeconds(3600));
+            mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/seller/fulfillment/commands").contentType("application/json").content(json.writeValueAsBytes(request(OrderLineAction.ACCEPT,1,0,"seller-route")))).andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isOk());
+            assertEquals("SELLER",jdbc.queryForObject("select actor_type from fulfillment_commands where order_id=? and operation_id='seller-route'",String.class,orderId));
+            var cancel=scope();cancel.setExpectedVersion(1L);
+            mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/seller/fulfillment/cancellations").contentType("application/json").content(json.writeValueAsBytes(cancel))).andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isOk());
+            assertEquals("SELLER",jdbc.queryForObject("select actor_type from fulfillment_commands where order_id=? and operation_id=?",String.class,orderId,cancel.getOperationId()));
+            clock.value.set(CONFIRMED.plusSeconds(3599));
+            mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/seller/fulfillment/commands").contentType("application/json").content(json.writeValueAsBytes(request(OrderLineAction.ACCEPT,1,1,"hidden-http"))))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isNotFound());
+            IDENTITY.set("foreign@test.invalid");
+            mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/seller/fulfillment/cancellations").contentType("application/json").content(json.writeValueAsBytes(scope())))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isNotFound());
+            IDENTITY.set("seller@test.invalid");
+            assertThrows(com.mercato.ExceptionHandler.ResourceNotFoundException.class,()->workflowController.sellerCommand(request(OrderLineAction.ACCEPT,1,1,"hidden-dual")));
+            assertThrows(com.mercato.ExceptionHandler.ResourceNotFoundException.class,()->workflowController.sellerCancel(scope()));
+        } finally {org.springframework.security.core.context.SecurityContextHolder.clearContext();}
+    }
+    @Test void preReleaseFullCancellationCreatesNoIncomingWorkAndPartialSurvivorReleases() {
+        clock.value.set(CONFIRMED.plusSeconds(3599));IDENTITY.set("buyer@test.invalid");
+        updates.updateOrderLine(request(OrderLineAction.CANCEL,10,0,"buyer-full"),TransitionTrigger.CUSTOMER);
+        IDENTITY.set("seller@test.invalid");assertTrue(fulfillments.getClosedFulfillmentOrders().stream().noneMatch(f->fulfillment.equals(f.getFulfillmentId())));
+        clock.value.set(CONFIRMED.plusSeconds(3600));deadlines.handle(deadline("RELEASE"));
+        assertEquals(0,jdbc.queryForObject("select count(*) from durable_jobs where business_key like ?",Integer.class,"fulfillment-mail:"+orderId+":RELEASE:%"));
+        assertEquals(0,jdbc.queryForObject("select count(*) from fulfillment_work_items where order_id=? and kind='RELEASE'",Integer.class,orderId));
+        assertEquals(fulfillment,fulfillments.getClosedFulfillmentOrders().stream().filter(f->fulfillment.equals(f.getFulfillmentId())).findFirst().orElseThrow().getFulfillmentId());
+    }
+    @Test void preReleasePartialCancellationSurvivorBecomesActionableAtRelease() {
+        clock.value.set(CONFIRMED.plusSeconds(3600).minusNanos(1000));IDENTITY.set("buyer@test.invalid");
+        updates.updateOrderLine(request(OrderLineAction.CANCEL,3,0,"buyer-part"),TransitionTrigger.CUSTOMER);
+        IDENTITY.set("seller@test.invalid");clock.value.set(CONFIRMED.plusSeconds(3600));deadlines.handle(deadline("RELEASE"));
+        assertEquals(1,jdbc.queryForObject("select count(*) from durable_jobs where business_key like ?",Integer.class,"fulfillment-mail:"+orderId+":RELEASE:%"));
+        assertEquals(7,updates.updateOrderLine(request(OrderLineAction.ACCEPT,7,1,"survivor"),TransitionTrigger.SELLER).getAcceptedQty());
+    }
+    @Test void unknownLegacyConfirmationRemainsUnavailable() {
+        assertThrows(com.mercato.ExceptionHandler.ResourceNotFoundException.class,()->fulfillments.getFulfillmentOrder(fulfillment));
+        assertTrue(fulfillments.getOpenFulfillmentOrders().stream().noneMatch(f->fulfillment.equals(f.getFulfillmentId())));
+        assertThrows(com.mercato.ExceptionHandler.ResourceNotFoundException.class,()->workflowController.sellerCommand(request(OrderLineAction.ACCEPT,1,0,"legacy-hidden")));
+        assertNotNull(orders.findByOrderId(orderId).orElseThrow());
+        var metrics=(FulfillmentSlaMetrics.Report)workflowController.sellerMetrics(CONFIRMED.minusSeconds(1),CONFIRMED.plusSeconds(200000));
+        assertEquals(0,metrics.acceptance().cohortOrders());
+    }
+    @Test void prospectiveAdoptionDelaysVisibilityAndRefreshDoesNotRestartGrace() {
+        Instant adopted=CONFIRMED.plusSeconds(10800);
+        tx.executeWithoutResult(t->{var o=orders.lockByOrderId(orderId).orElseThrow();o.setWorkflowPolicyAdoptedAt(adopted);o.establishConfirmation(adopted);});
+        clock.value.set(adopted.minusNanos(1000));
+        assertThrows(com.mercato.ExceptionHandler.ResourceNotFoundException.class,()->fulfillments.getFulfillmentOrder(fulfillment));
+        clock.value.set(adopted);assertEquals(fulfillment,fulfillments.getFulfillmentOrder(fulfillment).getFulfillmentId());
+        tx.executeWithoutResult(t->{var o=orders.findByOrderId(orderId).orElseThrow();assertEquals(CONFIRMED,o.getConfirmedAt());assertEquals(CONFIRMED.plusSeconds(3600),o.getSellerActionsAvailableAt());});
+    }
     @Test void historicalCaptureCannotAuthorizePhysicalHandoff(){
         packAll();
         assertThrows(com.mercato.ExceptionHandler.CustomBadRequestException.class,()->updates.updateOrderLine(request(OrderLineAction.SHIP,1,3,"legacy-ship"),TransitionTrigger.ADMIN));
@@ -165,8 +237,8 @@ class PostgresQuantityWorkflowTest {
         assertEquals("SELLER",row.get("actor_type"));assertEquals(2,row.get("unaccepted_qty"));assertEquals(2,row.get("accepted_only_qty"));assertEquals(1,row.get("preparing_only_qty"));assertEquals(0,row.get("packed_only_qty"));
     }
     @Test void ownershipAndLegacyRoutesCannotBypassHoldOrRequiredTokens(){
-        IDENTITY.set("other@test.invalid");assertThrows(com.mercato.ExceptionHandler.ForbiddenOperationException.class,()->updates.updateOrderLine(request(OrderLineAction.ACCEPT,1,0,"other"),TransitionTrigger.SELLER));IDENTITY.set("seller@test.invalid");
-        clock.value.set(CONFIRMED.plusSeconds(3599));assertThrows(com.mercato.ExceptionHandler.CustomBadRequestException.class,()->updates.updateOrderLine(request(OrderLineAction.ACCEPT,1,0,"early"),TransitionTrigger.SELLER));
+        IDENTITY.set("other@test.invalid");assertThrows(com.mercato.ExceptionHandler.ResourceNotFoundException.class,()->updates.updateOrderLine(request(OrderLineAction.ACCEPT,1,0,"other"),TransitionTrigger.SELLER));IDENTITY.set("seller@test.invalid");
+        clock.value.set(CONFIRMED.plusSeconds(3599));assertThrows(com.mercato.ExceptionHandler.ResourceNotFoundException.class,()->updates.updateOrderLine(request(OrderLineAction.ACCEPT,1,0,"early"),TransitionTrigger.SELLER));
         clock.value.set(CONFIRMED.plusSeconds(3600));var r=request(OrderLineAction.ACCEPT,1,0,null);assertThrows(org.springframework.web.server.ResponseStatusException.class,()->updates.updateOrderLine(r,TransitionTrigger.SELLER));
         updates.updateOrderLine(request(OrderLineAction.ACCEPT,1,0,"boundary"),TransitionTrigger.SELLER);assertEquals(1,snapshot().getAcceptedQty());
     }
@@ -218,7 +290,7 @@ class PostgresQuantityWorkflowTest {
     }
     @Test void sellerCannotCancelOtherSellerUnitsInsideAFulfillmentScope(){
         addSecondLine(false,"another-seller@test.invalid");
-        assertThrows(com.mercato.ExceptionHandler.ForbiddenOperationException.class,()->cancellation.cancel(scope(),TransitionTrigger.SELLER));
+        assertThrows(com.mercato.ExceptionHandler.ResourceNotFoundException.class,()->cancellation.cancel(scope(),TransitionTrigger.SELLER));
         assertEquals(0,snapshot().getCancelledQty());
     }
     @Test void inconsistentReservationCannotReleaseInventoryOrCommitCancellation(){
@@ -428,7 +500,7 @@ class PostgresQuantityWorkflowTest {
         var detached=tx.execute(t->{var o=orders.findByOrderId(orderId).orElseThrow();o.getPayment().getCapturedAt();o.getPayment().getRefunds().size();o.getOrderLines().forEach(l->l.getMoneyUnits().size());return o;});detached.getOrderLines().get(0).setSellerEmail(email);
         var repository=mock(OrderRepository.class);when(repository.lockByOrderId(orderId)).thenReturn(Optional.of(detached));
         var policy=new FulfillmentWorkflow(clock,new FulfillmentFunding());
-        var handler=new FulfillmentDeadlines(queue,repository,policy,updates,jdbc,mock(FulfillmentSlaMetrics.class),new FulfillmentNoticeGuard(repository,policy));
+        var handler=new FulfillmentDeadlines(queue,repository,policy,updates,jdbc,mock(FulfillmentSlaMetrics.class),new FulfillmentNoticeGuard(repository,policy,new SellerOrderVisibility(policy,clock)));
         assertDoesNotThrow(()->tx.executeWithoutResult(t->handler.handle(deadline("RELEASE"))));
         var id=jdbc.queryForObject("SELECT id FROM durable_jobs WHERE email_recipient=?",UUID.class,email);var job=jobs.get(id);
         assertTrue(job.businessKey().length()<=255);assertEquals(email,job.payload().get("sellerEmail"));

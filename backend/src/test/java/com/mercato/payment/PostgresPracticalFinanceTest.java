@@ -35,11 +35,17 @@ import static org.mockito.Mockito.*;
 class PostgresPracticalFinanceTest {
     static final String DATABASE=PostgresTestSupport.database();static final Instant NOW=Instant.parse("2026-10-27T06:00:00Z");
     static final ThreadLocal<EcommUser> ACTOR=new ThreadLocal<>();
+    static class MutableClock extends Clock {
+        Instant value=NOW;
+        public ZoneId getZone(){return ZoneOffset.UTC;}
+        public Clock withZone(ZoneId zone){return this;}
+        public Instant instant(){return value;}
+    }
     @Configuration @EnableAutoConfiguration @EntityScan(basePackages={"com.mercato.Entity","com.mercato.Commerce","com.mercato.Jobs"})
     @EnableJpaRepositories(basePackages={"com.mercato.Repository","com.mercato.Commerce"})
-    @Import({OrderLineUpdateServiceImpl.class,FulfillmentWorkflow.class,FulfillmentFunding.class,WorkflowCommands.class,OrderReservationServiceImpl.class,RefundServiceImpl.class,RefundObligations.class,FinancialUnitHooks.class,MarketplaceFinanceService.class,PaymentSessionRecovery.class,RefundExecution.class,DurableJobs.class,JobStore.class})
+    @Import({FulfillmentNoticeGuard.class,SellerOrderVisibility.class,DashboardServiceImpl.class,OrderLineUpdateServiceImpl.class,FulfillmentWorkflow.class,FulfillmentFunding.class,WorkflowCommands.class,OrderReservationServiceImpl.class,RefundServiceImpl.class,RefundObligations.class,FinancialUnitHooks.class,MarketplaceFinanceService.class,PaymentSessionRecovery.class,RefundExecution.class,DurableJobs.class,JobStore.class})
     static class Config {
-        @Bean(name={"clock","durableJobClock"}) Clock clock(){return Clock.fixed(NOW,ZoneOffset.UTC);}
+        @Bean(name={"clock","durableJobClock"}) MutableClock clock(){return new MutableClock();}
         @Bean AuthUtil auth(){var auth=mock(AuthUtil.class);when(auth.getLoggedInUser()).thenAnswer(c->ACTOR.get());return auth;}
         @Bean CashfreeGateway gateway(){return mock(CashfreeGateway.class);}
         @Bean CashfreeService cashfree(){return mock(CashfreeService.class);}
@@ -47,12 +53,16 @@ class PostgresPracticalFinanceTest {
     }
     @DynamicPropertySource static void postgres(DynamicPropertyRegistry p){p.add("spring.datasource.url",()->DATABASE);p.add("spring.datasource.username",PostgresTestSupport::username);p.add("spring.datasource.password",PostgresTestSupport::password);p.add("spring.datasource.driver-class-name",()->"org.postgresql.Driver");p.add("spring.jpa.database-platform",()->"org.hibernate.dialect.PostgreSQLDialect");}
     @AfterAll static void cleanup(@Autowired ConfigurableApplicationContext context){context.close();PostgresTestSupport.cleanup();}
+    @Autowired MutableClock clock;@Autowired FulfillmentNoticeGuard notices;@Autowired RefundObligations obligations;@Autowired RefundRepository refunds;
+    @Autowired DashboardService dashboard;
     @Autowired WorkflowCommands commands;@Autowired OrderReservationService inventory;@Autowired RefundExecution refundExecution;@Autowired CashfreeGateway gateway;@Autowired com.fasterxml.jackson.databind.ObjectMapper json;
     @Autowired OrderRepository orders;@Autowired ProductRepository products;@Autowired CategoryRepository categories;@Autowired OrderReservationRepository reservations;@Autowired UserRepository users;@Autowired RoleRepository roles;
     @Autowired OrderLineUpdateService updates;@Autowired FinancialUnitHooks hooks;@Autowired MarketplaceFinanceService finance;@Autowired PaymentSessionRecovery recovery;@Autowired PlatformTransactionManager transactions;@Autowired JdbcTemplate jdbc;
     TransactionTemplate tx;String id,fulfillment;EcommUser seller,buyer,admin;
     EcommUser actor(String email,String userId,AppRole role){var u=new EcommUser();u.setEmail(email);u.setUserId(userId);u.setRoles(new HashSet<>(Set.of(new Role(role))));return u;}
-    @BeforeEach void fixture(){
+    @BeforeEach void fixture(TestInfo test){
+        clock.value=NOW;
+        Instant confirmed=test.getTestMethod().orElseThrow().getName().startsWith("held")?NOW.minusSeconds(3599):NOW.minusSeconds(7200);
         reset(gateway);tx=new TransactionTemplate(transactions);id="B2-"+UUID.randomUUID().toString().substring(0,12);fulfillment=id+"-F";
         admin=actor("admin@test.invalid","ADMIN",AppRole.ROLE_ADMIN);buyer=actor("buyer@test.invalid",id+"BUYER",AppRole.ROLE_USER);
         seller=tx.execute(t->{var role=roles.findByRoleName(AppRole.ROLE_SELLER).orElseGet(()->roles.save(new Role(AppRole.ROLE_SELLER)));var u=EcommUser.builder().username(id).email(id+"@test.invalid").password("test-hash").sellerStatus(SellerStatus.APPROVED).emailVerified(true).roles(new HashSet<>(Set.of(role))).build();return users.saveAndFlush(u);});
@@ -63,11 +73,54 @@ class PostgresPracticalFinanceTest {
             o.setCheckoutOperationId("intent");o.setCheckoutRequestBody("[\"saved-address\",\"363\",\"STANDARD\",7]");
             var l=new OrderLine();l.setFulfillmentId(fulfillment);l.setOrderLineNumber(1);l.setProductId(p.getProductId());l.setProductName(p.getProductName());l.setUnitPrice(new BigDecimal("100"));l.setOrderedQty(3);l.setLineTotal(new BigDecimal("300"));l.setOrderLineStatus(OrderLineStatus.CONFIRMED);l.setSellerEmail(seller.getEmail());l.setSellerName("Seller");l.setCommissionRatePercent(new BigDecimal("0.5"));l.setCommissionCapPerItem(new BigDecimal("500"));l.setSellerDeliveryCharge(new BigDecimal("15"));o.addOrderLine(l);
             for(int n=1;n<=3;n++){var u=new OrderMoneyUnit();u.setUnitId(id+"U"+n);u.setOrderLine(l);u.setUnitNumber(n);u.setFinancialPolicyVersion(1);u.setNetMerchandisePaise(10000);u.setPriceProvenance("UNKNOWN");u.setBuyerNormalDeliveryPaise(1000);u.setBuyerExpeditedDeliveryPaise(100);u.setPlatformPaise(900);u.setHandlingPaise(100);u.setSellerDeliveryPaise(500);u.setCommissionRatePercent(new BigDecimal("0.5"));u.setCommissionCapPaise(50000L);u.setCommissionPaise(50L);u.setCommissionPolicy("PER_UNIT_CAPPED");u.setState(OrderUnitState.initial(u));l.getMoneyUnits().add(u);}
-            var payment=new Payment();payment.setAmount(o.getTotalAmount());payment.setCurrency("INR");payment.setPaymentMethod(PaymentMethod.UNKNOWN);payment.setStatus(PaymentStatus.SUCCESS);payment.setGatewayReference(id+"PAY");payment.setCaptureEvidenceId("verified-test");payment.setCaptureVerifiedAt(NOW);payment.setCapturedAt(NOW);payment.setCapturedAmount(o.getTotalAmount());o.attachPayment(payment);o.confirmOrder();o.setAllocationCompletedAt(NOW.minusSeconds(7200));o.establishConfirmation(NOW.minusSeconds(7200));orders.saveAndFlush(o);reservations.save(OrderReservation.builder().order(o).orderLine(l).product(p).reservedQty(3).build());
+            var payment=new Payment();payment.setAmount(o.getTotalAmount());payment.setCurrency("INR");payment.setPaymentMethod(PaymentMethod.UNKNOWN);payment.setStatus(PaymentStatus.SUCCESS);payment.setGatewayReference(id+"PAY");payment.setCaptureEvidenceId("verified-test");payment.setCaptureVerifiedAt(NOW);payment.setCapturedAt(NOW);payment.setCapturedAmount(o.getTotalAmount());o.attachPayment(payment);o.confirmOrder();o.setAllocationCompletedAt(NOW.minusSeconds(7200));o.establishConfirmation(confirmed);orders.saveAndFlush(o);reservations.save(OrderReservation.builder().order(o).orderLine(l).product(p).reservedQty(3).build());
         });
     }
     long version(){return jdbc.queryForObject("select workflow_revision from order_snapshot where order_id=?",Long.class,id);}
     OrderLineUpdateRequestDTO request(OrderLineAction action,int qty,String operation){var r=new OrderLineUpdateRequestDTO();r.setFulfillmentId(fulfillment);r.setOrderLineNumber(1);r.setAction(action);r.setQty(qty);r.setOperationId(operation);r.setExpectedVersion(version());r.setReason("Synthetic financial test");return r;}
+    @Test void heldOrdersContributeNothingToSellerDashboardFinanceOrMonthlyReport() {
+        updates.updateOrderLine(request(OrderLineAction.ACCEPT,3,"early-admin-accept"),TransitionTrigger.ADMIN);
+        updates.updateOrderLine(request(OrderLineAction.START_PREPARING,3,"early-admin-prepare"),TransitionTrigger.ADMIN);
+        updates.updateOrderLine(request(OrderLineAction.MARK_PACKED,3,"early-admin-pack"),TransitionTrigger.ADMIN);
+        updates.updateOrderLine(request(OrderLineAction.SHIP,3,"early-admin-ship"),TransitionTrigger.ADMIN);
+        assertEquals(0,dashboard.getSellerDashboardStats().getFulfillment().getTotal());
+        assertEquals(0,BigDecimal.ZERO.compareTo(dashboard.getSellerDashboardStats().getFulfillment().getAverageOrderValue()));
+        assertTrue(dashboard.getSellerDashboardStats().getOrderLineStatusBreakdown().isEmpty());
+        assertTrue(dashboard.getSellerDashboardStats().getTopSellingProducts().isEmpty());
+        var report=finance.monthlyReport(seller.getUserId(),YearMonth.of(2026,10),ZoneOffset.UTC);
+        assertTrue(((List<?>)report.get("lines")).isEmpty());
+        assertEquals(new BigDecimal("0.00"),((Map<?,?>)report.get("totals")).get("paidMerchandise"));
+        assertEquals(new BigDecimal("0.00"),finance.availableBudget(seller));
+        ACTOR.set(admin);var adminReport=(Map<?,?>)finance.report(null,null,true);
+        assertTrue(((List<?>)adminReport.get("lines")).stream().anyMatch(row->id.equals(((Map<?,?>)row).get("orderId"))));
+        ACTOR.set(seller);clock.value=NOW.plusSeconds(1).minusNanos(1000);
+        assertEquals(new BigDecimal("0.00"),finance.availableBudget(seller));
+        clock.value=NOW.plusSeconds(1);
+        assertEquals(1,dashboard.getSellerDashboardStats().getFulfillment().getTotal());
+        assertEquals(0,new BigDecimal("300").compareTo(dashboard.getSellerDashboardStats().getFulfillment().getAverageOrderValue()));
+        assertEquals(1,dashboard.getSellerDashboardStats().getTopSellingProducts().size());
+        assertFalse(dashboard.getSellerDashboardStats().getOrderLineStatusBreakdown().isEmpty());
+        assertEquals(new BigDecimal("283.50"),finance.availableBudget(seller));
+        assertEquals(1,((List<?>)finance.monthlyReport(seller.getUserId(),YearMonth.of(2026,10),ZoneOffset.UTC).get("lines")).size());
+    }
+    @Test void heldCustomerCancellationEnqueuesOnlyCustomerRefundNotice() {
+        ACTOR.set(buyer);updates.updateOrderLine(request(OrderLineAction.CANCEL,1,"held-cancel"),TransitionTrigger.CUSTOMER);
+        assertEquals(1,jdbc.queryForObject("select count(*) from durable_jobs where business_key like ? and business_key like '%:customer'",Integer.class,"refund-notice:"+jdbc.queryForObject("select refund_id from refunds r join payments p on r.payment_fk=p.id join order_snapshot o on o.payment_fk=p.id where o.order_id=?",String.class,id)+":%"));
+        assertEquals(0,jdbc.queryForObject("select count(*) from durable_jobs where business_key like ?",Integer.class,"refund-notice:%:seller:"+seller.getEmail()));
+    }
+    @Test void heldRefundCompletionAndLegacyQueuedNoticesStayPrivateUntilRelease() {
+        ACTOR.set(buyer);updates.updateOrderLine(request(OrderLineAction.CANCEL,1,"held-refund"),TransitionTrigger.CUSTOMER);
+        String refundId=jdbc.queryForObject("select refund_id from refunds r join payments p on r.payment_fk=p.id join order_snapshot o on o.payment_fk=p.id where o.order_id=?",String.class,id);
+        for(String phase:List.of("initiated","completed")) {
+            var job=new JobRecord(UUID.randomUUID(),"AUTH_EMAIL","refund-notice:"+refundId+":"+phase+":seller:"+seller.getEmail(),Map.of("to",seller.getEmail(),"subject","Legacy refund","text","Order detail"),1,JobStatus.READY,0,NOW,null,null,null,null,0,null,NOW,NOW);
+            assertFalse(notices.currentRefund(job));clock.value=NOW.plusSeconds(1);assertTrue(notices.currentRefund(job));clock.value=NOW;
+        }
+        tx.executeWithoutResult(t->{var o=orders.lockByOrderId(id).orElseThrow();var r=refunds.findByRefundId(refundId).orElseThrow();r.setStatus(RefundStatus.SUCCESS);obligations.completed(o,r);});
+        assertEquals(1,jdbc.queryForObject("select count(*) from durable_jobs where business_key=?",Integer.class,"refund-notice:"+refundId+":completed:customer"));
+        assertEquals(0,jdbc.queryForObject("select count(*) from durable_jobs where business_key=?",Integer.class,"refund-notice:"+refundId+":completed:seller:"+seller.getEmail()));
+        ACTOR.set(seller);assertThrows(com.mercato.ExceptionHandler.ResourceNotFoundException.class,()->hooks.units(id));
+        ACTOR.set(buyer);assertEquals(3,hooks.units(id).size());ACTOR.set(admin);assertEquals(3,hooks.units(id).size());
+    }
     @Test void pendingCustomerRefundPreservesFundedSurvivorsAndReceivedReturnClosesResidualFees(){
         ACTOR.set(buyer);var cancel=request(OrderLineAction.CANCEL,1,"customer-cancel");updates.updateOrderLine(cancel,TransitionTrigger.CUSTOMER);updates.updateOrderLine(cancel,TransitionTrigger.CUSTOMER);
         assertEquals(new BigDecimal("111.00"),jdbc.queryForObject("select sum(r.amount) from refunds r join payments p on r.payment_fk=p.id join order_snapshot o on o.payment_fk=p.id where o.order_id=?",BigDecimal.class,id));
