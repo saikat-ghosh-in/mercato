@@ -23,7 +23,7 @@ async function fixture(component='seller', setup) {
     import {Provider} from 'react-redux'; import {configureStore} from '@reduxjs/toolkit';
     const store=configureStore({reducer:{cart:()=>({deliveryOptions:[],deliveryMethod:'STANDARD',cartLoading:false}),[privateApi.reducerPath]:privateApi.reducer},middleware:get=>get().concat(privateApi.middleware)});
     function Resource(){const [url,setUrl]=React.useState('/one');const value=useWorkflowResource(url);window.refresh=value.refresh;window.selectUrl=setUrl;return <p>{value.data?.name || 'Loading'}{value.error}</p>;}
-    window.render=() => createRoot(document.getElementById('root')).render(<Provider store={store}><MemoryRouter initialEntries={[${component==='orders'?'"/orders?orderId=O1"':'"/"'}]}>${component==='shipment-seller'?'<ShipmentPanel scope="seller" recordId="F1" />':component==='shipment-customer'?'<ShipmentPanel recordId="O1" />':component==='shipment-admin'?'<ShipmentPanel scope="admin" recordId="O1" />':component==='seller'?'<FulfillmentTab />':component==='admin'?'<OrdersTab />':component==='orders'?'<Orders />':component==='resource'?'<Resource />':component==='help'?'<Help />':component==='finance'?'<><RevenueCards revenue={{allTime:189,thisMonth:189,today:189,averagePerOrder:63}} admin/><MarketplaceFinance admin/></>':component==='checkout'?'<ReviewPaymentStep selectedAddress={{}} cartWithProducts={[]} />':'<OrderDetails orderId="O1" />'}</MemoryRouter></Provider>);
+    window.render=() => createRoot(document.getElementById('root')).render(<Provider store={store}><MemoryRouter initialEntries={[${component==='orders'?'"/orders?orderId=O1"':'"/"'}]}>${component==='shipment-seller'?'<ShipmentPanel scope="seller" recordId="F1" />':component==='shipment-customer'?'<ShipmentPanel recordId="O1" version={3} onChanged={()=>{window.parentRefreshes=(window.parentRefreshes||0)+1;}} />':component==='shipment-admin'?'<ShipmentPanel scope="admin" recordId="O1" />':component==='seller'?'<FulfillmentTab />':component==='admin'?'<OrdersTab />':component==='orders'?'<Orders />':component==='resource'?'<Resource />':component==='help'?'<Help />':component==='finance'?'<><RevenueCards revenue={{allTime:189,thisMonth:189,today:189,averagePerOrder:63}} admin/><MarketplaceFinance admin/></>':component==='checkout'?'<ReviewPaymentStep selectedAddress={{}} cartWithProducts={[]} />':'<OrderDetails orderId="O1" />'}</MemoryRouter></Provider>);
     window.render();`,resolveDir:root,loader:'jsx'},bundle:true,write:false,jsx:'automatic',plugins:[{name:'fixture',setup(build){
       build.onResolve({filter:/backend\/api(?:\.js)?$/},() => ({path:'api',namespace:'fixture'}));
       build.onResolve({filter:/toastUtils(?:\.js)?$/},() => ({path:'toast',namespace:'fixture'}));
@@ -103,6 +103,20 @@ test('shipment customer view stays read-only, keeps content during refresh and f
     for(const width of [320,390,1440]){await page.setViewportSize({width,height:844});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth),false);}
     await page.emulateMedia({reducedMotion:'reduce'});await page.getByRole('button',{name:'Tracking updates',exact:true}).click();await page.getByRole('region',{name:'Tracking updates',exact:true}).waitFor();
     await mkdir(new URL('../../backend/target/delhivery-m3-browser/',import.meta.url),{recursive:true});await page.screenshot({path:fileURLToPath(new URL('../../backend/target/delhivery-m3-browser/parcel-customer-desktop.png',import.meta.url)),fullPage:true});
+  }finally{await browser.close();}
+});
+
+test('shipment tracking revalidates after asynchronous carrier work completes',async()=>{
+  const {browser,page}=await fixture('shipment-customer',()=>{
+    const interval=window.setInterval;window.setInterval=(fn,ms,...args)=>{if(ms===30000)window.trackingTick=fn;return interval(fn,ms,...args);};
+    window.updated=false;window.fixtureGet=async()=>({data:{shipments:[{id:'P1',waybill:'001',status:window.updated?'DELIVERED':'SHIPPED',items:[],history:[]}],handoffItems:[],version:window.updated?4:3,canRefresh:true}});
+    window.fixturePost=async()=>({data:{}});
+  });
+  try{
+    await page.getByRole('heading',{name:'Shipped',exact:true}).waitFor();await page.getByRole('button',{name:'Refresh tracking'}).click();
+    assert.equal(await page.evaluate(()=>typeof window.trackingTick),'function');
+    await page.waitForFunction(()=>[...document.querySelectorAll('button')].some(button=>button.textContent==='Refresh tracking'&&!button.disabled));
+    await page.evaluate(()=>{window.parentRefreshes=0;window.updated=true;window.trackingTick();});await page.getByRole('heading',{name:'Delivered',exact:true}).waitFor();assert.equal(await page.evaluate(()=>window.parentRefreshes),1);
   }finally{await browser.close();}
 });
 

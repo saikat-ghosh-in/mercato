@@ -41,7 +41,7 @@ public class ShipmentService {
     public record Parcel(UUID id,String fulfillmentId,String waybill,String status,Instant handedOffAt,Instant deliveredAt,
         Instant lastCheckedAt,Instant eta,String message,List<DelhiveryClient.Event> history,List<ParcelItem> items,long version) {}
     public record Eligible(String fulfillmentId,int lineNumber,String productName,int maximum) {}
-    public record View(List<Parcel> shipments,List<Eligible> handoffItems,long version,boolean canCreate,boolean canRefresh,String message) {}
+    public record View(List<Parcel> shipments,List<Eligible> handoffItems,long version,boolean canCreate,boolean canRefresh,String message,List<Eligible> legacyDeliveryItems) {}
     private <T> T tx(java.util.function.Supplier<T> work){return new TransactionTemplate(transactions).execute(t->work.get());}
     private ResponseStatusException bad(String text){return new ResponseStatusException(HttpStatus.BAD_REQUEST,text);}
     private ResourceNotFoundException missing(String id){return new ResourceNotFoundException("Shipment","id",id);}
@@ -72,10 +72,14 @@ public class ShipmentService {
             .filter(l->scope!=TransitionTrigger.SELLER||l.getSellerEmail().equals(auth.getLoggedInUser().getEmail()))
             .map(l->new Eligible(l.getFulfillmentId(),l.getOrderLineNumber(),l.getProductName(),workflow.maximum(l,TransitionTrigger.ADMIN,OrderLineAction.SHIP)))
             .filter(e->e.maximum()>0).toList();
-        boolean refresh=carrier.enabled()&&ps.stream().anyMatch(s->!s.getStatus().equals("DELIVERED")&&
+        var tracked=new HashMap<Long,Long>();
+        if(scope==TransitionTrigger.ADMIN)parcels.undeliveredForOrder(o.getId()).forEach(row->tracked.put((Long)row[0],(Long)row[1]));
+        var legacy=scope==TransitionTrigger.ADMIN?o.getOrderLines().stream().map(l->new Eligible(l.getFulfillmentId(),l.getOrderLineNumber(),l.getProductName(),
+            Math.max(0,workflow.maximum(l,TransitionTrigger.ADMIN,OrderLineAction.DELIVER)-Math.toIntExact(tracked.getOrDefault(l.getId(),0L))))).filter(e->e.maximum()>0).toList():List.<Eligible>of();
+        boolean refresh=carrier.enabled()&&ps.stream().anyMatch(s->!s.getStatus().equals("DELIVERED")&&trackingReady(s)&&
             (s.getLastRequestedAt()==null||!s.getLastRequestedAt().isAfter(workflow.now().minusSeconds(60))));
         return new View(ps.stream().map(this::dto).toList(),eligible,o.getWorkflowRevision(),!eligible.isEmpty(),refresh,
-            carrier.enabled()?"Tracking updates are checked periodically.":scope==TransitionTrigger.ADMIN?"Delhivery staging is not configured. Manual delivery is available.":"Tracking updates pending.");
+            carrier.enabled()?"Tracking updates are checked periodically.":scope==TransitionTrigger.ADMIN?"Delhivery staging is not configured. Manual delivery is available.":"Tracking updates pending.",legacy);
     }
     private Parcel dto(Shipment s) {
         return new Parcel(s.getId(),s.getFulfillmentId(),s.getWaybill(),s.getStatus(),s.getHandedOffAt(),s.getDeliveredAt(),s.getLastCheckedAt(),s.getEta(),s.getSafeMessage(),history(s),
@@ -150,7 +154,7 @@ public class ShipmentService {
     }
     private void enqueue(List<Shipment> source,long interval) {
         var ids=new ArrayList<String>();var now=workflow.now();
-        for(var s:source)if(!s.getStatus().equals("DELIVERED")&&(s.getLastRequestedAt()==null||!s.getLastRequestedAt().isAfter(now.minusSeconds(interval)))){s.setLastRequestedAt(now);ids.add(s.getId().toString());}
+        for(var s:source)if(!s.getStatus().equals("DELIVERED")&&trackingReady(s)&&(s.getLastRequestedAt()==null||!s.getLastRequestedAt().isAfter(now.minusSeconds(interval)))){s.setLastRequestedAt(now);ids.add(s.getId().toString());}
         if(!ids.isEmpty())jobs.enqueue("DELHIVERY_TRACK","parcel-poll:"+UUID.randomUUID(),Map.of("ids",ids));
     }
     public void pollActive(){if(carrier.enabled())tx(()->{
@@ -159,21 +163,29 @@ public class ShipmentService {
         enqueue(active,900);return null;
     });}
     record Target(UUID id,String waybill,long generation){}
+    private boolean trackingReady(Shipment s){return s.getNextTrackingAt()==null||!s.getNextTrackingAt().isAfter(workflow.now());}
     public void process(List<UUID> ids) {
         if(!carrier.enabled())return;
-        var targets=tx(()->ids.stream().distinct().map(parcels::findById).flatMap(Optional::stream).filter(s->!s.getStatus().equals("DELIVERED")).map(s->new Target(s.getId(),s.getWaybill(),s.getTrackingGeneration())).toList());
+        var targets=tx(()->ids.stream().distinct().map(parcels::findById).flatMap(Optional::stream).filter(s->!s.getStatus().equals("DELIVERED")&&trackingReady(s)).map(s->new Target(s.getId(),s.getWaybill(),s.getTrackingGeneration())).toList());
         if(targets.isEmpty())return;
         DelhiveryClient.Result result;
         try{result=carrier.fetch(targets.stream().map(Target::waybill).toList());}
-        catch(RuntimeException error){for(var t:targets)recordResult(t,null,"Carrier updates are temporarily unavailable.");throw error;}
+        catch(RuntimeException error){
+            Instant next=error instanceof WaitingJobException waiting?workflow.now().plus(waiting.retryAfter()):null;
+            for(var t:targets)recordResult(t,null,"Carrier updates are temporarily unavailable.",next);throw error;
+        }
         for(var t:targets)recordResult(t,result.updates().get(t.waybill()),result.singleFallback()?"Carrier requested smaller tracking batches.":null);
     }
     private void recordResult(Target target,DelhiveryClient.Update update,String message) {
+        recordResult(target,update,message,null);
+    }
+    private void recordResult(Target target,DelhiveryClient.Update update,String message,Instant next) {
         tx(()->{
             String id=parcels.orderId(target.id()).orElse(null);if(id==null)return null;
             var o=orders.lockByOrderId(id).orElseThrow();var s=parcels.findById(target.id()).orElseThrow();
             if(s.getTrackingGeneration()!=target.generation()||!s.getWaybill().equals(target.waybill())||s.getStatus().equals("DELIVERED"))return null;
             s.setLastCheckedAt(workflow.now());s.setObservedAt(workflow.now());s.setSafeMessage(message);
+            if(next!=null&&(s.getNextTrackingAt()==null||next.isAfter(s.getNextTrackingAt())))s.setNextTrackingAt(next);
             if(update==null){s.setSafeMessage(message==null?"Carrier has no updates for this package yet.":message);return null;}
             if(update.providerAt()==null||update.providerAt().isAfter(workflow.now())||update.providerAt().isBefore(s.getHandedOffAt())){s.setSafeMessage("Tracking update needs verification.");return null;}
             if(s.getProviderUpdatedAt()!=null&&update.providerAt().isBefore(s.getProviderUpdatedAt()))return null;

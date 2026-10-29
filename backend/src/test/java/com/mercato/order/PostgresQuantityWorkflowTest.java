@@ -195,6 +195,25 @@ class PostgresQuantityWorkflowTest {
         assertNotNull(shipmentService.read(orderId,TransitionTrigger.CUSTOMER,false));
         CUSTOMER_ID.remove();
     }
+    @Test void legacyDeliveryCannotConsumeTrackedParcelQuantities() {
+        packAll();currentCaptureProof();updates.updateOrderLine(request(OrderLineAction.SHIP,4,3,"legacy-shipped"),TransitionTrigger.ADMIN);
+        var parcel=shipmentService.create(fulfillment,TransitionTrigger.SELLER,handoff("parcel-remainder",4,"MIX"+orderId,6)).shipments().get(0);
+        assertThrows(com.mercato.ExceptionHandler.CustomBadRequestException.class,()->updates.updateOrderLine(request(OrderLineAction.DELIVER,5,5,"steal-tracked-delivery"),TransitionTrigger.ADMIN));
+        var view=json.valueToTree(shipmentService.read(orderId,TransitionTrigger.ADMIN,false));assertEquals(4,view.path("legacyDeliveryItems").get(0).path("maximum").asInt());
+        updates.updateOrderLine(request(OrderLineAction.DELIVER,4,5,"legacy-delivered"),TransitionTrigger.ADMIN);
+        shipmentService.change(parcel.id(),new ShipmentService.Change("tracked-delivered",6L,"Carrier receipt verified",null),true);
+        assertEquals(10,snapshot().getDeliveredQty());assertEquals(10,products.findByProductId(orderId+"-P").orElseThrow().getPhysicalQty());
+    }
+    @Test void providerRetryAfterAlsoBlocksFreshManualAndScheduledRequests() {
+        packAll();currentCaptureProof();var parcel=shipmentService.create(fulfillment,TransitionTrigger.SELLER,handoff("limited",3,"LIMIT"+orderId,10)).shipments().get(0);
+        when(carrier.enabled()).thenReturn(true);when(carrier.fetch(anyCollection())).thenThrow(new WaitingJobException("Rate limited",Duration.ofHours(1)));
+        assertThrows(WaitingJobException.class,()->shipmentService.process(List.of(parcel.id())));
+        clock.value.set(clock.instant().plusSeconds(900));
+        assertFalse(shipmentService.read(fulfillment,TransitionTrigger.SELLER,true).canRefresh());
+        shipmentService.refresh(fulfillment,TransitionTrigger.SELLER,true);shipmentService.pollActive();shipmentService.process(List.of(parcel.id()));
+        verify(carrier,times(1)).fetch(anyCollection());assertEquals(0,jdbc.queryForObject("select count(*) from durable_jobs where job_type='DELHIVERY_TRACK' and payload like ?",Integer.class,"%"+parcel.id()+"%"));
+        clock.value.set(clock.instant().plusSeconds(2700));assertTrue(shipmentService.read(fulfillment,TransitionTrigger.SELLER,true).canRefresh());
+    }
     @Test void heldSellerReadsAndCommandsAreUnavailableUntilExactRelease() {
         clock.value.set(CONFIRMED.plusSeconds(3600).minusNanos(1000));
         assertTrue(fulfillments.getOpenFulfillmentOrders().stream().noneMatch(f->fulfillment.equals(f.getFulfillmentId())));

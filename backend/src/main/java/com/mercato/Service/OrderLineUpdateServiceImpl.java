@@ -24,6 +24,7 @@ public class OrderLineUpdateServiceImpl implements OrderLineUpdateService {
     private final FulfillmentWorkflow workflow;
     private final WorkflowCommands commands;
     private final SellerOrderVisibility visibility;
+    private final ShipmentRepository shipments;
 
     @Override @Transactional
     public OrderLineResponseDTO updateOrderLine(OrderLineUpdateRequestDTO request, TransitionTrigger trigger) {
@@ -50,6 +51,8 @@ public class OrderLineUpdateServiceImpl implements OrderLineUpdateService {
         if(repeated!=null)return repeated;
         int qty=request.getQty();
         workflow.require(line,parcel?TransitionTrigger.ADMIN:trigger,request.getAction(),qty);
+        if(!parcel&&request.getAction()==OrderLineAction.DELIVER&&qty>line.getShippedQty()-line.getDeliveredQty()-shipments.undeliveredForLine(line.getId()))
+            throw new CustomBadRequestException("Use package delivery for tracked quantities. Only untracked shipped units can use this action.");
         var from=line.getOrderLineStatus();
         int unaccepted=line.getOrderedQty()-line.getCancelledQty()-line.getAcceptedQty();
         int acceptedOnly=line.getAcceptedQty()-line.getPreparingQty();

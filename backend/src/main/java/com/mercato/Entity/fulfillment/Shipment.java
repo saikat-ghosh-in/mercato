@@ -19,6 +19,7 @@ public class Shipment {
     private Instant providerUpdatedAt;
     private Instant lastCheckedAt;
     private Instant lastRequestedAt;
+    private Instant nextTrackingAt;
     private Instant eta;
     @Column(length=300) private String safeMessage;
     @Column(nullable=false,columnDefinition="text") private String history="[]";

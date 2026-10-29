@@ -3,7 +3,7 @@ CREATE TABLE shipments (
  fulfillment_id varchar(30) NOT NULL, seller_email varchar(100) NOT NULL,
  waybill varchar(80) NOT NULL UNIQUE, status varchar(30) NOT NULL,
  handed_off_at timestamptz NOT NULL, delivered_at timestamptz, observed_at timestamptz, provider_updated_at timestamptz,
- last_checked_at timestamptz, last_requested_at timestamptz, eta timestamptz,
+ last_checked_at timestamptz, last_requested_at timestamptz, next_tracking_at timestamptz, eta timestamptz,
  safe_message varchar(300), history text NOT NULL DEFAULT '[]', tracking_generation bigint NOT NULL DEFAULT 0,
  version bigint NOT NULL DEFAULT 0,
  CONSTRAINT ck_shipment_status CHECK(status IN ('SHIPPED','OUT_FOR_DELIVERY','DELIVERED'))

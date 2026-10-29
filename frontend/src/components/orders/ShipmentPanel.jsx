@@ -22,8 +22,20 @@ function ShipmentContent({ scope, recordId, version, onChanged, onData }) {
   const [submission]=useState(()=>createSubmission());
   const alive=useRef(true);
   const previousVersion=useRef(version);
+  const reportedVersion=useRef(version);
   useEffect(()=>{if(data)onData?.(data);},[data,onData]);
+  useEffect(()=>{
+    if(Number.isSafeInteger(version)&&Number.isSafeInteger(data?.version)&&data.version!==version&&reportedVersion.current!==data.version){
+      reportedVersion.current=data.version;onChanged?.();
+    }
+  },[data,version,onChanged]);
   useEffect(()=>{alive.current=true;return()=>{alive.current=false;};},[]);
+  useEffect(()=>{
+    const revalidate=()=>{if(document.visibilityState==='visible')refresh();};
+    const interval=window.setInterval(revalidate,30000);
+    window.addEventListener('focus',revalidate);document.addEventListener('visibilitychange',revalidate);
+    return()=>{window.clearInterval(interval);window.removeEventListener('focus',revalidate);document.removeEventListener('visibilitychange',revalidate);};
+  },[refresh]);
   useEffect(()=>{if(previousVersion.current!==version){previousVersion.current=version;refresh();}},[version,refresh]);
   const open=value=>{submission.clear();setMessage('');setDraft(value);};
   const edit=values=>{submission.clear();setMessage('');setDraft(current=>({...current,...values}));};
@@ -41,10 +53,10 @@ function ShipmentContent({ scope, recordId, version, onChanged, onData }) {
     try{
       await action();if(!current())return;
       if(success){submission.clear();setDraft(null);}
-      await refresh();if(current())await onChanged?.();
+      await refresh();
     }catch(failure){
       if(!current())return;
-      if(failure.response?.status===409){submission.clear();setMessage('This order changed. Your draft is retained. Review the updated quantities and try again.');await refresh();await onChanged?.();}
+      if(failure.response?.status===409){submission.clear();setMessage('This order changed. Your draft is retained. Review the updated quantities and try again.');await refresh();}
       else setMessage(failure.response?.data?.message||'The result is uncertain. Retry the same submission safely, or edit your draft.');
     }finally{if(current())setBusy(false);}
   };
