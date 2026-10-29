@@ -13,6 +13,7 @@ import toast from "../../utils/toastUtils.js";
 import api from "../../backend/api";
 import { formatCurrency } from "../../utils/formatCurrency";
 import { formatDate } from "../../utils/formatDate";
+import ShipmentPanel from "./ShipmentPanel";
 import useWorkflowResource from "../../hooks/useWorkflowResource";
 import { actionMaximum, canCancelWhole, workflowLabel, paymentPolicy } from "../../utils/fulfillment";
 import { QuantityCommand, WorkflowProgress, CancellationPolicy } from "./WorkflowControls";
@@ -214,6 +215,7 @@ const OrderDetails = ({ orderId }) => {
         <div className="surface p-4 mb-4 space-y-3"><WorkflowProgress record={order} audience="customer" showState={false} /><p className="text-sm text-gray-600">You can repeatedly cancel unprepared units, even when other units have advanced. Preparation ends cancellation eligibility for those units.</p><QuantityCommand key={`${epoch}:${orderId}:whole`} label="Cancel entire order" cancellation whole maximum={canCancelOrder ? 1 : 0} version={order.workflow?.version} endpoint="/user/fulfillment/cancellations" makeBody={(_qty,reason) => ({orderId:order.orderId,reason})} onComplete={fetchOrder} disabled={loading} /><CancellationPolicy /></div>
         {/* Status banner */}
         <StatusBanner order={order} onRetrySuccess={() => fetchOrder(true)} />
+        <div className="mb-4"><ShipmentPanel recordId={orderId} version={order.workflow?.version} onChanged={fetchOrder} /></div>
 
         {/* Floating info bar */}
         {(order.orderStatus === "CONFIRMED" || order.orderStatus === "CREATED" || order.orderStatus === "CANCELLED") && (

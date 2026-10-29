@@ -11,6 +11,7 @@ import {
 import toast from "../../utils/toastUtils.js";
 import useWorkflowResource, { useWorkflowEpoch } from "../../hooks/useWorkflowResource";
 import { actionMaximum, canCancelWhole, workflowLabel } from "../../utils/fulfillment";
+import ShipmentPanel from "../orders/ShipmentPanel";
 import { QuantityCommand, WorkflowProgress } from "../orders/WorkflowControls";
 import { formatCurrency } from "../../utils/formatCurrency";
 import { formatDate } from "../../utils/formatDate";
@@ -60,6 +61,7 @@ const InfoRow = ({ label, value, mono, copyable, last }) => {
 };
 
 const OrderDetail = ({ orderId, onBack }) => {
+    const [shipmentState, setShipmentState] = useState(null);
     const {data:order, loading, error, refresh:fetchOrder, epoch} = useWorkflowResource(`/admin/orders/${encodeURIComponent(orderId)}`);
 
     if (loading && !order) return <DetailSkeleton />;
@@ -90,6 +92,7 @@ const OrderDetail = ({ orderId, onBack }) => {
 
             {error && <p role="alert" className="text-sm text-red-700">{error} <button className="text-link" onClick={fetchOrder}>Retry refresh</button></p>}
             <WorkflowProgress record={order} />
+            <ShipmentPanel scope="admin" recordId={orderId} version={order.workflow?.version} onChanged={fetchOrder} onData={setShipmentState} />
             {/* Status banner */}
             <div className={`flex items-center gap-3 px-5 py-4 rounded-2xl border ${order.orderStatus === "CANCELLED" ? "bg-red-50 border-red-100" :
                     order.orderStatus === "FULFILLMENT_COMPLETE" ? "bg-blue-50 border-blue-100" :
@@ -125,7 +128,7 @@ const OrderDetail = ({ orderId, onBack }) => {
                                 </div>
                                 <span className="text-sm font-semibold text-gray-900 shrink-0">{formatCurrency(line.lineTotal)}</span>
                                 <div className="w-full space-y-3"><WorkflowProgress record={line} showQuantity={false} /><div className="flex flex-wrap gap-2">
-                                    {[["ACCEPT","Accept"],["START_PREPARING","Start preparing"],["MARK_PACKED","Mark as packed"],["SHIP","Mark shipped"],["DELIVER","Mark delivered"],["CANCEL","Cancel units"]].map(([action,label]) => <QuantityCommand key={`${epoch}:${line.fulfillmentId}:${line.orderLineNumber}:${action}`} label={label} cancellation={action==='CANCEL'} maximum={actionMaximum(line,action)} version={order.workflow?.version} endpoint="/fulfillment/commands" makeBody={(qty,reason) => ({fulfillmentId:line.fulfillmentId,orderLineNumber:line.orderLineNumber,action,qty,...(action==='CANCEL'?{reason}:{})})} onComplete={fetchOrder} disabled={loading} />)}
+                                    {[["ACCEPT","Accept"],["START_PREPARING","Start preparing"],["MARK_PACKED","Mark as packed"],["DELIVER","Mark delivered"],["CANCEL","Cancel units"]].filter(([action]) => action!=="DELIVER" || (shipmentState && !(shipmentState.shipments||[]).some(parcel => parcel.items?.some(item => item.lineNumber===line.orderLineNumber)))).map(([action,label]) => <QuantityCommand key={`${epoch}:${line.fulfillmentId}:${line.orderLineNumber}:${action}`} label={label} cancellation={action==='CANCEL'} maximum={actionMaximum(line,action)} version={order.workflow?.version} endpoint="/fulfillment/commands" makeBody={(qty,reason) => ({fulfillmentId:line.fulfillmentId,orderLineNumber:line.orderLineNumber,action,qty,...(action==='CANCEL'?{reason}:{})})} onComplete={fetchOrder} disabled={loading} />)}
                                 </div></div>
                             </div>
                         ))}

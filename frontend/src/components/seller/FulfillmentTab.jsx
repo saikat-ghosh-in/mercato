@@ -1,4 +1,5 @@
 import { LoadingLayout } from "../shared/LoadingStates";
+import ShipmentPanel from "../orders/ShipmentPanel";
 import ActionArrow from "../shared/ActionArrow";
 import { useEffect, useState } from "react";
 import {
@@ -67,8 +68,9 @@ const FulfillmentDetail = ({ fulfillmentId, onBack }) => {
       </div>
 
       <WorkflowProgress record={fo} />
+      <ShipmentPanel scope="seller" recordId={fulfillmentId} version={fo.workflow?.version} onChanged={fetchFo} />
       <WorkflowDeadlines workflow={fo.workflow} receivedAt={receivedAt} onRelease={fetchFo} />
-      <p className="text-xs text-gray-600">Accept within 48 hours after seller actions unlock. Preparation review is independent. Physical shipment is recorded by Mercato logistics after handoff.</p>
+      <p className="text-xs text-gray-600">Accept within 48 hours after seller actions unlock. Preparation review is independent. Use Mark shipped only after handing packed items to the carrier.</p>
       <QuantityCommand key={`${epoch}:${fulfillmentId}:cancel-all`} label="Cancel all remaining" whole cancellation maximum={fo.orderLines?.reduce((total,line) => total + actionMaximum(line, 'CANCEL'),0) || 0} version={fo.workflow?.version} endpoint="/seller/fulfillment/cancellations" makeBody={(_qty,reason) => ({orderId:fo.orderId,fulfillmentId,reason})} onComplete={fetchFo} disabled={loading} />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">

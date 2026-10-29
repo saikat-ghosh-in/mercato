@@ -10,6 +10,7 @@ async function fixture(component='seller', setup) {
     import React from 'react'; import {createRoot} from 'react-dom/client';
     import FulfillmentTab from './src/components/seller/FulfillmentTab.jsx';
     import OrderDetails from './src/components/orders/OrderDetails.jsx';
+    import ShipmentPanel from './src/components/orders/ShipmentPanel.jsx';
     import OrdersTab from './src/components/admin/OrdersTab.jsx';
     import Orders from './src/components/orders/Orders.jsx';
     import {privateApi} from './src/reduxStore/services/privateApi.js';
@@ -22,11 +23,11 @@ async function fixture(component='seller', setup) {
     import {Provider} from 'react-redux'; import {configureStore} from '@reduxjs/toolkit';
     const store=configureStore({reducer:{cart:()=>({deliveryOptions:[],deliveryMethod:'STANDARD',cartLoading:false}),[privateApi.reducerPath]:privateApi.reducer},middleware:get=>get().concat(privateApi.middleware)});
     function Resource(){const [url,setUrl]=React.useState('/one');const value=useWorkflowResource(url);window.refresh=value.refresh;window.selectUrl=setUrl;return <p>{value.data?.name || 'Loading'}{value.error}</p>;}
-    window.render=() => createRoot(document.getElementById('root')).render(<Provider store={store}><MemoryRouter initialEntries={[${component==='orders'?'"/orders?orderId=O1"':'"/"'}]}>${component==='seller'?'<FulfillmentTab />':component==='admin'?'<OrdersTab />':component==='orders'?'<Orders />':component==='resource'?'<Resource />':component==='help'?'<Help />':component==='finance'?'<><RevenueCards revenue={{allTime:189,thisMonth:189,today:189,averagePerOrder:63}} admin/><MarketplaceFinance admin/></>':component==='checkout'?'<ReviewPaymentStep selectedAddress={{}} cartWithProducts={[]} />':'<OrderDetails orderId="O1" />'}</MemoryRouter></Provider>);
+    window.render=() => createRoot(document.getElementById('root')).render(<Provider store={store}><MemoryRouter initialEntries={[${component==='orders'?'"/orders?orderId=O1"':'"/"'}]}>${component==='shipment-seller'?'<ShipmentPanel scope="seller" recordId="F1" />':component==='shipment-customer'?'<ShipmentPanel recordId="O1" />':component==='shipment-admin'?'<ShipmentPanel scope="admin" recordId="O1" />':component==='seller'?'<FulfillmentTab />':component==='admin'?'<OrdersTab />':component==='orders'?'<Orders />':component==='resource'?'<Resource />':component==='help'?'<Help />':component==='finance'?'<><RevenueCards revenue={{allTime:189,thisMonth:189,today:189,averagePerOrder:63}} admin/><MarketplaceFinance admin/></>':component==='checkout'?'<ReviewPaymentStep selectedAddress={{}} cartWithProducts={[]} />':'<OrderDetails orderId="O1" />'}</MemoryRouter></Provider>);
     window.render();`,resolveDir:root,loader:'jsx'},bundle:true,write:false,jsx:'automatic',plugins:[{name:'fixture',setup(build){
       build.onResolve({filter:/backend\/api(?:\.js)?$/},() => ({path:'api',namespace:'fixture'}));
       build.onResolve({filter:/toastUtils(?:\.js)?$/},() => ({path:'toast',namespace:'fixture'}));
-      build.onLoad({filter:/.*/,namespace:'fixture'},args => ({contents:args.path==='api'?`export const session={getSnapshot:()=>({epoch:window.epoch||1,user:{roles:['ROLE_USER','ROLE_SELLER','ROLE_ADMIN']}}),subscribe:(listener)=>{window.addEventListener('sessionchange',listener);return()=>window.removeEventListener('sessionchange',listener)}}; export default {get:(...args)=>window.fixtureGet(...args),request:args=>window.fixtureGet(args.url),post:(...args)=>window.fixturePost(...args)};`:`export const showWarningToast=()=>{}; export default {success:()=>{},error:()=>{}};`,loader:'js'}));
+      build.onLoad({filter:/.*/,namespace:'fixture'},args => ({contents:args.path==='api'?`export const session={getSnapshot:()=>({epoch:window.epoch||1,user:{roles:['ROLE_USER','ROLE_SELLER','ROLE_ADMIN']}}),subscribe:(listener)=>{window.addEventListener('sessionchange',listener);return()=>window.removeEventListener('sessionchange',listener)}}; export default {get:(...args)=>window.fixtureGet(...args),request:args=>args.method&&args.method.toLowerCase()!=='get'?window.fixturePost(args.url,args.data):window.fixtureGet(args.url),post:(...args)=>window.fixturePost(...args)};`:`export const showWarningToast=()=>{}; export default {success:()=>{},error:()=>{}};`,loader:'js'}));
     }}]});
   const {chromium}=await import(pathToFileURL(process.env.PLAYWRIGHT_MODULE).href);
   const browser=await chromium.launch({channel:process.env.BROWSER_CHANNEL||'chrome',headless:true});
@@ -60,6 +61,67 @@ async function fixture(component='seller', setup) {
   return {browser,page};
   } catch(error){await browser.close();throw error;}
 }
+
+test('shipment seller handoff validates quantities, retries one identity and retains conflict drafts',async()=>{
+  const {browser,page}=await fixture('shipment-seller',()=>{
+    window.shipments={shipments:[],handoffItems:[{fulfillmentId:'F1',lineNumber:1,productName:'Test product with a long name for a compact mobile package form',maximum:3}],version:7,canCreate:true,canRefresh:false,message:'Tracking updates pending.'};
+    window.fixtureGet=async()=>({data:window.shipments});
+    window.fixturePost=async(url,body)=>{window.posts.push({url,body});if(window.mode==='network')throw Error('offline');if(window.mode==='conflict'){window.shipments={...window.shipments,version:8};throw {response:{status:409}};}window.shipments={...window.shipments,version:9,handoffItems:[],shipments:[{id:'P1',waybill:body.waybill,status:'SHIPPED',items:[{lineNumber:1,productName:'Test product',qty:body.items[0].qty}],history:[]}]};return {data:window.shipments};};
+  });
+  try {
+    await page.setViewportSize({width:320,height:740});
+    await page.getByRole('button',{name:'Mark shipped',exact:true}).click();
+    await page.getByLabel('Tracking number',{exact:true}).fill('00123456789');
+    await page.getByRole('spinbutton').fill('4');
+    await page.getByRole('checkbox').check();
+    assert.equal(await page.getByRole('button',{name:'Confirm handoff',exact:true}).isDisabled(),true);
+    await page.getByRole('spinbutton').fill('2');
+    await page.getByRole('button',{name:'Confirm handoff',exact:true}).click();
+    await page.getByRole('alert').waitFor();
+    await page.getByRole('button',{name:'Confirm handoff',exact:true}).click();
+    let posts=await page.evaluate(()=>window.posts);assert.deepEqual(posts[0],posts[1]);assert.equal(posts[0].url,'/seller/fulfillment-orders/F1/shipments');assert.equal(posts[0].body.expectedVersion,7);
+    await page.evaluate(()=>window.mode='conflict');await page.getByRole('button',{name:'Confirm handoff',exact:true}).click();
+    await page.getByRole('alert').filter({hasText:'changed'}).waitFor();assert.equal(await page.getByRole('spinbutton').inputValue(),'2');assert.equal(await page.getByLabel('Tracking number').inputValue(),'00123456789');
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth),false);
+    await page.evaluate(()=>window.mode='success');await page.getByRole('button',{name:'Confirm handoff',exact:true}).click();
+    await page.getByRole('dialog').waitFor({state:'hidden'});await page.getByText('Tracking 00123456789',{exact:true}).waitFor();
+    posts=await page.evaluate(()=>window.posts);assert.notEqual(posts[3].body.operationId,posts[2].body.operationId);assert.equal(posts[3].body.expectedVersion,8);
+    await mkdir(new URL('../../backend/target/delhivery-m3-browser/',import.meta.url),{recursive:true});
+    await page.screenshot({path:fileURLToPath(new URL('../../backend/target/delhivery-m3-browser/parcel-seller-320.png',import.meta.url)),fullPage:true});
+  }finally{await browser.close();}
+});
+
+test('shipment customer view stays read-only, keeps content during refresh and fits mobile and desktop',async()=>{
+  const {browser,page}=await fixture('shipment-customer',()=>{
+    const value={shipments:[{id:'P1',waybill:'0012345678901234567890',status:'OUT_FOR_DELIVERY',lastCheckedAt:'2026-10-29T10:00:00Z',items:[{lineNumber:1,productName:'A useful product with a long name that wraps safely on mobile',qty:2}],history:[{code:'UD',description:'Out for delivery',providerAt:'2026-10-29T10:00:00Z'}]}],handoffItems:[{fulfillmentId:'F1',lineNumber:1,maximum:2}],version:3,canRefresh:true};
+    window.fixtureGet=async()=>({data:value});window.fixturePost=async(url)=>{window.posts.push({url});return {data:value};};
+  });
+  try{
+    await page.getByRole('heading',{name:'Out for delivery',exact:true}).waitFor();
+    assert.equal(await page.getByRole('button',{name:/Mark shipped|Mark delivered|Correct tracking/}).count(),0);
+    await page.getByRole('button',{name:'Refresh tracking'}).click();assert.equal((await page.evaluate(()=>window.posts))[0].url,'/user/orders/O1/shipments/refresh');
+    for(const width of [320,390,1440]){await page.setViewportSize({width,height:844});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth),false);}
+    await page.emulateMedia({reducedMotion:'reduce'});await page.getByRole('button',{name:'Tracking updates',exact:true}).click();await page.getByRole('region',{name:'Tracking updates',exact:true}).waitFor();
+    await mkdir(new URL('../../backend/target/delhivery-m3-browser/',import.meta.url),{recursive:true});await page.screenshot({path:fileURLToPath(new URL('../../backend/target/delhivery-m3-browser/parcel-customer-desktop.png',import.meta.url)),fullPage:true});
+  }finally{await browser.close();}
+});
+
+test('shipment admin correction and delivery require audit reasons and retain failed drafts',async()=>{
+  const {browser,page}=await fixture('shipment-admin',()=>{
+    window.shipments={shipments:[{id:'P1',waybill:'001234',status:'SHIPPED',items:[{lineNumber:1,productName:'Test package',qty:1}],history:[]}],handoffItems:[],version:4,canRefresh:false,message:'Delhivery staging is not configured. Manual delivery is available.'};
+    window.fixtureGet=async()=>({data:window.shipments});window.fixturePost=async(url,body)=>{window.posts.push({url,body});if(window.mode==='network')throw Error('offline');window.shipments={...window.shipments,version:5,shipments:window.shipments.shipments.map(p=>({...p,waybill:body.waybill||p.waybill,status:url.endsWith('/delivered')?'DELIVERED':p.status}))};return {data:window.shipments};};
+  });
+  try{
+    await page.getByRole('button',{name:'Correct tracking',exact:true}).click();
+    assert.equal(await page.getByRole('button',{name:'Save tracking',exact:true}).isDisabled(),true);
+    await page.getByLabel('Tracking number').fill('00009999');await page.getByLabel('Audit reason').fill('Corrected the carrier reference');
+    await page.getByRole('button',{name:'Save tracking',exact:true}).click();await page.getByRole('alert').waitFor();assert.equal(await page.getByLabel('Audit reason').inputValue(),'Corrected the carrier reference');
+    await page.evaluate(()=>window.mode='success');await page.getByRole('button',{name:'Save tracking',exact:true}).click();await page.getByRole('dialog').waitFor({state:'hidden'});
+    const posts=await page.evaluate(()=>window.posts);assert.deepEqual(posts[0],posts[1]);assert.equal(posts[0].url,'/admin/shipments/P1/tracking');
+    await page.getByRole('button',{name:'Mark delivered',exact:true}).click();await page.getByLabel('Audit reason').fill('Customer receipt confirmed');await page.getByRole('button',{name:'Confirm delivered',exact:true}).click();await page.getByRole('dialog').waitFor({state:'hidden'});await page.getByRole('heading',{name:'Delivered',exact:true}).waitFor();
+    assert.equal(await page.getByRole('button',{name:'Correct tracking',exact:true}).count(),0);
+  }finally{await browser.close();}
+});
 
 test('seller quantities validate, retry identical uncertain payload, retain drafts on conflict and never offer Ship',async()=>{
   const {browser,page}=await fixture();
@@ -146,23 +208,27 @@ test('admin ships and delivers only supported quantities with stable retry and m
   const {browser,page}=await fixture('admin',()=>{
     window.line.orderedQty=2;window.line.cancelledQty=0;window.line.acceptedQty=2;
     window.line.workflow.preparingQty=2;window.line.workflow.packedQty=2;
+    const oldGet=window.fixtureGet;
+    window.packages=[];
+    window.fixtureGet=async url=>url.endsWith('/shipments')?{data:{shipments:window.packages,handoffItems:window.line.shippedQty<2?[{fulfillmentId:'F1',lineNumber:1,productName:'Test product',maximum:2-window.line.shippedQty}]:[],version:window.version,canRefresh:false}}:oldGet(url);
+    window.fixturePost=async(url,body)=>{window.posts.push({url,body});if(window.mode==='network')throw Error('offline');if(url.endsWith('/shipments')){window.line.shippedQty+=body.items[0].qty;window.packages=[{id:'P1',waybill:body.waybill,status:'SHIPPED',items:[{lineNumber:1,productName:'Test product',qty:body.items[0].qty}],history:[]}];}else if(url.endsWith('/delivered')){window.line.workflow.deliveredQty+=window.packages[0].items[0].qty;window.packages[0].status='DELIVERED';}window.version++;return {data:window.record()};};
   });
   try {
     await page.getByRole('row').filter({hasText:'O1'}).click();
     assert.equal(await page.getByRole('button',{name:'Mark delivered',exact:true}).count(),0);
     await page.getByRole('button',{name:'Mark shipped',exact:true}).click();
-    await page.getByRole('button',{name:'Confirm mark shipped',exact:true}).click();
+    await page.getByLabel('Tracking number').fill('001234');await page.getByRole('spinbutton').fill('1');await page.getByRole('checkbox').check();
+    await page.getByRole('button',{name:'Confirm handoff',exact:true}).click();
     await page.getByRole('alert').waitFor();
     await page.evaluate(()=>window.mode='success');
-    await page.getByRole('button',{name:'Confirm mark shipped',exact:true}).click();
+    await page.getByRole('button',{name:'Confirm handoff',exact:true}).click();
     await page.getByRole('button',{name:'Mark delivered',exact:true}).waitFor();
     assert.deepEqual(...await page.evaluate(()=>window.posts.slice(0,2)));
     await page.getByRole('button',{name:'Mark delivered',exact:true}).click();
-    assert.equal(await page.getByLabel('Quantity',{exact:true}).inputValue(),'1');
-    assert.equal(await page.getByLabel('Quantity',{exact:true}).getAttribute('max'),'1');
-    await page.getByRole('button',{name:'Confirm mark delivered',exact:true}).click();
+    await page.getByLabel('Audit reason').fill('Confirmed customer receipt');
+    await page.getByRole('button',{name:'Confirm delivered',exact:true}).click();
     await page.getByRole('button',{name:'Mark delivered',exact:true}).waitFor({state:'hidden'});
-    const posts=await page.evaluate(()=>window.posts);assert.equal(posts.at(-1).url,'/fulfillment/commands');assert.equal(posts.at(-1).body.action,'DELIVER');assert.equal(posts.at(-1).body.expectedVersion,4);
+    const posts=await page.evaluate(()=>window.posts);assert.equal(posts.at(-1).url,'/admin/shipments/P1/delivered');assert.equal(posts.at(-1).body.expectedVersion,4);
     await page.emulateMedia({reducedMotion:'reduce'});
     for(const width of [320,390]){
       await page.setViewportSize({width,height:844});
