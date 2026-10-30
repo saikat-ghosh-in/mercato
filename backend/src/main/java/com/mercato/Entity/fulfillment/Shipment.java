@@ -12,6 +12,8 @@ public class Shipment {
     @Column(nullable=false,length=30) private String fulfillmentId;
     @Column(nullable=false,length=100) private String sellerEmail;
     @Column(nullable=false,unique=true,length=80) private String waybill;
+    @Column(nullable=false,length=20) private String provider="DELHIVERY";
+    @Column(length=80) private String providerReference;
     @Column(nullable=false,length=30) private String status;
     @Column(nullable=false) private Instant handedOffAt;
     private Instant deliveredAt;

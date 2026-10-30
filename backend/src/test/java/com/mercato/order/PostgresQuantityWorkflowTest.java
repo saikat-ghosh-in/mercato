@@ -49,6 +49,7 @@ class PostgresQuantityWorkflowTest {
     @Import({ShipmentService.class,SellerOrderVisibility.class,FulfillmentServiceImpl.class,com.mercato.Auth.AuthEmailJobHandler.class,com.mercato.Mail.AuthenticationMailGuard.class,com.mercato.Mail.MailActivity.class,com.mercato.Mail.TrackedMailSender.class,com.mercato.Mail.BrandedMailSender.class,com.mercato.Controller.FulfillmentWorkflowController.class,WorkflowAdoption.class,OrderServiceImpl.class,OrderLineUpdateServiceImpl.class,FulfillmentWorkflow.class,FulfillmentFunding.class,WorkflowCommands.class,FulfillmentCancellation.class,FulfillmentDeadlines.class,FulfillmentSlaMetrics.class,FulfillmentNoticeGuard.class,OrderReservationServiceImpl.class,DurableJobs.class,JobStore.class})
     static class Config {
         @Bean DelhiveryClient carrier(){return mock(DelhiveryClient.class);}
+        @Bean EasyshipClient easyship(){return mock(EasyshipClient.class);}
         @Bean CartService carts(){return mock(CartService.class);}
         @Bean CashfreeService gateway(){return mock(CashfreeService.class);}
         @Bean CartReservationService cartHolds(){return mock(CartReservationService.class);}
@@ -80,6 +81,7 @@ class PostgresQuantityWorkflowTest {
     @DynamicPropertySource static void postgres(DynamicPropertyRegistry p){p.add("spring.datasource.url",()->DATABASE);p.add("spring.datasource.username",PostgresTestSupport::username);p.add("spring.datasource.password",PostgresTestSupport::password);p.add("spring.datasource.driver-class-name",()->"org.postgresql.Driver");p.add("spring.jpa.database-platform",()->"org.hibernate.dialect.PostgreSQLDialect");}
     @AfterAll static void cleanup(@Autowired ConfigurableApplicationContext context){context.close();PostgresTestSupport.cleanup();}
     @Autowired ShipmentService shipmentService;@Autowired ShipmentRepository parcels;@Autowired DelhiveryClient carrier;
+    @Autowired EasyshipClient easyship;
     @Autowired FulfillmentService fulfillments;
     @Autowired OrderLineRepository lines;@Autowired OrderRepository orders;@Autowired ProductRepository products;@Autowired CategoryRepository categories;
     @Autowired OrderReservationRepository reservations;@Autowired OrderLineUpdateService updates;
@@ -91,7 +93,7 @@ class PostgresQuantityWorkflowTest {
     @BeforeEach void fixture(TestInfo test){
         jdbc.update("UPDATE order_snapshot SET workflow_review_required=true");
         jdbc.update("DELETE FROM durable_job_retry_audit");jdbc.update("DELETE FROM durable_jobs");
-        reset(refundService,carrier);CUSTOMER_ID.remove();
+        reset(refundService,carrier,easyship);CUSTOMER_ID.remove();
         smtpMailbox.sent.clear();
         auditEvents.events.clear();auditEvents.reject=false;clock.value.set(CONFIRMED.plusSeconds(7200));IDENTITY.set("seller@test.invalid");tx=new TransactionTemplate(transactions);
         orderId="QTY-"+UUID.randomUUID().toString().substring(0,12);fulfillment=orderId+"-F";
@@ -148,6 +150,53 @@ class PostgresQuantityWorkflowTest {
         clock.value.set(CONFIRMED.plusSeconds(7200));
         assertThrows(com.mercato.ExceptionHandler.CustomBadRequestException.class,()->shipmentService.create(fulfillment,TransitionTrigger.SELLER,handoff("unfunded",3,"U"+orderId,1)));
         assertEquals(0,snapshot().getShippedQty());assertTrue(shipmentService.read(fulfillment,TransitionTrigger.SELLER,true).shipments().isEmpty());
+    }
+    ShipmentService.Handoff easyshipHandoff(String operation,long version,String reference,String awb){
+        return json.convertValue(Map.of("operationId",operation,"expectedVersion",version,"waybill",awb,"actualHandoff",true,
+            "items",List.of(Map.of("lineNumber",1,"qty",10)),"easyshipShipmentId",reference),ShipmentService.Handoff.class);
+    }
+    @Test void easyshipSandboxDeliveryRequiresBothProviderAndTrackingIdentity() {
+        packAll();currentCaptureProof();when(easyship.enabled()).thenReturn(true);when(easyship.batchSize()).thenReturn(50);
+        var handoff=easyshipHandoff("easyship-create",3,"ESIN10000001","001234"+orderId);
+        var view=shipmentService.create(fulfillment,TransitionTrigger.SELLER,handoff);var parcel=view.shipments().get(0);
+        var details=json.valueToTree(parcel);assertEquals("EASYSHIP",details.path("provider").asText());assertEquals("ESIN10000001",details.path("providerReference").asText());
+        assertEquals(view,shipmentService.create(fulfillment,TransitionTrigger.SELLER,handoff));
+        clock.value.set(clock.instant().plusSeconds(60));
+        when(easyship.fetch(anyCollection())).thenReturn(new TrackingClient.Result(Map.of("ESIN10000001",new TrackingClient.Update("another-waybill","Delivered","DL",clock.instant(),null,List.of(),false)),false));
+        shipmentService.process(List.of(parcel.id()));assertEquals(0,snapshot().getDeliveredQty());
+        clock.value.set(clock.instant().plusSeconds(60));
+        when(easyship.fetch(anyCollection())).thenReturn(new TrackingClient.Result(Map.of("ESIN10000001",new TrackingClient.Update(parcel.waybill(),"Delivered","DL",clock.instant(),null,List.of(),false)),false));
+        shipmentService.process(List.of(parcel.id()));shipmentService.process(List.of(parcel.id()));
+        assertEquals(10,snapshot().getDeliveredQty());assertEquals(10,products.findByProductId(orderId+"-P").orElseThrow().getPhysicalQty());
+        verifyNoInteractions(carrier);
+    }
+    @Test void easyshipActivationNeverReinterpretsExistingDelhiveryParcels() {
+        packAll();currentCaptureProof();var request=handoff("legacy-provider",3,"LEGACY"+orderId,10);
+        var original=shipmentService.create(fulfillment,TransitionTrigger.SELLER,request);var parcel=original.shipments().get(0);
+        when(easyship.enabled()).thenReturn(true);when(easyship.batchSize()).thenReturn(50);
+        assertEquals(original,shipmentService.create(fulfillment,TransitionTrigger.SELLER,request));
+        shipmentService.process(List.of(parcel.id()));verify(easyship,never()).fetch(anyCollection());assertEquals(0,snapshot().getDeliveredQty());
+    }
+    @Test void easyshipTransientFailureDoesNotSwallowTheDurableRetry() {
+        packAll();currentCaptureProof();when(easyship.enabled()).thenReturn(true);when(easyship.batchSize()).thenReturn(50);
+        var parcel=shipmentService.create(fulfillment,TransitionTrigger.SELLER,easyshipHandoff("transient-easyship",3,"ESIN10000004","RETRY"+orderId)).shipments().get(0);
+        when(easyship.fetch(anyCollection())).thenThrow(new TransientJobException("Synthetic timeout"));
+        assertThrows(TransientJobException.class,()->shipmentService.process(List.of(parcel.id())));
+        clock.value.set(clock.instant().plusSeconds(5));
+        doReturn(new TrackingClient.Result(Map.of("ESIN10000004",new TrackingClient.Update(parcel.waybill(),"Delivered","DL",clock.instant(),null,List.of(),false)),false)).when(easyship).fetch(anyCollection());
+        shipmentService.process(List.of(parcel.id()));assertEquals(10,snapshot().getDeliveredQty());verify(easyship,times(2)).fetch(anyCollection());
+    }
+    @Test void correctedEasyshipIdentityFencesAnAlreadyInFlightDeliveryResponse() {
+        packAll();currentCaptureProof();when(easyship.enabled()).thenReturn(true);when(easyship.batchSize()).thenReturn(50);
+        var parcel=shipmentService.create(fulfillment,TransitionTrigger.SELLER,easyshipHandoff("correct-easyship",3,"ESIN10000002","OLD"+orderId)).shipments().get(0);
+        clock.value.set(clock.instant().plusSeconds(60));
+        when(easyship.fetch(anyCollection())).thenAnswer(c->{
+            var change=json.convertValue(Map.of("operationId","correct-provider-id","expectedVersion",4,"reason","Correct sandbox reference","waybill","NEW"+orderId,"easyshipShipmentId","ESIN10000003"),ShipmentService.Change.class);
+            shipmentService.change(parcel.id(),change,false);
+            return new TrackingClient.Result(Map.of("ESIN10000002",new TrackingClient.Update(parcel.waybill(),"Delivered","DL",clock.instant(),null,List.of(),false)),false);
+        });
+        shipmentService.process(List.of(parcel.id()));assertEquals(0,snapshot().getDeliveredQty());
+        assertEquals("ESIN10000003",json.valueToTree(shipmentService.read(fulfillment,TransitionTrigger.SELLER,true).shipments().get(0)).path("providerReference").asText());
     }
     @Test void providerDeliveryIsForwardOnlyIdempotentAndOutsideTransaction() {
         packAll();currentCaptureProof();var result=shipmentService.create(fulfillment,TransitionTrigger.SELLER,handoff("tracked",3,"AWB"+orderId,10));

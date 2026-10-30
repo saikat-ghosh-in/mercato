@@ -12,7 +12,7 @@ import java.util.*;
 
 /** Staging-only transport. No provider body or credential leaves this adapter. */
 @Component
-public class DelhiveryClient {
+public class DelhiveryClient implements TrackingClient {
     public static final String ENDPOINT="https://staging-express.delhivery.com/api/v1/packages/json/";
     private final RestTemplate http; private final ObjectMapper json; private final boolean enabled; private final String token; private final int batchSize;
     public DelhiveryClient(RestTemplate http,ObjectMapper json,@Value("${DELHIVERY_ENABLED:false}")boolean enabled,
@@ -23,9 +23,6 @@ public class DelhiveryClient {
     }
     public boolean enabled(){return enabled;}
     public int batchSize(){return batchSize;}
-    public record Event(String code,String description,Instant providerAt){}
-    public record Update(String waybill,String status,String statusType,Instant providerAt,Instant eta,List<Event> events,boolean reverse){}
-    public record Result(Map<String,Update> updates,boolean singleFallback){}
     public Result fetch(Collection<String> requested) {
         if(org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive())throw new IllegalStateException("Tracking I/O inside transaction");
         if(!enabled)throw new ManualInterventionJobException("Staging tracking is disabled");

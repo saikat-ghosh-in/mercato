@@ -43,6 +43,8 @@ function ShipmentContent({ scope, recordId, version, onChanged, onData }) {
   const eligible=(data?.handoffItems||[]).filter(item=>item.fulfillmentId===draft?.fulfillmentId);
   const entries=eligible.map(item=>({lineNumber:item.lineNumber,qty:Number(draft?.quantities?.[item.lineNumber]||0)}));
   const validQuantities=entries.length>0&&entries.some(item=>item.qty>0)&&entries.every((item,index)=>Number.isSafeInteger(item.qty)&&item.qty>=0&&item.qty<=eligible[index].maximum);
+  const needsEasyshipId=draft?.type==='handoff'?data?.trackingProvider==='EASYSHIP':draft?.provider==='EASYSHIP';
+  const validEasyshipId=!needsEasyshipId||/^ES[A-Za-z0-9]{2}[0-9]{7,70}$/.test(draft?.easyshipShipmentId||'');
   const valid=draft?.type==='handoff'?Boolean(draft.confirmed&&/^[A-Za-z0-9-]{1,80}$/.test(draft.waybill)&&validQuantities)
     :Boolean(draft?.reason?.trim()&&(draft.type==='delivered'||/^[A-Za-z0-9-]{1,80}$/.test(draft.waybill)));
   const run=async(action,success)=>{
@@ -61,12 +63,12 @@ function ShipmentContent({ scope, recordId, version, onChanged, onData }) {
     }finally{if(current())setBusy(false);}
   };
   const submit=event=>{
-    event.preventDefault();if(!valid||!data)return;
+    event.preventDefault();if(!valid||!validEasyshipId||!data)return;
     if(draft.type==='handoff'){
-      const body=submission.payload({waybill:draft.waybill,actualHandoff:true,items:entries.filter(item=>item.qty>0)},data.version);
+      const body=submission.payload({waybill:draft.waybill,actualHandoff:true,items:entries.filter(item=>item.qty>0),...(needsEasyshipId?{easyshipShipmentId:draft.easyshipShipmentId}:{})},data.version);
       run(()=>api.post(`/${scope}/fulfillment-orders/${encodeURIComponent(draft.fulfillmentId)}/shipments`,body),true);
     }else{
-      const body=submission.payload({reason:draft.reason.trim(),...(draft.type==='tracking'?{waybill:draft.waybill}:{})},data.version);
+      const body=submission.payload({reason:draft.reason.trim(),...(draft.type==='tracking'?{waybill:draft.waybill,...(needsEasyshipId?{easyshipShipmentId:draft.easyshipShipmentId}:{})}:{})},data.version);
       run(()=>api.request({method:draft.type==='tracking'?'patch':'post',url:`/admin/shipments/${encodeURIComponent(draft.parcelId)}/${draft.type==='tracking'?'tracking':'delivered'}`,data:body}),true);
     }
   };
@@ -75,7 +77,7 @@ function ShipmentContent({ scope, recordId, version, onChanged, onData }) {
     <div className="flex flex-wrap items-center justify-between gap-2">
       <h2 className="text-sm font-semibold">Packages</h2>
       <div className="flex flex-wrap gap-2">
-        {groups.map(id=><button type="button" key={id} className="button button-dark" disabled={busy||loading} aria-label={groups.length>1?`Mark shipped ${id}`:'Mark shipped'} onClick={()=>open({type:'handoff',fulfillmentId:id,waybill:'',quantities:{},confirmed:false})}>Mark shipped{groups.length>1&&<span className="ml-1 text-xs">{id}</span>}</button>)}
+        {groups.map(id=><button type="button" key={id} className="button button-dark" disabled={busy||loading} aria-label={groups.length>1?`Mark shipped ${id}`:'Mark shipped'} onClick={()=>open({type:'handoff',fulfillmentId:id,waybill:'',easyshipShipmentId:'',quantities:{},confirmed:false})}>Mark shipped{groups.length>1&&<span className="ml-1 text-xs">{id}</span>}</button>)}
         {data?.canRefresh&&<button type="button" className="button button-outline" disabled={busy||loading} onClick={()=>run(()=>api.post(`${prefix}/shipments/refresh`))}>{busy?'Checking…':'Refresh tracking'}</button>}
       </div>
     </div>
@@ -94,19 +96,20 @@ function ShipmentContent({ scope, recordId, version, onChanged, onData }) {
       {parcel.lastCheckedAt&&<p className="text-xs text-gray-500">Last checked {formatDate(parcel.lastCheckedAt)}</p>}
       {parcel.message&&<p className="text-xs text-gray-600">{parcel.message}</p>}
       {parcel.history?.length>0&&<Accordion><Accordion.Item value={parcel.id}><Accordion.Trigger>Tracking updates</Accordion.Trigger><Accordion.Content><ol className="space-y-2 text-sm py-2">{parcel.history.map((event,index)=><li key={`${event.code}:${index}`} className="break-words">{event.description}{event.providerAt&&<span className="block text-xs text-gray-500">{formatDate(event.providerAt)}</span>}</li>)}</ol></Accordion.Content></Accordion.Item></Accordion>}
-      {scope==='admin'&&parcel.status!=='DELIVERED'&&<div className="flex flex-wrap gap-2"><button type="button" className="button button-outline" disabled={busy} onClick={()=>open({type:'tracking',parcelId:parcel.id,waybill:parcel.waybill,reason:''})}>Correct tracking</button><button type="button" className="button button-outline" disabled={busy} onClick={()=>open({type:'delivered',parcelId:parcel.id,reason:''})}>Mark delivered</button></div>}
+      {scope==='admin'&&parcel.status!=='DELIVERED'&&<div className="flex flex-wrap gap-2"><button type="button" className="button button-outline" disabled={busy} onClick={()=>open({type:'tracking',parcelId:parcel.id,waybill:parcel.waybill,provider:parcel.provider,easyshipShipmentId:parcel.providerReference||'',reason:''})}>Correct tracking</button><button type="button" className="button button-outline" disabled={busy} onClick={()=>open({type:'delivered',parcelId:parcel.id,reason:''})}>Mark delivered</button></div>}
     </article>)}
     {draft&&<ModalFrame title={draft.type==='handoff'?'Record carrier handoff':draft.type==='tracking'?'Correct tracking':'Record delivery'} onClose={()=>{if(!busy)setDraft(null);}}>
       <form onSubmit={submit} className="surface p-5 space-y-4 w-full min-w-0">
         <h2 className="text-base font-semibold">{draft.type==='handoff'?'Record carrier handoff':draft.type==='tracking'?'Correct tracking':'Record delivery'}</h2>
         {draft.type!=='delivered'&&<label className="block text-sm">Tracking number<input aria-label="Tracking number" className="mt-2 w-full border rounded-lg px-3 py-2 text-base" value={draft.waybill} maxLength={80} required disabled={busy} onChange={event=>edit({waybill:event.target.value.trim()})} /></label>}
+        {needsEasyshipId&&draft.type!=='delivered'&&<label className="block text-sm">Easyship shipment ID<input aria-label="Easyship shipment ID" className="mt-2 w-full border rounded-lg px-3 py-2 text-base" value={draft.easyshipShipmentId||''} maxLength={80} placeholder="ESIN10000001" required disabled={busy} onChange={event=>edit({easyshipShipmentId:event.target.value.trim()})} /><span className="block mt-1 text-xs text-gray-500">Use the shipment ID from your Easyship sandbox account.</span></label>}
         {draft.type==='handoff'?<>
           <p className="text-xs text-gray-500">Choose the packed quantities handed to the carrier. Leave other items at zero.</p>
           {eligible.map(item=><label key={item.lineNumber} className="block text-sm break-words">{item.productName}<span className="block text-xs text-gray-500">Maximum {item.maximum}</span><input aria-label={`Ship quantity for ${item.productName}`} className="mt-1 w-full border rounded-lg px-3 py-2 text-base" type="number" inputMode="numeric" min="0" max={item.maximum} step="1" value={draft.quantities[item.lineNumber]??'0'} disabled={busy} onChange={event=>edit({quantities:{...draft.quantities,[item.lineNumber]:event.target.value}})} /></label>)}
           <label className="flex items-start gap-2 text-sm"><input type="checkbox" checked={draft.confirmed} disabled={busy} onChange={event=>edit({confirmed:event.target.checked})} />I confirm these items were handed to the carrier.</label>
         </>:<label className="block text-sm">Reason<textarea aria-label="Audit reason" className="mt-2 w-full border rounded-lg px-3 py-2 text-base" rows={3} maxLength={500} value={draft.reason} disabled={busy} required onChange={event=>edit({reason:event.target.value})} /></label>}
         {message&&<p role="alert" className="text-sm text-red-700">{message}</p>}
-        <div className="flex flex-wrap gap-2"><button type="button" className="button button-outline" disabled={busy} onClick={()=>setDraft(null)}>Close</button><button type="submit" className="button button-dark" disabled={busy||loading||!valid}>{busy?'Saving…':draft.type==='handoff'?'Confirm handoff':draft.type==='tracking'?'Save tracking':'Confirm delivered'}</button></div>
+        <div className="flex flex-wrap gap-2"><button type="button" className="button button-outline" disabled={busy} onClick={()=>setDraft(null)}>Close</button><button type="submit" className="button button-dark" disabled={busy||loading||!valid||!validEasyshipId}>{busy?'Saving…':draft.type==='handoff'?'Confirm handoff':draft.type==='tracking'?'Save tracking':'Confirm delivered'}</button></div>
       </form>
     </ModalFrame>}
   </section>;

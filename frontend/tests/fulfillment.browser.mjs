@@ -91,6 +91,27 @@ test('shipment seller handoff validates quantities, retries one identity and ret
   }finally{await browser.close();}
 });
 
+test('Easyship handoff requires a shipment ID, retains it on failure and fits a small mobile screen',async()=>{
+  const {browser,page}=await fixture('shipment-seller',()=>{
+    window.shipments={shipments:[],handoffItems:[{fulfillmentId:'F1',lineNumber:1,productName:'Sandbox product',maximum:2}],version:7,canCreate:true,canRefresh:false,trackingProvider:'EASYSHIP'};
+    window.fixtureGet=async()=>({data:window.shipments});
+    window.fixturePost=async(url,body)=>{window.posts.push({url,body});throw Error('offline');};
+  });
+  try{
+    await page.setViewportSize({width:320,height:740});await page.getByRole('button',{name:'Mark shipped',exact:true}).click();
+    await page.getByLabel('Tracking number',{exact:true}).fill('001234567');await page.getByRole('spinbutton').fill('1');await page.getByRole('checkbox').check();
+    assert.equal(await page.getByRole('button',{name:'Confirm handoff',exact:true}).isDisabled(),true);
+    await page.getByLabel('Easyship shipment ID',{exact:true}).fill('ESIN10000001');
+    await page.getByRole('button',{name:'Confirm handoff',exact:true}).click();await page.getByRole('alert').waitFor();
+    assert.equal(await page.getByLabel('Easyship shipment ID',{exact:true}).inputValue(),'ESIN10000001');
+    await page.getByRole('button',{name:'Confirm handoff',exact:true}).click();
+    const posts=await page.evaluate(()=>window.posts);assert.deepEqual(posts[0],posts[1]);assert.equal(posts[0].body.easyshipShipmentId,'ESIN10000001');
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth),false);
+    await mkdir(new URL('../../backend/target/easyship-review/',import.meta.url),{recursive:true});
+    await page.screenshot({path:fileURLToPath(new URL('../../backend/target/easyship-review/handoff-320.png',import.meta.url)),fullPage:true});
+  }finally{await browser.close();}
+});
+
 test('shipment customer view stays read-only, keeps content during refresh and fits mobile and desktop',async()=>{
   const {browser,page}=await fixture('shipment-customer',()=>{
     const value={shipments:[{id:'P1',waybill:'0012345678901234567890',status:'OUT_FOR_DELIVERY',lastCheckedAt:'2026-10-29T10:00:00Z',items:[{lineNumber:1,productName:'A useful product with a long name that wraps safely on mobile',qty:2}],history:[{code:'UD',description:'Out for delivery',providerAt:'2026-10-29T10:00:00Z'}]}],handoffItems:[{fulfillmentId:'F1',lineNumber:1,maximum:2}],version:3,canRefresh:true};

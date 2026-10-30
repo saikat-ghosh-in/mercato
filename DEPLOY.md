@@ -392,7 +392,7 @@ Validate with `sudo visudo -c`. Do not grant unrestricted passwordless sudo. The
 
 ## 11. Subsequent releases: your usual redeploy command
 
-The fulfillment beta remains a **side-project sandbox**. Keep Cashfree authorization/delayed-capture activation disabled and use ordinary sandbox payment collection. The tracking revision adds seller parcel handoff and Delhivery **staging** tracking, with audited admin manual delivery when carrier access is unavailable. It does not book pickups or labels. Customer returns, advanced RTO, deductions and seller disputes remain deferred. Do not enable account-wide card preauthorization to try out unfinished features.
+The fulfillment beta remains a **side-project sandbox**. Keep Cashfree authorization/delayed-capture activation disabled and use ordinary sandbox payment collection. The tracking revision adds seller parcel handoff and **Easyship sandbox** tracking, with audited admin manual delivery when carrier access is unavailable. Historical Delhivery parcels remain readable. It does not book pickups or labels. Customer returns, advanced RTO, deductions and seller disputes remain deferred. Do not enable account-wide card preauthorization to try out unfinished features.
 
 For each beta update, publish a **new prerelease tag from tested `stg`** and wait for its **Release backend** job/assets. Before a release containing new migrations, take a private recovery dump of the installed beta database on OCI:
 
@@ -406,7 +406,7 @@ Verify the dump with `sudo pg_restore --list /opt/mercato-beta/backups/<actual-f
 Then update only beta:
 
 ```bash
-bash ~/redeploy-beta.sh v0.1.0-beta.6
+bash ~/redeploy-beta.sh v0.1.0-beta.7
 sudo journalctl -u mercato-beta -n 100 --no-pager
 ```
 
@@ -414,7 +414,7 @@ Replace the example with the actual tag. The beta wrapper fixes the directory, s
 
 The beta Netlify project deploys its `stg` frontend separately; verify frontend/backend compatibility for each release. For the tracking revision, milestone commits use `[skip netlify]`: install the compatible backend first, then trigger a deploy from the current `stg` on **mercato-in-beta** and verify its source commit. Keep the separate production project unchanged. Preserve `.env`, the MFA encryption key, uploads, database and signing keys across redeploys. A failed readiness check requires investigation; do not automatically restore the old bearer-token application or roll back an incompatible database schema.
 
-Delhivery access is optional: leave `DELHIVERY_ENABLED=false` until a staging token and a manifested test waybill from the same account are available. Configure credentials only in the beta backend environment. Follow [Delhivery staging setup](docs/DELHIVERY_SETUP.md) after the matching tracking release is installed; mocked tests do not prove carrier connectivity.
+For the Easyship switch, keep `DELHIVERY_ENABLED=false`. Configure `EASYSHIP_SANDBOX_TOKEN`, `EASYSHIP_ENABLED=true` and `EASYSHIP_TRACKING_BATCH_SIZE=50` only in the beta backend environment after installing the compatible release. Follow [Easyship sandbox setup](docs/EASYSHIP_SANDBOX_SETUP.md), including token rotation and test delivery simulation. Leave Easyship disabled for manual-only operation. V16 adds explicit provider/reference fields; it preserves existing parcels and does not convert their provider. No production token, MCP action, label purchase or pickup is needed. The older [Delhivery setup](docs/DELHIVERY_SETUP.md) remains historical reference only for this beta.
 
 ## 12. Delete obsolete beta data and artifacts after acceptance
 
