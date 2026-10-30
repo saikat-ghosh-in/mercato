@@ -177,6 +177,50 @@ class PostgresQuantityWorkflowTest {
         assertEquals(original,shipmentService.create(fulfillment,TransitionTrigger.SELLER,request));
         shipmentService.process(List.of(parcel.id()));verify(easyship,never()).fetch(anyCollection());assertEquals(0,snapshot().getDeliveredQty());
     }
+    @Test void generatedTrackingIsScopedIdempotentAndDoesNotShipItems() {
+        packAll();currentCaptureProof();when(easyship.creationEnabled()).thenReturn(true);
+        when(easyship.createTracking(anyString(),anyString())).thenAnswer(call->{assertFalse(org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive());return new EasyshipClient.Prepared(call.getArgument(1),"ESIN10000011");});
+        var request=new ShipmentService.PrepareRequest("generate-tracking",3L,1);
+        var ready=shipmentService.prepare(fulfillment,TransitionTrigger.SELLER,request);
+        assertEquals("READY",ready.state());assertTrue(ready.waybill().startsWith("MCT"));assertEquals("ESIN10000011",ready.easyshipShipmentId());
+        assertEquals(ready,shipmentService.prepare(fulfillment,TransitionTrigger.SELLER,request));verify(easyship,times(1)).createTracking(anyString(),anyString());
+        assertEquals(0,snapshot().getShippedQty());assertEquals(20,products.findByProductId(orderId+"-P").orElseThrow().getPhysicalQty());
+        IDENTITY.set("another-seller@test.invalid");assertThrows(com.mercato.ExceptionHandler.ResourceNotFoundException.class,()->shipmentService.prepare(fulfillment,TransitionTrigger.SELLER,request));
+    }
+    @Test void uncertainGenerationReconcilesInsteadOfRepeatingCreation() {
+        packAll();currentCaptureProof();when(easyship.creationEnabled()).thenReturn(true);
+        when(easyship.createTracking(anyString(),anyString())).thenThrow(new TransientJobException("Synthetic timeout"));
+        var request=new ShipmentService.PrepareRequest("generate-uncertain",3L,1);
+        assertEquals("UNCONFIRMED",shipmentService.prepare(fulfillment,TransitionTrigger.SELLER,request).state());
+        when(easyship.findPrepared(anyString(),anyString())).thenAnswer(call->{assertFalse(org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive());return new EasyshipClient.Prepared(call.getArgument(1),"ESIN10000012");});
+        assertEquals("READY",shipmentService.prepare(fulfillment,TransitionTrigger.SELLER,request).state());verify(easyship,times(1)).createTracking(anyString(),anyString());verify(easyship).findPrepared(anyString(),anyString());assertEquals(0,snapshot().getShippedQty());
+    }
+    @Test void webhookDeduplicatesAndQueuesACanonicalReadWithoutTrustingDeliveryBody() {
+        packAll();currentCaptureProof();when(easyship.enabled()).thenReturn(true);when(easyship.batchSize()).thenReturn(50);
+        var parcel=shipmentService.create(fulfillment,TransitionTrigger.SELLER,easyshipHandoff("webhook-parcel",3,"ESIN10000019","HOOK"+orderId)).shipments().get(0);
+        byte[] event=json.valueToTree(Map.of("event_type","shipment.tracking.status.changed","resource_type","shipment","resource_id","ESIN10000019","data",Map.of("easyship_shipment_id","ESIN10000019","status","Delivered"))).toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        shipmentService.trackingEvent(event);shipmentService.trackingEvent(event);
+        assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM durable_jobs WHERE business_key LIKE 'easyship-event:%' AND payload::text LIKE ?",Integer.class,"%"+parcel.id()+"%"));
+        assertEquals(0,snapshot().getDeliveredQty());verify(easyship,never()).fetch(anyCollection());
+        assertDoesNotThrow(()->shipmentService.trackingEvent("{\"event_type\":\"shipment.tracking.status.changed\",\"resource_type\":\"shipment\",\"resource_id\":\"ESTEST00000\",\"data\":{\"easyship_shipment_id\":\"ESTEST00000\"}}".getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+        jdbc.update("UPDATE shipments SET next_tracking_at=? WHERE id=?",java.sql.Timestamp.from(clock.instant().plusSeconds(60)),parcel.id());
+        assertThrows(WaitingJobException.class,()->shipmentService.processEvent(List.of(parcel.id())));
+        clock.value.set(clock.instant().plusSeconds(61));
+        when(easyship.fetch(anyCollection())).thenReturn(new TrackingClient.Result(Map.of("ESIN10000019",new TrackingClient.Update(parcel.waybill(),"Delivered","DL",clock.instant(),null,List.of(),false)),false));
+        shipmentService.processEvent(List.of(parcel.id()));assertEquals(10,snapshot().getDeliveredQty());
+    }
+    @Test void webhookModeStopsCarrierPollingButKeepsManualRefresh() {
+        org.springframework.test.util.ReflectionTestUtils.setField(shipmentService,"webhookEnabled",true);
+        try{
+            packAll();currentCaptureProof();when(easyship.enabled()).thenReturn(true);when(easyship.batchSize()).thenReturn(50);
+            var parcel=shipmentService.create(fulfillment,TransitionTrigger.SELLER,easyshipHandoff("webhook-only",3,"ESIN10000020","WEBONLY"+orderId)).shipments().get(0);
+            int before=jdbc.queryForObject("SELECT count(*) FROM durable_jobs WHERE job_type='EASYSHIP_TRACK' AND payload::text LIKE ?",Integer.class,"%"+parcel.id()+"%");
+            assertEquals(1,before);clock.value.set(clock.instant().plusSeconds(901));shipmentService.pollActive();
+            assertEquals(before,jdbc.queryForObject("SELECT count(*) FROM durable_jobs WHERE job_type='EASYSHIP_TRACK' AND payload::text LIKE ?",Integer.class,"%"+parcel.id()+"%"));
+            shipmentService.refresh(fulfillment,TransitionTrigger.SELLER,true);
+            assertEquals(before+1,jdbc.queryForObject("SELECT count(*) FROM durable_jobs WHERE job_type='EASYSHIP_TRACK' AND payload::text LIKE ?",Integer.class,"%"+parcel.id()+"%"));
+        }finally{org.springframework.test.util.ReflectionTestUtils.setField(shipmentService,"webhookEnabled",false);}
+    }
     @Test void easyshipTransientFailureDoesNotSwallowTheDurableRetry() {
         packAll();currentCaptureProof();when(easyship.enabled()).thenReturn(true);when(easyship.batchSize()).thenReturn(50);
         var parcel=shipmentService.create(fulfillment,TransitionTrigger.SELLER,easyshipHandoff("transient-easyship",3,"ESIN10000004","RETRY"+orderId)).shipments().get(0);

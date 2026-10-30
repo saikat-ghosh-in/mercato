@@ -13,7 +13,7 @@ public class EasyshipTrackingJob implements JobHandler {
     @Override public void handle(JobRecord job){
         Object value=job.payload().get("ids");
         if(!(value instanceof List<?> ids)||ids.isEmpty()||ids.size()>10000)throw new PoisonJobException("Invalid tracking work");
-        try{shipments.process(ids.stream().map(x->UUID.fromString(String.valueOf(x))).toList());}
+        try{var parsed=ids.stream().map(x->UUID.fromString(String.valueOf(x))).toList();if(Boolean.TRUE.equals(job.payload().get("event")))shipments.processEvent(parsed);else shipments.process(parsed);}
         catch(IllegalArgumentException invalid){throw new PoisonJobException("Invalid tracking parcel identity");}
     }
 }

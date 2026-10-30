@@ -7,6 +7,14 @@ import org.springframework.mock.web.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 class SessionBoundaryTest {
+ @Test void trackingWebhookPostSkipsBrowserContextButOtherMethodsDoNot() throws Exception {
+  var service=mock(SessionService.class);var filter=new SessionBoundaryFilter(service);
+  var post=new MockHttpServletRequest("POST","/api/public/easyship/webhook");var chain=new MockFilterChain();
+  filter.doFilter(post,new MockHttpServletResponse(),chain);assertSame(post,chain.getRequest());verifyNoInteractions(service);
+  when(service.context(any())).thenReturn("browser-context");
+  var response=new MockHttpServletResponse();var patchChain=new MockFilterChain();
+  filter.doFilter(new MockHttpServletRequest("PATCH","/api/public/easyship/webhook"),response,patchChain);assertEquals(409,response.getStatus());assertNull(patchChain.getRequest());
+ }
  @Test void anonymousCartMutationRejectsStaleAccountContext() throws Exception {
   var service=new SessionService(mock(UserRepository.class),mock(JwtUtils.class));
   var filter=new SessionBoundaryFilter(service);

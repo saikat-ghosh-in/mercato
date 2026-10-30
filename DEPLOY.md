@@ -406,7 +406,7 @@ Verify the dump with `sudo pg_restore --list /opt/mercato-beta/backups/<actual-f
 Then update only beta:
 
 ```bash
-bash ~/redeploy-beta.sh v0.1.0-beta.7
+bash ~/redeploy-beta.sh v0.1.0-beta.8
 sudo journalctl -u mercato-beta -n 100 --no-pager
 ```
 
@@ -414,7 +414,7 @@ Replace the example with the actual tag. The beta wrapper fixes the directory, s
 
 The beta Netlify project deploys its `beta` frontend separately; verify frontend/backend compatibility for each release. For the tracking revision, milestone commits use `[skip netlify]`: install the compatible backend first, then trigger a deploy from the current `beta` on **mercato-in-beta** and verify its source commit. Keep the separate production project unchanged. Preserve `.env`, the MFA encryption key, uploads, database and signing keys across redeploys. A failed readiness check requires investigation; do not automatically restore the old bearer-token application or roll back an incompatible database schema.
 
-For the Easyship switch, keep `DELHIVERY_ENABLED=false`. Configure `EASYSHIP_SANDBOX_TOKEN`, `EASYSHIP_ENABLED=true` and `EASYSHIP_TRACKING_BATCH_SIZE=50` only in the beta backend environment after installing the compatible release. Follow [Easyship sandbox setup](docs/EASYSHIP_SANDBOX_SETUP.md), including token rotation and test delivery simulation. Leave Easyship disabled for manual-only operation. V16 adds explicit provider/reference fields; it preserves existing parcels and does not convert their provider. No production token, MCP action, label purchase or pickup is needed. The older [Delhivery setup](docs/DELHIVERY_SETUP.md) remains historical reference only for this beta.
+For the Easyship switch, keep `DELHIVERY_ENABLED=false`. Configure `EASYSHIP_SANDBOX_TOKEN`, `EASYSHIP_ENABLED=true` and `EASYSHIP_TRACKING_BATCH_SIZE=50` only in the beta backend environment after installing the compatible release. Follow [Easyship sandbox setup](docs/EASYSHIP_SANDBOX_SETUP.md), including token rotation and test delivery simulation. Leave Easyship disabled for manual-only operation. V17 additionally persists sandbox tracking generation identities across retries. Configure the sandbox courier and webhook secret using that guide; webhook mode replaces periodic Easyship polling. V16 adds explicit provider/reference fields; it preserves existing parcels and does not convert their provider. No production token, MCP action, label purchase or pickup is needed. The older [Delhivery setup](docs/DELHIVERY_SETUP.md) remains historical reference only for this beta.
 
 **Last verified beta rollout: 30 October 2026.** [v0.1.0-beta.7](https://github.com/saikat-ghosh-in/mercato/releases/tag/v0.1.0-beta.7) installs source `1cf8efe` with Flyway V16. The [published beta frontend](https://app.netlify.com/projects/mercato-in-beta/deploys/6ae49ebaa70def28b649eb39) uses that same source from branch `beta`. Exact-source application and release checks passed, as did joined HTTPS/session checks and a read-only probe of the installed Easyship adapter. Existing data was retained; `main` and production were unchanged. Routine later updates use a new version tag and the same backend-first procedure above.
 

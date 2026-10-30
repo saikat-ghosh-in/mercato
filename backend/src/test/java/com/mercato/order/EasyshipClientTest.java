@@ -81,4 +81,17 @@ class EasyshipClientTest {
         var failure=assertThrows(ManualInterventionJobException.class,()->client.fetch(List.of("ESIN10000001")));
         assertFalse(failure.getMessage().contains("private-provider-error"));server.verify();
     }
+    @Test void sandboxGenerationUsesSyntheticContactsAndReturnsBothTrackingReferences(){
+        var generator=new EasyshipClient(http,new ObjectMapper(),clock,true,"sand_synthetic_test_only",50,"8f43c1e2-dec6-40b2-aa65-bdcfbb72e1c2");
+        server.expect(requestTo("https://public-api-sandbox.easyship.com/2024-09/trackings")).andExpect(method(HttpMethod.POST))
+            .andExpect(header("Authorization","Bearer sand_synthetic_test_only"))
+            .andExpect(request->{String body=request.getBody().toString();assertTrue(body.contains("sandbox@mercato.invalid"));assertFalse(body.contains("buy_label"));})
+            .andRespond(withSuccess("{\"tracking\":{\"tracking_number\":\"MCT123\",\"easyship_shipment_id\":\"ESIN10000001\"}}",MediaType.APPLICATION_JSON));
+        var generated=generator.createTracking("SANDBOX-123","MCT123");assertEquals("MCT123",generated.waybill());assertEquals("ESIN10000001",generated.reference());server.verify();
+    }
+    @Test void uncertainGenerationCanBeReconciledByItsOwnDeterministicReference(){
+        server.expect(anything()).andExpect(queryParam("platform_order_number","SANDBOX-123"))
+            .andRespond(withSuccess("{\"shipments\":[{\"platform_order_number\":\"SANDBOX-123\",\"easyship_shipment_id\":\"ESIN10000001\",\"trackings\":[{\"tracking_number\":\"MCT123\"}]}]}",MediaType.APPLICATION_JSON));
+        assertEquals("ESIN10000001",client.findPrepared("SANDBOX-123","MCT123").reference());server.verify();
+    }
 }

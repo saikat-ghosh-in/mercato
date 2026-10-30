@@ -7,7 +7,7 @@ import java.io.IOException;import java.util.Set;
 @Component @RequiredArgsConstructor
 public class SessionBoundaryFilter extends OncePerRequestFilter {
  private final SessionService sessions;
- @Override protected boolean shouldNotFilter(HttpServletRequest request){return !request.getRequestURI().startsWith("/api/")||("GET".equals(request.getMethod())&&"/api/public/cashfree/return".equals(request.getRequestURI()))||Set.of("/api/public/cashfree/webhook","/api/public/cashfree/webhook-v2").contains(request.getRequestURI());}
+ @Override protected boolean shouldNotFilter(HttpServletRequest request){return !request.getRequestURI().startsWith("/api/")||("GET".equals(request.getMethod())&&"/api/public/cashfree/return".equals(request.getRequestURI()))||("POST".equals(request.getMethod())&&"/api/public/easyship/webhook".equals(request.getRequestURI()))||Set.of("/api/public/cashfree/webhook","/api/public/cashfree/webhook-v2").contains(request.getRequestURI());}
  @Override protected void doFilterInternal(HttpServletRequest request,HttpServletResponse response,FilterChain chain)throws IOException,ServletException {
   var user=sessions.currentUser(request);var id=sessions.identity(request);
   if(user!=null&&id.privileged()) {var principal=UserDetailsImpl.build(user);principal.setPassword(null);var auth=new UsernamePasswordAuthenticationToken(principal,null,principal.getAuthorities());SecurityContextHolder.getContext().setAuthentication(auth);}
