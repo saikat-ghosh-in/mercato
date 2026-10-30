@@ -1001,3 +1001,9 @@ html[data-input=keyboard] .report-timeframe-panel,html[data-input=keyboard] .fie
 .accordion-content-inner { min-width:0; }
 @media (prefers-reduced-motion:reduce) { .accordion-content,.accordion-chevron,.accordion-trigger { transition:none; } }
 :root[data-input=keyboard] .accordion-chevron { transition:none; }
+/* Linked product thumbnails retain the same reserved dimensions as their cards. */
+.fulfillment-card-thumbnails>a{width:42px;height:48px;display:grid;place-items:center;background:#f6f6f5;border-radius:5px;overflow:hidden;color:#a2a7af}
+.checkout-summary-previews>a{position:relative;display:block;width:64px;height:76px;flex-shrink:0;background:#f6f6f5;border-radius:6px;overflow:hidden}
+.checkout-summary-previews>a img{width:100%;height:100%;object-fit:contain}
+.checkout-summary-previews>a span{position:absolute;right:2px;bottom:2px;font-size:11px;background:white;padding:1px 4px;border-radius:3px}
+@media(max-width:639px){.fulfillment-card-thumbnails>a{width:32px;height:40px}}

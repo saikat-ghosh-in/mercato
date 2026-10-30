@@ -54,6 +54,8 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     @EntityGraph(attributePaths = {"orderLines"})
     List<Order> findByCustomerEmail(String email);
+    @EntityGraph(attributePaths={"orderLines"})
+    List<Order> findByCustomerEmailOrderByCreatedAtDescIdDesc(String email);
 
     @Query("""
             SELECT new com.mercato.Payloads.Response.OrderSummaryDTO(

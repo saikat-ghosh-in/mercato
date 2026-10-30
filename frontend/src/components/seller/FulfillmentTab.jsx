@@ -1,5 +1,6 @@
 import { LoadingLayout } from "../shared/LoadingStates";
 import ShipmentPanel, { ShipmentLineAction } from "../orders/ShipmentPanel";
+import { Link } from "react-router-dom";
 import ActionArrow from "../shared/ActionArrow";
 import { useEffect, useState } from "react";
 import { MdLocalShipping, MdArrowBack, MdClose, MdSearch } from "react-icons/md";
@@ -44,8 +45,8 @@ const FulfillmentDetail = ({ fulfillmentId, onBack }) => {
       <div className="min-w-0 space-y-5">
         <SectionCard><div className="fulfillment-section-heading"><div><h3>Items to fulfil</h3><p>Accept → Prepare → Pack → Ship</p></div><span className="text-xs text-gray-500">{fo.orderLines?.length||0} items</span></div>
           <div className="divide-y divide-gray-100">{fo.orderLines?.map(line=><article key={`${epoch}:${fulfillmentId}:${line.orderLineNumber}`} className="fulfillment-item">
-            <div className="fulfillment-product-image">{line.product?.primaryImageUrl?<img src={line.product.primaryImageUrl} alt="" loading="lazy"/>:<MdLocalShipping aria-hidden="true" size={23}/>}</div>
-            <div className="min-w-0"><div className="fulfillment-item-heading"><h4>{line.product?.productName||'Product'}</h4><WorkflowBadge record={line}/></div>
+            <Link to={`/products/${line.product?.productId}`} aria-label={`View ${line.product?.productName || "product"}`} className="fulfillment-product-image">{line.product?.primaryImageUrl?<img src={line.product.primaryImageUrl} alt="" loading="lazy"/>:<MdLocalShipping aria-hidden="true" size={23}/>}</Link>
+            <div className="min-w-0"><div className="fulfillment-item-heading"><h4><Link to={`/products/${line.product?.productId}`}>{line.product?.productName||'Product'}</Link></h4><WorkflowBadge record={line}/></div>
               {line.product?.unitPrice!=null&&<p className="text-xs text-gray-500 mt-1">{formatCurrency(line.product.unitPrice)} each</p>}
               <div className="mt-3"><WorkflowProgress record={line} showState={false}/></div>
             </div>
@@ -70,11 +71,11 @@ const FulfillmentCard = ({ fo, onClick }) => {
   const lines=fo.orderLines||[],remaining=workRemaining(lines);
   const counts=lines.map(line=>line.orderedQty??line.quantity);
   const units=counts.length&&counts.every(value=>Number.isSafeInteger(value)&&value>=0)?counts.reduce((sum,value)=>sum+value,0):null;
-  return <button type="button" aria-label={'View fulfillment '+fo.fulfillmentId} onClick={onClick} className="group surface fulfillment-card w-full text-left">
-    <div className="fulfillment-card-heading"><div className="min-w-0"><p className="fulfillment-eyebrow">{formatDate(fo.createdAt)}</p><h3 className="fulfillment-order-id">{fo.orderId}</h3></div><ActionArrow size={18} className="shrink-0 text-gray-400"/></div>
-    <div className="fulfillment-card-products"><div className="fulfillment-card-thumbnails">{lines.slice(0,3).map(line=><div key={line.orderLineNumber}>{line.product?.primaryImageUrl?<img src={line.product.primaryImageUrl} alt="" loading="lazy"/>:<MdLocalShipping aria-hidden="true" size={19}/>}</div>)}</div><div className="min-w-0"><p className="text-sm font-medium">{fo.customer?.name||'Customer'}</p><p className="text-xs text-gray-500 mt-1">{lines.length} {lines.length===1?'item':'items'}{units!==null?` · Qty ${units}`:''}</p></div></div>
+  return <article className="group surface fulfillment-card w-full text-left">
+    <button type="button" aria-label={'View fulfillment '+fo.fulfillmentId} onClick={onClick} className="fulfillment-card-heading w-full text-left"><div className="min-w-0"><p className="fulfillment-eyebrow">{formatDate(fo.createdAt)}</p><h3 className="fulfillment-order-id">{fo.orderId}</h3></div><ActionArrow size={18} className="shrink-0 text-gray-400"/></button>
+    <div className="fulfillment-card-products"><div className="fulfillment-card-thumbnails">{lines.slice(0,3).map(line=><Link key={line.orderLineNumber} to={`/products/${line.product?.productId}`} aria-label={`View ${line.product?.productName || "product"}`}>{line.product?.primaryImageUrl?<img src={line.product.primaryImageUrl} alt="" loading="lazy"/>:<MdLocalShipping aria-hidden="true" size={19}/>}</Link>)}</div><div className="min-w-0"><p className="text-sm font-medium">{fo.customer?.name||'Customer'}</p><p className="text-xs text-gray-500 mt-1">{lines.length} {lines.length===1?'item':'items'}{units!==null?` · Qty ${units}`:''}</p></div></div>
     <div className="fulfillment-card-footer"><WorkflowBadge record={fo}/><span className={remaining?'fulfillment-action-needed':'text-xs text-gray-500'}>{remaining?`${remaining} ${remaining===1?'unit needs':'units need'} attention`:'No action needed'}</span></div>
-  </button>;
+  </article>;
 };
 
 const FulfillmentTab = () => {

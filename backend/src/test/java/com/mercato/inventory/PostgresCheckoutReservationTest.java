@@ -41,7 +41,7 @@ class PostgresCheckoutReservationTest {
     @Configuration @EnableAutoConfiguration
     @EntityScan(basePackages={"com.mercato.Entity","com.mercato.Commerce","com.mercato.Jobs"})
     @EnableJpaRepositories(basePackages={"com.mercato.Repository","com.mercato.Commerce"})
-    @Import({SellerOrderVisibility.class,OrderServiceImpl.class,CartServiceImpl.class,CartReservationServiceImpl.class,CartPricingServiceImpl.class,PackageDeliveryPricing.class,
+    @Import({OrderProductImages.class,SellerOrderVisibility.class,OrderServiceImpl.class,CartServiceImpl.class,CartReservationServiceImpl.class,CartPricingServiceImpl.class,PackageDeliveryPricing.class,
         OrderRetryHoldService.class,OrderReservationServiceImpl.class,com.mercato.Commerce.PaidOrderAllocation.class,
         WorkflowCommands.class,FulfillmentCancellation.class,OrderLineUpdateServiceImpl.class,
         com.mercato.Commerce.PaymentSessionRecovery.class,com.mercato.Jobs.DurableJobs.class,com.mercato.Jobs.JobStore.class,com.mercato.Controller.OrderController.class})

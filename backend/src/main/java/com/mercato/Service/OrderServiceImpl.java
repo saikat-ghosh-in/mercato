@@ -35,6 +35,7 @@ public class OrderServiceImpl implements OrderService {
     private final OrderRepository orderRepository;
     private final CartService cartService;
     private final FulfillmentWorkflow workflow;
+    private final OrderProductImages images;
     private final FulfillmentCancellation cancellation;
     private final WorkflowCommands workflowCommands;
     private final CashfreeService cashfreeService;
@@ -90,7 +91,7 @@ public class OrderServiceImpl implements OrderService {
         if(!buyer.getUserId().equals(order.getCustomerUserId()))throw new ResourceNotFoundException("Order","orderId",orderId);
         return order;
     }
-    private OrderPlacementResponseDTO placement(Order order){return new OrderPlacementResponseDTO(order.getPayment().getPaymentSessionId(),OrderMapper.toDTO(order,workflow,TransitionTrigger.CUSTOMER));}
+    private OrderPlacementResponseDTO placement(Order order){return new OrderPlacementResponseDTO(order.getPayment().getPaymentSessionId(),detail(order,TransitionTrigger.CUSTOMER));}
     private String existingIntent(EcommUser user,OrderCaptureRequestDTO request,String body) {
         var prior=orderRepository.checkoutIntent(user.getUserId(),request.getOperationId());
         if(prior.isEmpty())return null;
@@ -192,7 +193,7 @@ public class OrderServiceImpl implements OrderService {
             for(var line:order.getOrderLines())if(line.getPendingQty()>0){var unit=new com.mercato.Payloads.Request.FulfillmentCancelRequest.Selection();unit.setOrderLineNumber(line.getOrderLineNumber());unit.setQty(line.getPendingQty());selections.add(unit);}scope.setUnits(selections);
         }
         cancellation.cancel(scope,trigger);
-        var outcome=OrderMapper.toDTO(order,workflow,trigger);
+        var outcome=detail(order,trigger);
         workflowCommands.recordScope(order,request.getOperationId(),body,trigger,identity,request.getReason(),affected,workflowCommands.encode(outcome));
         return outcome;
     }
@@ -200,8 +201,8 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional(readOnly = true)
     public List<OrderResponseDTO> getAllOrders() {
-        return orderRepository.findAll().stream()
-                .map(o->OrderMapper.toDTO(o,workflow,TransitionTrigger.ADMIN))
+        return orderRepository.findAll(org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC,"createdAt","id")).stream()
+                .map(o->detail(o,TransitionTrigger.ADMIN))
                 .toList();
     }
 
@@ -209,9 +210,9 @@ public class OrderServiceImpl implements OrderService {
     @Transactional(readOnly = true)
     public List<OrderResponseDTO> getCurrentUserOrders() {
         EcommUser currentUser = authUtil.getLoggedInUser();
-        return orderRepository.findByCustomerEmail(currentUser.getEmail())
+        return orderRepository.findByCustomerEmailOrderByCreatedAtDescIdDesc(currentUser.getEmail())
                 .stream()
-                .map(o->OrderMapper.toDTO(o,workflow,TransitionTrigger.CUSTOMER))
+                .map(o->detail(o,TransitionTrigger.CUSTOMER))
                 .toList();
     }
 
@@ -221,20 +222,20 @@ public class OrderServiceImpl implements OrderService {
         EcommUser currentUser = authUtil.getLoggedInUser();
         Order order = orderRepository.findByOrderIdAndCustomerEmail(orderId, currentUser.getEmail())
                 .orElseThrow(() -> new ResourceNotFoundException("Order", "orderId", orderId));
-        return OrderMapper.toDTO(order,workflow,TransitionTrigger.CUSTOMER);
+        return detail(order,TransitionTrigger.CUSTOMER);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<OrderSummaryDTO> getCurrentUserOrderSummaries() {
         EcommUser currentUser = authUtil.getLoggedInUser();
-        return orderRepository.findByCustomerEmail(currentUser.getEmail()).stream().map(o->{var d=new OrderSummaryDTO(o.getOrderId(),o.getOrderStatus(),o.getPaymentStatus(),o.getTotalAmount(),o.getCreatedAt());d.setWorkflow(workflow.summarize(o));return d;}).toList();
+        return orderRepository.findByCustomerEmailOrderByCreatedAtDescIdDesc(currentUser.getEmail()).stream().map(o->{var d=new OrderSummaryDTO(o.getOrderId(),o.getOrderStatus(),o.getPaymentStatus(),o.getTotalAmount(),o.getCreatedAt());d.setWorkflow(workflow.summarize(o));return d;}).toList();
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<AdminOrderSummaryDTO> getAllOrderSummaries() {
-        return orderRepository.findAll().stream().map(o->{var d=new AdminOrderSummaryDTO(o.getOrderId(),o.getCustomerName(),o.getCustomerEmail(),o.getOrderStatus(),o.getTotalAmount(),o.getCreatedAt());d.setWorkflow(workflow.summarize(o));return d;}).toList();
+        return orderRepository.findAll(org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC,"createdAt","id")).stream().map(o->{var d=new AdminOrderSummaryDTO(o.getOrderId(),o.getCustomerName(),o.getCustomerEmail(),o.getOrderStatus(),o.getTotalAmount(),o.getCreatedAt());d.setWorkflow(workflow.summarize(o));return d;}).toList();
     }
 
     @Override
@@ -242,7 +243,7 @@ public class OrderServiceImpl implements OrderService {
     public OrderResponseDTO getOrder(String orderId) {
         Order order = orderRepository.findByOrderId(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order", "orderId", orderId));
-        return OrderMapper.toDTO(order,workflow,TransitionTrigger.ADMIN);
+        return detail(order,TransitionTrigger.ADMIN);
     }
 
 
@@ -312,6 +313,10 @@ public class OrderServiceImpl implements OrderService {
         com.mercato.Commerce.OrderMoneySnapshot.snapshot(order,cartItems);
 
         return order;
+    }
+
+    private OrderResponseDTO detail(Order order,TransitionTrigger actor) {
+        var dto=OrderMapper.toDTO(order,workflow,actor);images.enrich(dto.getOrderLines());return dto;
     }
 
     private String generateOrderId() {

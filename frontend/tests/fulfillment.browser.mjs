@@ -520,6 +520,10 @@ test('seller fulfillment workspace groups item actions and explains order timing
     await page.getByRole('heading',{name:'Items to fulfil',exact:true}).waitFor();
     await page.getByRole('img',{name:'About Fulfillment timing',exact:true}).hover();await page.getByRole('tooltip').waitFor();await page.keyboard.press('Escape');
     assert.equal(await page.locator('.fulfillment-item-actions').count(),1);
+      const product=page.locator('.fulfillment-item');
+      assert.equal(await product.locator('a.fulfillment-product-image').getAttribute('href'),'/products/P1');
+      assert.equal(await product.locator('h4 a').getAttribute('href'),'/products/P1');
+      assert.ok((await product.locator('img').getAttribute('src')).startsWith('data:image/'));
     await mkdir(new URL('../../backend/target/fulfillment-controls-review/',import.meta.url),{recursive:true});
     for(const width of [320,390,1440]){await page.setViewportSize({width,height:1000});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);await page.screenshot({path:fileURLToPath(new URL(`../../backend/target/fulfillment-controls-review/seller-${width}.png`,import.meta.url)),fullPage:true});}
   }finally{await browser.close();}

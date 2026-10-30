@@ -1,6 +1,7 @@
 import { LoadingLayout } from "../shared/LoadingStates";
 import ActionArrow from "../shared/ActionArrow";
 import SelectControl from "../shared/SelectControl";
+import { Link } from "react-router-dom";
 import { useState } from "react";
 import {
     MdSearch, MdClose, MdArrowBack,
@@ -117,14 +118,14 @@ const OrderDetail = ({ orderId, onBack }) => {
                     <SectionCard title="Order Items" icon={MdShoppingBag}>
                         {order.orderLines?.map((line, i) => (
                             <div key={i} className="flex flex-wrap items-center gap-3 py-3 border-b border-gray-50 last:border-0">
-                                <div className="w-12 h-12 rounded-xl bg-gray-50 border border-gray-100 overflow-hidden shrink-0">
+                                <Link to={`/products/${line.product?.productId}`} aria-label={`View ${line.product?.productName || "product"}`} className="w-12 h-12 rounded-xl bg-gray-50 border border-gray-100 overflow-hidden shrink-0">
                                     {line.product?.primaryImageUrl
                                         ? <img src={line.product.primaryImageUrl} alt="" className="w-full h-full object-cover" />
                                         : <div className="w-full h-full flex items-center justify-center text-gray-200 text-xl">◈</div>
                                     }
-                                </div>
+                                </Link>
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-semibold text-gray-900 line-clamp-1">{line.product?.productName}</p>
+                                    <Link to={`/products/${line.product?.productId}`} className="text-sm font-semibold text-gray-900 line-clamp-1">{line.product?.productName}</Link>
                                     <p className="text-xs text-gray-400">Qty {line.orderedQty ?? line.quantity} · {formatCurrency(line.product?.unitPrice)} each</p>
                                 </div>
                                 <span className="text-sm font-semibold text-gray-900 shrink-0">{formatCurrency(line.lineTotal)}</span>

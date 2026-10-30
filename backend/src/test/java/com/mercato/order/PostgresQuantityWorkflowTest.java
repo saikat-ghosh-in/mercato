@@ -46,7 +46,7 @@ class PostgresQuantityWorkflowTest {
     @Configuration @EnableAutoConfiguration
     @EntityScan(basePackages={"com.mercato.Entity","com.mercato.Commerce","com.mercato.Jobs"})
     @EnableJpaRepositories(basePackages={"com.mercato.Repository","com.mercato.Commerce"})
-    @Import({ShipmentService.class,SellerOrderVisibility.class,FulfillmentServiceImpl.class,com.mercato.Auth.AuthEmailJobHandler.class,com.mercato.Mail.AuthenticationMailGuard.class,com.mercato.Mail.MailActivity.class,com.mercato.Mail.TrackedMailSender.class,com.mercato.Mail.BrandedMailSender.class,com.mercato.Controller.FulfillmentWorkflowController.class,WorkflowAdoption.class,OrderServiceImpl.class,OrderLineUpdateServiceImpl.class,FulfillmentWorkflow.class,FulfillmentFunding.class,WorkflowCommands.class,FulfillmentCancellation.class,FulfillmentDeadlines.class,FulfillmentSlaMetrics.class,FulfillmentNoticeGuard.class,OrderReservationServiceImpl.class,DurableJobs.class,JobStore.class})
+    @Import({OrderProductImages.class,ShipmentService.class,SellerOrderVisibility.class,FulfillmentServiceImpl.class,com.mercato.Auth.AuthEmailJobHandler.class,com.mercato.Mail.AuthenticationMailGuard.class,com.mercato.Mail.MailActivity.class,com.mercato.Mail.TrackedMailSender.class,com.mercato.Mail.BrandedMailSender.class,com.mercato.Controller.FulfillmentWorkflowController.class,WorkflowAdoption.class,OrderServiceImpl.class,OrderLineUpdateServiceImpl.class,FulfillmentWorkflow.class,FulfillmentFunding.class,WorkflowCommands.class,FulfillmentCancellation.class,FulfillmentDeadlines.class,FulfillmentSlaMetrics.class,FulfillmentNoticeGuard.class,OrderReservationServiceImpl.class,DurableJobs.class,JobStore.class})
     static class Config {
         @Bean DelhiveryClient carrier(){return mock(DelhiveryClient.class);}
         @Bean EasyshipClient easyship(){return mock(EasyshipClient.class);}
@@ -119,6 +119,27 @@ class PostgresQuantityWorkflowTest {
     @Test void parcelSchemaIsAdditiveAndDoesNotInventLegacyShipments() {
         assertEquals(1,jdbc.queryForObject("select count(*) from information_schema.tables where table_schema=current_schema() and table_name='shipments'",Integer.class));
         assertEquals(0,jdbc.queryForObject("select count(*) from shipments where order_fk=(select id from order_snapshot where order_id=?)",Integer.class,orderId));
+    }
+    @Test void fulfillmentIncludesCurrentPrimaryImagesWithoutChangingPurchasedDetails() {
+        tx.executeWithoutResult(t->{var product=products.findByProductId(orderId+"-P").orElseThrow();product.setPrimaryImageUrl("/images/new-primary.jpg");product.setProductName("Updated catalog name");product.setRetailPrice(new BigDecimal("99"));products.saveAndFlush(product);});
+        var detail=fulfillments.getFulfillmentOrder(fulfillment).getOrderLines().get(0).getProduct();
+        assertEquals("/images/new-primary.jpg",json.valueToTree(detail).path("primaryImageUrl").asText());
+        assertEquals("Quantity product",detail.getProductName());assertEquals(0,BigDecimal.TEN.compareTo(detail.getUnitPrice()));
+        var listed=fulfillments.getOpenFulfillmentOrders().stream().filter(f->f.getFulfillmentId().equals(fulfillment)).findFirst().orElseThrow();
+        assertEquals("/images/new-primary.jpg",json.valueToTree(listed.getOrderLines().get(0).getProduct()).path("primaryImageUrl").asText());
+        IDENTITY.set("buyer@test.invalid");
+        assertEquals("/images/new-primary.jpg",json.valueToTree(orderService.getCurrentUserOrder(orderId).getOrderLines().get(0).getProduct()).path("primaryImageUrl").asText());
+        IDENTITY.set("other-seller@test.invalid");assertThrows(com.mercato.ExceptionHandler.ResourceNotFoundException.class,()->fulfillments.getFulfillmentOrder(fulfillment));
+    }
+    @Test void customerAdminAndSellerOrdersAreNewestFirst(TestInfo info) {
+        String older=orderId;fixture(info);String newer=orderId;
+        jdbc.update("UPDATE order_snapshot SET workflow_review_required=false,created_at=? WHERE order_id=?",java.sql.Timestamp.from(CONFIRMED.minusSeconds(86400)),older);
+        jdbc.update("UPDATE order_snapshot SET created_at=? WHERE order_id=?",java.sql.Timestamp.from(CONFIRMED),newer);
+        var relevant=Set.of(older,newer);
+        assertEquals(List.of(newer,older),fulfillments.getOpenFulfillmentOrders().stream().filter(x->relevant.contains(x.getOrderId())).map(x->x.getOrderId()).toList());
+        assertEquals(List.of(newer,older),orderService.getAllOrderSummaries().stream().filter(x->relevant.contains(x.getOrderId())).map(x->x.getOrderId()).toList());
+        IDENTITY.set("buyer@test.invalid");
+        assertEquals(List.of(newer,older),orderService.getCurrentUserOrderSummaries().stream().filter(x->relevant.contains(x.getOrderId())).map(x->x.getOrderId()).toList());
     }
     ShipmentService.Handoff handoff(String operation,long version,String awb,int qty){return new ShipmentService.Handoff(operation,version,awb,true,List.of(new ShipmentService.Item(1,qty)));}
     @Test void parcelsAreAtomicScopedIdempotentAndDeliveredWithoutAnotherStockDeduction() {

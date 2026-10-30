@@ -43,6 +43,8 @@ public class OrderLineResponseDTO {
         private String productId;
         private String productName;
         private BigDecimal unitPrice;
+        private String primaryImageUrl;
+        public ProductDetails(String id,String name,BigDecimal price){this(id,name,price,null);}
     }
 
     @Getter

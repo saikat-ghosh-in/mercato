@@ -33,7 +33,7 @@ public class FulfillmentOrderMapper {
                         first.getOrder().getDeliveryPincode()
                 ),
                 orderLines.stream().map(OrderLineMapper::toDTO).toList(),
-                first.getCreatedAt()
+                first.getOrder().getCreatedAt()
         );
     }
 }

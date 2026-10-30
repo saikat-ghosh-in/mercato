@@ -1,8 +1,8 @@
 import { Spinner } from "../shared/Spinner";
-import { LoadingLayout, Skeleton as ImageSkeleton } from "../shared/LoadingStates";
+import { LoadingLayout } from "../shared/LoadingStates";
 import PageHeading from "../shared/PageHeading";
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import {
   MdArrowBack, MdLocationOn, MdPayment, MdShoppingBag,
@@ -10,7 +10,6 @@ import {
   MdSync, MdAutorenew
 } from "react-icons/md";
 import toast from "../../utils/toastUtils.js";
-import api from "../../backend/api";
 import { formatCurrency } from "../../utils/formatCurrency";
 import { formatDate } from "../../utils/formatDate";
 import ShipmentPanel from "./ShipmentPanel";
@@ -110,35 +109,18 @@ const InfoRow = ({ label, value, mono, copyable, color, last }) => {
 
 const OrderLineItem = ({ line, version, onLineUpdate, refreshing }) => {
   const navigate = useNavigate();
-  const [fullProduct, setFullProduct] = useState(null);
-  const [imageLoading, setImageLoading] = useState(() => !line.product?.primaryImageUrl && Boolean(line.product?.productId));
-
-  // Fetch full product details if primaryImageUrl is missing
-  useEffect(() => {
-    const controller = new AbortController();
-    if (!line.product?.primaryImageUrl && line.product?.productId) {
-      api.get(`/public/products/${line.product.productId}`, {signal:controller.signal})
-        .then(({ data }) => { if (!controller.signal.aborted) setFullProduct(data); })
-        .catch(err => console.error(`Failed to fetch product ${line.product.productId}:`, err))
-        .finally(() => { if (!controller.signal.aborted) setImageLoading(false); });
-    }
-    return () => controller.abort();
-  }, [line.product?.productId, line.product?.primaryImageUrl]);
-
   const sellerName = line.seller?.name ?? "Unknown Seller";
 
   return (
     <>
       <div className="customer-order-item">
-        <div className="customer-order-image">
-          {imageLoading ? (
-            <ImageSkeleton shape="block" className="w-full h-full" />
-          ) : (fullProduct?.primaryImageUrl || line.product?.primaryImageUrl) ? (
-            <img src={fullProduct?.primaryImageUrl || line.product?.primaryImageUrl} alt={line.product.productName} className="w-full h-full object-cover" />
+        <Link to={`/products/${line.product?.productId}`} aria-label={`View ${line.product?.productName || "product"}`} className="customer-order-image">
+          {line.product?.primaryImageUrl ? (
+            <img src={line.product.primaryImageUrl} alt={line.product.productName} className="w-full h-full object-cover" />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-gray-200 text-2xl select-none">◈</div>
           )}
-        </div>
+        </Link>
 
         <div className="customer-order-item-content min-w-0">
           <button className="text-sm font-semibold text-gray-900 text-left hover:text-blue-600" onClick={() => navigate(`/products/${line.product.productId}`)}>{line.product?.productName ?? "Product"}</button>
