@@ -76,7 +76,7 @@ public class FulfillmentWorkflow {
             case ACCEPT -> l.getOrderedQty()-l.getCancelledQty()-l.getAcceptedQty();
             case START_PREPARING -> l.getAcceptedQty()-l.getPreparingQty();
             case MARK_PACKED -> l.getPreparingQty()-l.getPackedQty();
-            case SHIP -> l.getPackedQty()-l.getShippedQty();
+            case SHIP -> l.getAcceptedQty()-l.getShippedQty();
             case DELIVER -> l.getShippedQty()-l.getDeliveredQty();
             case CANCEL -> l.getOrderedQty()-l.getCancelledQty()-(actor==TransitionTrigger.CUSTOMER?l.getPreparingQty():l.getShippedQty());
             default -> 0;

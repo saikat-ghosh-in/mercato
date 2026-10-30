@@ -114,7 +114,7 @@ export function QuantityCommand({label, maximum, version, endpoint, makeBody, on
     } finally { if (current()) setBusy(false); }
   };
   return <>
-    <button type="button" className={`button button-outline ${cancellation ? 'text-red-600' : ''}`}
+    <button type="button" className={`button ${cancellation ? 'button-danger' : 'button-outline'}`}
       disabled={disabled || busy || !maximum || !versionKnown} onClick={() => {if(!quantityEdited)setQuantity(String(maximum));setOpen(true);}}>{label}</button>
     {open && <ModalFrame title={label} onClose={() => {if (!busy) setOpen(false);}}>
       <form className="workflow-command-form surface p-5 w-full space-y-4" onSubmit={submit}>

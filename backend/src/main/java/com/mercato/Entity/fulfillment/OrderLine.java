@@ -206,11 +206,14 @@ public class OrderLine {
     public void ship(int qty) {
         if (qty <= 0)
             throw new IllegalArgumentException("Shipped qty must be greater than 0");
-        if (qty > packedQty - shippedQty)
+        if (qty > acceptedQty - shippedQty)
             throw new IllegalArgumentException(
-                    "Cannot ship more than packed qty: " + (packedQty - shippedQty)
+                    "Cannot ship more than accepted qty: " + (acceptedQty - shippedQty)
             );
         this.shippedQty += qty;
+        // Carrier handoff also attests that these accepted units were prepared and packed.
+        this.preparingQty = Math.max(preparingQty, shippedQty);
+        this.packedQty = Math.max(packedQty, shippedQty);
         this.revenue = this.unitPrice.multiply(BigDecimal.valueOf(this.shippedQty));
     }
 

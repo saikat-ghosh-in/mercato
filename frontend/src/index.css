@@ -1002,6 +1002,8 @@ html[data-input=keyboard] .report-timeframe-panel,html[data-input=keyboard] .fie
 @media (prefers-reduced-motion:reduce) { .accordion-content,.accordion-chevron,.accordion-trigger { transition:none; } }
 :root[data-input=keyboard] .accordion-chevron { transition:none; }
 /* Linked product thumbnails retain the same reserved dimensions as their cards. */
+.app-page .button-danger{color:#a52424;background:#fff7f7;border:1px solid #e9bcbc}
+@media(hover:hover) and (pointer:fine){.app-page .button-danger:hover{background:#ffecec;border-color:#d99a9a}}
 .fulfillment-card-thumbnails>a{width:42px;height:48px;display:grid;place-items:center;background:#f6f6f5;border-radius:5px;overflow:hidden;color:#a2a7af}
 .checkout-summary-previews>a{position:relative;display:block;width:64px;height:76px;flex-shrink:0;background:#f6f6f5;border-radius:6px;overflow:hidden}
 .checkout-summary-previews>a img{width:100%;height:100%;object-fit:contain}

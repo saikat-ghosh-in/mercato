@@ -43,7 +43,7 @@ const FulfillmentDetail = ({ fulfillmentId, onBack }) => {
     <div className="fulfillment-overview surface"><WorkflowProgress record={fo}/><p className="text-xs text-gray-500">Update each item as it moves through fulfillment. Quantities are selected for you.</p></div>
     <div className="fulfillment-detail-grid">
       <div className="min-w-0 space-y-5">
-        <SectionCard><div className="fulfillment-section-heading"><div><h3>Items to fulfil</h3><p>Accept → Prepare → Pack → Ship</p></div><span className="text-xs text-gray-500">{fo.orderLines?.length||0} items</span></div>
+        <SectionCard><div className="fulfillment-section-heading"><div><h3>Items to fulfil</h3><p>Accept → Ship · Prepare and Pack are optional</p></div><span className="text-xs text-gray-500">{fo.orderLines?.length||0} items</span></div>
           <div className="divide-y divide-gray-100">{fo.orderLines?.map(line=><article key={`${epoch}:${fulfillmentId}:${line.orderLineNumber}`} className="fulfillment-item">
             <Link to={`/products/${line.product?.productId}`} aria-label={`View ${line.product?.productName || "product"}`} className="fulfillment-product-image">{line.product?.primaryImageUrl?<img src={line.product.primaryImageUrl} alt="" loading="lazy"/>:<MdLocalShipping aria-hidden="true" size={23}/>}</Link>
             <div className="min-w-0"><div className="fulfillment-item-heading"><h4><Link to={`/products/${line.product?.productId}`}>{line.product?.productName||'Product'}</Link></h4><WorkflowBadge record={line}/></div>

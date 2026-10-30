@@ -116,6 +116,19 @@ class PostgresQuantityWorkflowTest {
         updates.updateOrderLine(request(OrderLineAction.MARK_PACKED,10,2,"pack"),TransitionTrigger.SELLER);
     }
     void currentCaptureProof(){tx.executeWithoutResult(t->{var p=orders.lockByOrderId(orderId).orElseThrow().getPayment();p.setCaptureVerifiedAt(CONFIRMED);p.setCaptureEvidenceId("synthetic-reader-proof");});}
+    @Test void acceptedUnitsShipDirectlyWithoutOptionalPreparationAndPacking() {
+        currentCaptureProof();
+        assertFalse(shipmentService.read(fulfillment,TransitionTrigger.SELLER,true).canCreate());
+        updates.updateOrderLine(request(OrderLineAction.ACCEPT,6,0,"direct-accept"),TransitionTrigger.SELLER);
+        var view=shipmentService.read(fulfillment,TransitionTrigger.SELLER,true);assertEquals(6,view.handoffItems().get(0).maximum());
+        var result=shipmentService.create(fulfillment,TransitionTrigger.SELLER,handoff("direct-ship",1,"DIRECT"+orderId,4));
+        assertEquals(1,result.shipments().size());var l=snapshot();
+        assertEquals(4,l.getShippedQty());assertEquals(4,l.getPackedQty());assertEquals(4,l.getPreparingQty());assertEquals(6,l.getAcceptedQty());assertTrue(l.validQuantities());
+        assertEquals(2,result.handoffItems().get(0).maximum());
+        assertEquals(16,products.findByProductId(orderId+"-P").orElseThrow().getPhysicalQty());
+        shipmentService.create(fulfillment,TransitionTrigger.SELLER,handoff("direct-ship",1,"DIRECT"+orderId,4));
+        assertEquals(4,snapshot().getShippedQty());
+    }
     @Test void parcelSchemaIsAdditiveAndDoesNotInventLegacyShipments() {
         assertEquals(1,jdbc.queryForObject("select count(*) from information_schema.tables where table_schema=current_schema() and table_name='shipments'",Integer.class));
         assertEquals(0,jdbc.queryForObject("select count(*) from shipments where order_fk=(select id from order_snapshot where order_id=?)",Integer.class,orderId));

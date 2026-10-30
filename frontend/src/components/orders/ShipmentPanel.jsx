@@ -12,7 +12,7 @@ const labels={ SHIPPED:'Shipped', OUT_FOR_DELIVERY:'Out for delivery', DELIVERED
 export function ShipmentLineAction({ data, fulfillmentId, lineNumber, onOpen, disabled=false }) {
   const item=data?.handoffItems?.find(value=>value.fulfillmentId===fulfillmentId&&value.lineNumber===lineNumber&&value.maximum>0);
   if(!item)return null;
-  return <span className="inline-flex items-center gap-1"><button type="button" className="button button-outline" disabled={disabled} onClick={()=>onOpen({fulfillmentId,lineNumber,requestId:crypto.randomUUID()})}>Mark shipped</button><InfoHint label="Mark shipped">Generate sandbox tracking for this item, then confirm its carrier handoff. Packing alone does not mark an item shipped.</InfoHint></span>;
+  return <span className="inline-flex items-center gap-1"><button type="button" className="button button-dark" disabled={disabled} onClick={()=>onOpen({fulfillmentId,lineNumber,requestId:crypto.randomUUID()})}>Mark shipped</button><InfoHint label="Mark shipped">After accepting, you can ship directly. Confirm that the selected items are packed and handed to the carrier; preparation and packing updates are optional.</InfoHint></span>;
 }
 
 export default function ShipmentPanel({ scope='customer', recordId, version, onChanged, onData, lineRequest }) {
@@ -42,7 +42,7 @@ function ShipmentContent({ scope, recordId, version, onChanged, onData, lineRequ
     if(!lineRequest||handledLine.current===lineRequest.requestId||!data)return;
     handledLine.current=lineRequest.requestId;
     const item=data.handoffItems?.find(value=>value.fulfillmentId===lineRequest.fulfillmentId&&value.lineNumber===lineRequest.lineNumber&&value.maximum>0);
-    if(!item){setMessage('No packed units are available to ship for this item.');return;}
+    if(!item){setMessage('No accepted units are available to ship for this item.');return;}
     const saved=generations.get(`${item.fulfillmentId}:${item.lineNumber}`);
     draftGeneration.current++;setGenerating(false);setGenerationAttempted(Boolean(saved?.attempted));setGenerationRetryAt(saved?.retryAt||0);submission.clear();setMessage(saved?.result?.message||'');setDraft({type:'handoff',fulfillmentId:item.fulfillmentId,lineNumber:item.lineNumber,waybill:saved?.result?.waybill||'',easyshipShipmentId:saved?.result?.easyshipShipmentId||'',quantities:{[item.lineNumber]:String(item.maximum)},confirmed:false});
   },[lineRequest,data,submission,generations]);
@@ -168,7 +168,7 @@ function ShipmentContent({ scope, recordId, version, onChanged, onData, lineRequ
         {draft.type!=='delivered'&&<label className="block text-sm">Tracking number<input aria-label="Tracking number" className="mt-2 w-full border rounded-lg px-3 py-2 text-base" value={draft.waybill} maxLength={80} required disabled={busy||generating} onChange={event=>edit({waybill:event.target.value.trim()})} /></label>}
         {needsEasyshipId&&draft.type!=='delivered'&&<label className="block text-sm">Easyship shipment ID<input aria-label="Easyship shipment ID" className="mt-2 w-full border rounded-lg px-3 py-2 text-base" value={draft.easyshipShipmentId||''} maxLength={80} placeholder="ESIN10000001" required disabled={busy||generating} onChange={event=>edit({easyshipShipmentId:event.target.value.trim()})} /><span className="block mt-1 text-xs text-gray-500">{data?.canGenerateTracking?'Filled automatically when you generate sandbox tracking.':'Use the shipment ID from your Easyship sandbox account.'}</span></label>}
         {draft.type==='handoff'?<>
-          <p className="text-xs text-gray-500">Choose how many packed units of this item were handed to the carrier.</p>
+          <p className="text-xs text-gray-500">Choose how many accepted units are packed and handed to the carrier.</p>
           {eligible.map(item=><label key={item.lineNumber} className="block text-sm break-words">{item.productName}<span className="block text-xs text-gray-500">Maximum {item.maximum}</span><input aria-label={`Ship quantity for ${item.productName}`} className="mt-1 w-full border rounded-lg px-3 py-2 text-base" type="number" inputMode="numeric" min="0" max={item.maximum} step="1" value={draft.quantities[item.lineNumber]??'0'} disabled={busy||generating} onChange={event=>edit({quantities:{...draft.quantities,[item.lineNumber]:event.target.value}})} /></label>)}
           <label className="flex items-start gap-2 text-sm"><input type="checkbox" checked={draft.confirmed} disabled={busy||generating} onChange={event=>edit({confirmed:event.target.checked})} />I confirm these items were handed to the carrier.</label>
         </>:<label className="block text-sm">Reason<textarea aria-label="Audit reason" className="mt-2 w-full border rounded-lg px-3 py-2 text-base" rows={3} maxLength={500} value={draft.reason} disabled={busy} required onChange={event=>edit({reason:event.target.value})} /></label>}

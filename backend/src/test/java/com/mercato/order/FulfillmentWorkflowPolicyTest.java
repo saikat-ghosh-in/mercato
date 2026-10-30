@@ -37,4 +37,15 @@ class FulfillmentWorkflowPolicyTest {
         var l=line();l.getOrder().getPayment().setCapturedAt(null);assertEquals(0,policy(CONFIRMED.plusSeconds(7200)).maximum(l,TransitionTrigger.SELLER,OrderLineAction.ACCEPT));
         l=line();l.setAcceptedQty(11);assertEquals(0,policy(CONFIRMED.plusSeconds(7200)).maximum(l,TransitionTrigger.SELLER,OrderLineAction.CANCEL));
     }
+    @Test void directShippingPreservesMixedUnitAttributionAndRequiresAcceptance(){
+        var l=line();
+        for(int n=1;n<=10;n++){var u=new OrderMoneyUnit();u.setUnitId("unit-"+n);u.setUnitNumber(n);u.setOrderLine(l);u.setState(OrderUnitState.initial(u));l.getMoneyUnits().add(u);}
+        com.mercato.Commerce.UnitFinancials.transition(l,OrderLineAction.ACCEPT,8,TransitionTrigger.SELLER,"accept",CONFIRMED);l.accept(8);
+        com.mercato.Commerce.UnitFinancials.transition(l,OrderLineAction.START_PREPARING,5,TransitionTrigger.SELLER,"prepare",CONFIRMED);l.startPreparing(5);
+        com.mercato.Commerce.UnitFinancials.transition(l,OrderLineAction.MARK_PACKED,2,TransitionTrigger.SELLER,"pack",CONFIRMED);l.markPacked(2);
+        com.mercato.Commerce.UnitFinancials.transition(l,OrderLineAction.SHIP,6,TransitionTrigger.ADMIN,"ship",CONFIRMED);l.ship(6);
+        assertEquals(6,l.getPreparingQty());assertEquals(6,l.getPackedQty());assertEquals(6,l.getShippedQty());
+        assertTrue(l.validQuantities());assertTrue(com.mercato.Commerce.UnitFinancials.attributed(l));
+        assertThrows(IllegalArgumentException.class,()->l.ship(3));
+    }
 }
