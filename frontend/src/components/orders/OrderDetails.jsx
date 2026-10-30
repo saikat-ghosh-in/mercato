@@ -129,8 +129,8 @@ const OrderLineItem = ({ line, version, onLineUpdate, refreshing }) => {
 
   return (
     <>
-      <div className="flex items-start gap-3 py-3 last:pb-0 border-b border-gray-100 last:border-0 rounded-lg px-1">
-        <div className="w-14 h-14 rounded-xl bg-gray-50 border border-gray-100 overflow-hidden shrink-0">
+      <div className="customer-order-item">
+        <div className="customer-order-image">
           {imageLoading ? (
             <ImageSkeleton shape="block" className="w-full h-full" />
           ) : (fullProduct?.primaryImageUrl || line.product?.primaryImageUrl) ? (
@@ -140,7 +140,7 @@ const OrderLineItem = ({ line, version, onLineUpdate, refreshing }) => {
           )}
         </div>
 
-        <div className="flex-1 min-w-0">
+        <div className="customer-order-item-content min-w-0">
           <button className="text-sm font-semibold text-gray-900 text-left hover:text-blue-600" onClick={() => navigate(`/products/${line.product.productId}`)}>{line.product?.productName ?? "Product"}</button>
           {/* Seller and unit price */}
           <p className="text-xs text-gray-400 mt-0.5">
@@ -150,7 +150,7 @@ const OrderLineItem = ({ line, version, onLineUpdate, refreshing }) => {
           <div className="mt-2"><QuantityCommand label="Cancel units" cancellation maximum={actionMaximum(line,'CANCEL')} version={version} endpoint="/user/fulfillment/commands" makeBody={(qty,reason) => ({fulfillmentId:line.fulfillmentId,orderLineNumber:line.orderLineNumber,action:'CANCEL',qty,reason})} onComplete={onLineUpdate} disabled={refreshing} /></div>
         </div>
 
-        <div className="flex flex-col items-end gap-1 shrink-0">
+        <div className="customer-order-item-price">
           <span className="text-sm font-semibold text-gray-900">{formatCurrency(line.lineTotal)}</span>
 
         </div>
@@ -212,7 +212,7 @@ const OrderDetails = ({ orderId }) => {
         <PageHeading title={"Order #" + order.orderId} description={"Placed on " + formatDate(order.createdAt)}><button type="button" className="button button-outline" onClick={() => navigate("/orders")}><MdArrowBack aria-hidden="true" /> All orders</button></PageHeading>
 
         {error && <p role="alert" className="text-sm text-red-700">{error} <button className="text-link" onClick={fetchOrder}>Retry refresh</button></p>}
-        <div className="surface p-4 mb-4 space-y-3"><WorkflowProgress record={order} audience="customer" showState={false} /><p className="text-sm text-gray-600">You can repeatedly cancel unprepared units, even when other units have advanced. Preparation ends cancellation eligibility for those units.</p><QuantityCommand key={`${epoch}:${orderId}:whole`} label="Cancel entire order" cancellation whole maximum={canCancelOrder ? 1 : 0} version={order.workflow?.version} endpoint="/user/fulfillment/cancellations" makeBody={(_qty,reason) => ({orderId:order.orderId,reason})} onComplete={fetchOrder} disabled={loading} /><CancellationPolicy /></div>
+        <div aria-label="Order progress" className="surface p-5 mb-5 space-y-3"><WorkflowProgress record={order} audience="customer" showState={false} /><p className="text-sm text-gray-600">You can cancel items until preparation starts.</p><QuantityCommand key={`${epoch}:${orderId}:whole`} label="Cancel entire order" cancellation whole maximum={canCancelOrder ? 1 : 0} version={order.workflow?.version} endpoint="/user/fulfillment/cancellations" makeBody={(_qty,reason) => ({orderId:order.orderId,reason})} onComplete={fetchOrder} disabled={loading} /><CancellationPolicy /></div>
         {/* Status banner */}
         <StatusBanner order={order} onRetrySuccess={() => fetchOrder(true)} />
         <div className="mb-4"><ShipmentPanel recordId={orderId} version={order.workflow?.version} onChanged={fetchOrder} /></div>

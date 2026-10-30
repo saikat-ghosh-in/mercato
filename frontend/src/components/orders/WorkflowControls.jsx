@@ -3,22 +3,39 @@ import api, { session } from '../../backend/api';
 import { createSubmission, remainingUntil, workflowSummary, cancellationPolicy } from '../../utils/fulfillment';
 import ModalFrame from '../shared/ModalFrame';
 import Accordion from '../shared/Accordion';
+import SelectControl from '../shared/SelectControl';
+import InfoButton from '../shared/InfoButton';
+
+const cancellationReasons={
+  seller:['Out of stock','Unable to fulfil this item','Item damaged or unavailable','Listing or pricing error'],
+  customer:['Changed my mind','Ordered by mistake','Found a better price','Delivery is taking too long','Need to change delivery address'],
+  admin:['Customer requested cancellation','Seller unable to fulfil','Item unavailable'],
+};
+const actionHelp={
+  Accept:'Confirm the units you can fulfil. You can start preparing them next.',
+  'Start preparing':'Use this when work starts on these units. Customers can no longer cancel prepared units themselves.',
+  'Mark as packed':'Confirm these units are packed. Mark them shipped separately when the carrier handoff is complete.',
+};
+const statusTone=label=>/cancel/i.test(label)?'cancelled':/delivered/i.test(label)?'delivered':/shipped/i.test(label)?'shipped':/packed/i.test(label)?'packed':/prepar/i.test(label)?'preparing':/payment|funding|review/i.test(label)?'waiting':'processing';
+export function WorkflowBadge({record,audience='operations'}){
+  const {label}=workflowSummary(record,audience);
+  return <span className="workflow-state" data-status={statusTone(label)}>{label}</span>;
+}
 
 export function WorkflowProgress({record, showState=true, showQuantity=true, audience='operations'}) {
   const workflow = record?.workflow;
   const {quantity, label, segments} = workflowSummary(record, audience);
-  return <div className="space-y-2">
-    {(showState || (showQuantity && quantity !== null)) && <p className="text-sm font-semibold text-gray-900">
+  return <div className="workflow-progress space-y-2">
+    {(showState || (showQuantity && quantity !== null)) && <p className="workflow-progress-title text-sm font-semibold text-gray-900">
       {showQuantity && quantity !== null && <span className="tabular-nums">Qty {quantity}</span>}
       {showState && showQuantity && quantity !== null && ' · '}
-      {showState && label}
+      {showState && <span className="workflow-state" data-status={statusTone(label)}>{label}</span>}
     </p>}
-    {segments.length > 0 && <dl aria-label="Quantity breakdown" className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-600">
-      {segments.map(segment => <div key={segment.label}>
-        <dt className="inline">{segment.label}: </dt>
-        <dd className="inline font-semibold tabular-nums">{segment.quantity}</dd>
+    {segments.length > 0 && <><div className="quantity-distribution" aria-hidden="true">{segments.map(segment=><span key={segment.label} data-status={statusTone(segment.label)} style={{flex:segment.quantity}} />)}</div><dl aria-label="Quantity breakdown" className="quantity-legend">
+      {segments.map(segment => <div key={segment.label} className="quantity-chip" data-status={statusTone(segment.label)}>
+        <dt className="inline">{segment.label}: </dt><dd className="inline font-semibold tabular-nums">{segment.quantity}</dd>
       </div>)}
-    </dl>}
+    </dl></>}
     {workflow?.reviewRequired && <p role="status" className="text-sm text-amber-800">Workflow review required: {workflow.reviewReason || 'Actions await verification.'}</p>}
   </div>;
 }
@@ -60,8 +77,10 @@ export function CancellationPolicy() {
 
 export function QuantityCommand({label, maximum, version, endpoint, makeBody, onComplete, cancellation=false, whole=false, disabled=false}) {
   const [open, setOpen] = useState(false);
-  const [quantity, setQuantity] = useState('1');
+  const [quantity, setQuantity] = useState(String(maximum || 1));
+  const [quantityEdited, setQuantityEdited] = useState(false);
   const [reason, setReason] = useState('');
+  const [reasonChoice, setReasonChoice] = useState('');
   const [confirmed, setConfirmed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -70,8 +89,10 @@ export function QuantityCommand({label, maximum, version, endpoint, makeBody, on
   useEffect(() => { lifetime.active=true; return () => {lifetime.active=false;}; }, [lifetime]);
   if (!maximum && !open) return null;
   const qty = Number(quantity);
+  const selectedReason=reasonChoice==='OTHER'?reason.trim():reasonChoice;
+  const audience=endpoint.startsWith('/seller/')?'seller':endpoint.startsWith('/user/')?'customer':'admin';
   const versionKnown = Number.isSafeInteger(version) && version >= 0;
-  const valid = Number.isSafeInteger(qty) && qty >= 1 && qty <= maximum && versionKnown && (!cancellation || (reason.trim().length > 0 && reason.trim().length <= 500 && confirmed));
+  const valid = Number.isSafeInteger(qty) && qty >= 1 && qty <= maximum && versionKnown && (!cancellation || (selectedReason.length > 0 && selectedReason.length <= 500 && confirmed));
   const edit = update => { submission.clear(); setError(''); update(); };
   const submit = async event => {
     event.preventDefault();
@@ -80,9 +101,9 @@ export function QuantityCommand({label, maximum, version, endpoint, makeBody, on
     const current=() => lifetime.active && epoch===session.getSnapshot().epoch;
     setBusy(true); setError('');
     try {
-      await api.post(endpoint, submission.payload(makeBody(qty, reason.trim()), version));
+      await api.post(endpoint, submission.payload(makeBody(qty, selectedReason), version));
       if (!current()) return;
-      submission.clear(); setOpen(false); setConfirmed(false); await onComplete();
+      submission.clear(); setOpen(false); setConfirmed(false); setQuantityEdited(false); setReasonChoice(''); setReason(''); await onComplete();
     } catch (failure) {
       if (!current()) return;
       if (failure.response?.status===409) {
@@ -94,22 +115,25 @@ export function QuantityCommand({label, maximum, version, endpoint, makeBody, on
   };
   return <>
     <button type="button" className={`button button-outline ${cancellation ? 'text-red-600' : ''}`}
-      disabled={disabled || busy || !maximum || !versionKnown} onClick={() => setOpen(true)}>{label}</button>
+      disabled={disabled || busy || !maximum || !versionKnown} onClick={() => {if(!quantityEdited)setQuantity(String(maximum));setOpen(true);}}>{label}</button>
     {open && <ModalFrame title={label} onClose={() => {if (!busy) setOpen(false);}}>
       <form className="workflow-command-form surface p-5 w-full space-y-4" onSubmit={submit}>
-        <h2 className="text-base font-semibold">{label}</h2>
+        <div className="flex items-center gap-2"><h2 className="text-base font-semibold">{label}</h2><InfoButton label={label}>{cancellation?'Choose eligible units and a reason. Other units stay in the order; refunds follow the cancellation policy.':actionHelp[label]||'Choose how many eligible units to update. The available maximum is selected initially.'}</InfoButton></div>
         {!whole && <label className="block text-sm">
           Quantity <span className="text-gray-500">(maximum {maximum})</span>
           <input className="mt-2 w-full min-h-11 rounded-lg border border-gray-200 px-3 py-2 text-base" aria-label="Quantity" type="number" inputMode="numeric"
             min="1" max={maximum} step="1" required value={quantity} disabled={busy}
-            onChange={event => edit(() => setQuantity(event.target.value))} />
+            onChange={event => edit(() => {setQuantityEdited(true);setQuantity(event.target.value);})} />
         </label>}
         {cancellation && <>
-          <label className="block text-sm">Reason
+          <div className="space-y-2"><p className="text-sm">Reason</p><SelectControl aria-label="Cancellation reason" value={reasonChoice} disabled={busy} required onChange={event=>edit(()=>setReasonChoice(event.target.value))}>
+            <option value="" disabled>Select a reason</option>{cancellationReasons[audience].map(value=><option key={value} value={value}>{value}</option>)}<option value="OTHER">Other</option>
+          </SelectControl></div>
+          {reasonChoice==='OTHER'&&<label className="block text-sm">Tell us the reason
             <textarea aria-label="Reason" className="mt-2 w-full rounded-lg border border-gray-200 px-3 py-2 text-base" rows={3} maxLength={500} required
               value={reason} disabled={busy} onChange={event => edit(() => setReason(event.target.value))} />
-          </label>
-          <p className="text-sm text-gray-600">{whole ? 'Cancel all remaining eligible units.' : `Cancel ${Number.isSafeInteger(qty) ? qty : 'selected'} unit(s). Other units stay in the order.`}</p>
+          </label>}
+          <p className="text-sm text-gray-600">{whole ? 'Cancel all remaining eligible units.' : `Cancel ${Number.isSafeInteger(qty) ? qty : 'selected'} unit(s) from this order.`}</p>
           <label className="flex items-start gap-2 text-sm">
             <input type="checkbox" checked={confirmed} disabled={busy} onChange={event => setConfirmed(event.target.checked)} />
             I confirm this cancellation.

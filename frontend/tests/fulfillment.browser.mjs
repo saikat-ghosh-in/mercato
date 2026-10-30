@@ -10,7 +10,7 @@ async function fixture(component='seller', setup) {
     import React from 'react'; import {createRoot} from 'react-dom/client';
     import FulfillmentTab from './src/components/seller/FulfillmentTab.jsx';
     import OrderDetails from './src/components/orders/OrderDetails.jsx';
-    import ShipmentPanel from './src/components/orders/ShipmentPanel.jsx';
+    import ShipmentPanel, {ShipmentLineAction} from './src/components/orders/ShipmentPanel.jsx';
     import OrdersTab from './src/components/admin/OrdersTab.jsx';
     import Orders from './src/components/orders/Orders.jsx';
     import {privateApi} from './src/reduxStore/services/privateApi.js';
@@ -22,8 +22,9 @@ async function fixture(component='seller', setup) {
     import {MemoryRouter} from 'react-router-dom';
     import {Provider} from 'react-redux'; import {configureStore} from '@reduxjs/toolkit';
     const store=configureStore({reducer:{cart:()=>({deliveryOptions:[],deliveryMethod:'STANDARD',cartLoading:false}),[privateApi.reducerPath]:privateApi.reducer},middleware:get=>get().concat(privateApi.middleware)});
+    function ShipFixture({scope}){const [request,setRequest]=React.useState(null);const [data,setData]=React.useState(null);return <><div>{(data?.handoffItems||[]).map(item=><div key={item.lineNumber}><ShipmentLineAction data={data} fulfillmentId={item.fulfillmentId} lineNumber={item.lineNumber} onOpen={setRequest}/></div>)}</div><ShipmentPanel scope={scope} recordId={scope==='seller'?'F1':'O1'} onData={setData} lineRequest={request}/></>;}
     function Resource(){const [url,setUrl]=React.useState('/one');const value=useWorkflowResource(url);window.refresh=value.refresh;window.selectUrl=setUrl;return <p>{value.data?.name || 'Loading'}{value.error}</p>;}
-    window.render=() => createRoot(document.getElementById('root')).render(<Provider store={store}><MemoryRouter initialEntries={[${component==='orders'?'"/orders?orderId=O1"':'"/"'}]}>${component==='shipment-seller'?'<ShipmentPanel scope="seller" recordId="F1" />':component==='shipment-customer'?'<ShipmentPanel recordId="O1" version={3} onChanged={()=>{window.parentRefreshes=(window.parentRefreshes||0)+1;}} />':component==='shipment-admin'?'<ShipmentPanel scope="admin" recordId="O1" />':component==='seller'?'<FulfillmentTab />':component==='admin'?'<OrdersTab />':component==='orders'?'<Orders />':component==='resource'?'<Resource />':component==='help'?'<Help />':component==='finance'?'<><RevenueCards revenue={{allTime:189,thisMonth:189,today:189,averagePerOrder:63}} admin/><MarketplaceFinance admin/></>':component==='checkout'?'<ReviewPaymentStep selectedAddress={{}} cartWithProducts={[]} />':'<OrderDetails orderId="O1" />'}</MemoryRouter></Provider>);
+    window.render=() => createRoot(document.getElementById('root')).render(<Provider store={store}><MemoryRouter initialEntries={[${component==='orders'?'"/orders?orderId=O1"':'"/"'}]}>${component==='shipment-seller'?'<ShipFixture scope="seller" />':component==='shipment-customer'?'<ShipmentPanel recordId="O1" version={3} onChanged={()=>{window.parentRefreshes=(window.parentRefreshes||0)+1;}} />':component==='shipment-admin'?'<ShipFixture scope="admin" />':component==='seller'?'<FulfillmentTab />':component==='admin'?'<OrdersTab />':component==='orders'?'<Orders />':component==='resource'?'<Resource />':component==='help'?'<Help />':component==='finance'?'<><RevenueCards revenue={{allTime:189,thisMonth:189,today:189,averagePerOrder:63}} admin/><MarketplaceFinance admin/></>':component==='checkout'?'<ReviewPaymentStep selectedAddress={{}} cartWithProducts={[]} />':'<OrderDetails orderId="O1" />'}</MemoryRouter></Provider>);
     window.render();`,resolveDir:root,loader:'jsx'},bundle:true,write:false,jsx:'automatic',plugins:[{name:'fixture',setup(build){
       build.onResolve({filter:/backend\/api(?:\.js)?$/},() => ({path:'api',namespace:'fixture'}));
       build.onResolve({filter:/toastUtils(?:\.js)?$/},() => ({path:'toast',namespace:'fixture'}));
@@ -61,6 +62,8 @@ async function fixture(component='seller', setup) {
   return {browser,page};
   } catch(error){await browser.close();throw error;}
 }
+
+async function chooseOtherReason(page,text){await page.getByRole('button',{name:'Cancellation reason',exact:true}).click();await page.getByRole('option',{name:'Other',exact:true}).click();await page.getByLabel('Reason',{exact:true}).fill(text);}
 
 test('shipment seller handoff validates quantities, retries one identity and retains conflict drafts',async()=>{
   const {browser,page}=await fixture('shipment-seller',()=>{
@@ -109,6 +112,27 @@ test('Easyship handoff requires a shipment ID, retains it on failure and fits a 
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth),false);
     await mkdir(new URL('../../backend/target/easyship-review/',import.meta.url),{recursive:true});
     await page.screenshot({path:fileURLToPath(new URL('../../backend/target/easyship-review/handoff-320.png',import.meta.url)),fullPage:true});
+  }finally{await browser.close();}
+});
+
+test('per-item shipping defaults to its maximum and sandbox generation recovers one request identity',async()=>{
+  const {browser,page}=await fixture('shipment-seller',()=>{
+    window.shipments={shipments:[],handoffItems:[{fulfillmentId:'F1',lineNumber:1,productName:'First item',maximum:2},{fulfillmentId:'F1',lineNumber:2,productName:'Second item',maximum:5}],version:7,trackingProvider:'EASYSHIP',canGenerateTracking:true};
+    window.fixtureGet=async()=>({data:window.shipments});
+    window.fixturePost=async(url,body)=>{window.posts.push({url,body});if(window.posts.length===1)throw Error('offline');return {data:{state:'READY',waybill:'MCT123456',easyshipShipmentId:'ESIN10000025',message:'Sandbox tracking is ready.'}};};
+  });
+  try{
+    await page.setViewportSize({width:320,height:740});await page.getByRole('button',{name:'Mark shipped',exact:true}).nth(1).click();
+    assert.equal(await page.getByRole('spinbutton').inputValue(),'5');assert.equal(await page.getByRole('spinbutton').count(),1);
+    await page.getByRole('button',{name:'About Shipping and tracking',exact:true}).click();await page.getByRole('note').waitFor();await page.keyboard.press('Escape');
+    await page.getByRole('button',{name:'Generate sandbox tracking',exact:true}).click();await page.getByRole('alert').waitFor();
+    await page.getByRole('button',{name:'Close',exact:true}).click();await page.getByRole('button',{name:'Mark shipped',exact:true}).nth(1).click();
+    await page.waitForTimeout(10100);await page.getByRole('button',{name:'Check again',exact:true}).click();
+    await page.waitForFunction(()=>document.querySelector('input[aria-label="Easyship shipment ID"]')?.value==='ESIN10000025');
+    assert.equal(await page.getByLabel('Tracking number',{exact:true}).inputValue(),'MCT123456');
+    const posts=await page.evaluate(()=>window.posts);assert.deepEqual(posts[0],posts[1]);assert.equal(posts[0].body.lineNumber,2);
+    assert.equal(await page.getByRole('button',{name:'Confirm handoff',exact:true}).isDisabled(),true);
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth),false);
   }finally{await browser.close();}
 });
 
@@ -166,6 +190,7 @@ test('seller quantities validate, retry identical uncertain payload, retain draf
     assert.equal(await page.getByRole('button',{name:/ship/i}).count(),0);
     assert.ok(await page.getByRole('button',{name:'Refresh',exact:true}).evaluate(button=>button.getBoundingClientRect().height)>=36, 'Mercato action CSS must be loaded');
     await page.getByRole('button',{name:'Accept',exact:true}).click();
+    assert.equal(await page.getByLabel('Quantity',{exact:true}).inputValue(),'2');
     await page.getByLabel('Quantity',{exact:true}).fill('3');
     assert.equal(await page.getByRole('button',{name:'Confirm accept',exact:true}).isDisabled(),true);
     await page.getByLabel('Quantity',{exact:true}).fill('2');
@@ -198,9 +223,10 @@ test('customer mode cancels repeatedly after preparation elsewhere and preserves
   try {
     assert.equal(await page.getByRole('button',{name:'Cancel entire order',exact:true}).count(),0);
     await page.getByRole('button',{name:'Cancel units',exact:true}).click();
+    assert.equal(await page.getByLabel('Quantity',{exact:true}).inputValue(),'3');
     await page.getByLabel('Quantity',{exact:true}).fill('2');
     assert.equal(await page.getByLabel('Quantity',{exact:true}).evaluate(input=>getComputedStyle(input).borderTopWidth),'1px');
-    await page.getByLabel('Reason',{exact:true}).fill('Ordered too many');
+    await chooseOtherReason(page,'Ordered too many');
     await page.getByLabel('I confirm this cancellation.').check();
     await page.getByRole('button',{name:'Confirm cancel units',exact:true}).click();
     await page.getByRole('alert').waitFor();
@@ -220,12 +246,28 @@ test('customer mode cancels repeatedly after preparation elsewhere and preserves
 });
 
 
+test('seller cancellation defaults to all available units and offers common reasons',async()=>{
+  const {browser,page}=await fixture('seller');
+  try{
+    await page.getByRole('button',{name:'View fulfillment F1'}).click();
+    await page.getByRole('button',{name:'Accept',exact:true}).waitFor();
+    await page.getByRole('button',{name:'Cancel units',exact:true}).click();
+    assert.equal(await page.getByLabel('Quantity',{exact:true}).inputValue(),'4');
+    await page.getByRole('button',{name:'Cancellation reason',exact:true}).click();
+    await page.getByRole('option',{name:'Out of stock',exact:true}).click();
+    await page.getByLabel('I confirm this cancellation.').check();
+    await page.getByRole('button',{name:'Confirm cancel units',exact:true}).click();
+    await page.getByRole('alert').waitFor();
+    assert.equal((await page.evaluate(()=>window.posts))[0].body.reason,'Out of stock');
+  }finally{await browser.close();}
+});
+
 test('admin cancellation adapter requires reason, version and stable retry identity',async()=>{
   const {browser,page}=await fixture('admin');
   try {
     await page.getByRole('row').filter({hasText:'O1'}).click();
     await page.getByRole('button',{name:'Cancel entire order',exact:true}).click();
-    await page.getByLabel('Reason',{exact:true}).fill('Buyer requested admin help');
+    await chooseOtherReason(page,'Buyer requested admin help');
     await page.getByLabel('I confirm this cancellation.').check();
     await page.getByRole('button',{name:'Confirm cancel entire order',exact:true}).click();
     await page.getByRole('alert').waitFor();
@@ -363,7 +405,7 @@ test('customer order list refreshes on back navigation after quantity cancellati
   const {browser,page}=await fixture('orders');
   try {
     await page.getByRole('button',{name:'Cancel units',exact:true}).click();
-    await page.getByLabel('Reason',{exact:true}).fill('Ordered too many');
+    await chooseOtherReason(page,'Ordered too many');
     await page.getByLabel('I confirm this cancellation.').check();
     await page.evaluate(()=>{window.mode='success';const get=window.fixtureGet;window.fixtureGet=async(url)=>{const value=await get(url);if(url.includes('summary'))value.data[0].workflow.state='PACKED';return value;};});
     await page.getByRole('button',{name:'Confirm cancel units',exact:true}).click();
@@ -409,7 +451,7 @@ test('a dual-role customer can cancel an eligible whole order only through the e
   const {browser,page}=await fixture('customer',()=>{window.line.workflow.preparingQty=0;});
   try {
     await page.getByRole('button',{name:'Cancel entire order',exact:true}).click();
-    await page.getByLabel('Reason',{exact:true}).fill('Please cancel this order');
+    await chooseOtherReason(page,'Please cancel this order');
     assert.equal(await page.getByRole('button',{name:'Confirm cancel entire order',exact:true}).isDisabled(),true);
     await page.getByLabel('I confirm this cancellation.').check();
     await page.getByRole('button',{name:'Confirm cancel entire order',exact:true}).click();
@@ -452,6 +494,18 @@ test('admin initial detail failure shows recovery, retries successfully and can 
   } finally {await browser.close();}
 });
 
+test('seller fulfillment workspace groups item actions and explains order timing on mobile',async()=>{
+  const {browser,page}=await fixture('seller');
+  try{
+    await page.getByRole('button',{name:'View fulfillment F1'}).click();
+    await page.getByRole('heading',{name:'Items to fulfil',exact:true}).waitFor();
+    await page.getByRole('button',{name:'About Fulfillment timing',exact:true}).click();await page.getByRole('note').waitFor();await page.keyboard.press('Escape');
+    assert.equal(await page.locator('.fulfillment-item-actions').count(),1);
+    await mkdir(new URL('../../backend/target/fulfillment-controls-review/',import.meta.url),{recursive:true});
+    for(const width of [320,390,1440]){await page.setViewportSize({width,height:1000});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);await page.screenshot({path:fileURLToPath(new URL(`../../backend/target/fulfillment-controls-review/seller-${width}.png`,import.meta.url)),fullPage:true});}
+  }finally{await browser.close();}
+});
+
 test('compact customer summaries show disjoint mixed quantities and fit mobile and desktop',async()=>{
   const {browser,page}=await fixture('customer',()=>{
     window.line.orderedQty=10;window.line.cancelledQty=2;window.line.acceptedQty=8;
@@ -462,6 +516,8 @@ test('compact customer summaries show disjoint mixed quantities and fit mobile a
     await page.getByText('Qty 10 · Processing',{exact:true}).waitFor();
     const breakdowns=page.getByRole('definition',{name:''});
     assert.deepEqual(await breakdowns.allTextContents(),['3','3','2','2','3','3','2','2']);
+    assert.equal(await page.locator('.quantity-distribution[aria-hidden="true"]').count(),2);
+    assert.equal(await page.locator('.quantity-chip[data-status="shipped"]').count(),2);
     assert.equal(await page.getByText(/ordered:|accepted:|preparing:|packed:/i).count(),0);
     const policy=page.getByRole('button',{name:'Cancellation and refund policy',exact:true});
     assert.equal(await policy.getAttribute('aria-expanded'),'false');
@@ -540,7 +596,7 @@ test('dual-role seller whole cancellation uses the explicit seller route',async(
   try {
     await page.getByRole('button',{name:'View fulfillment F1'}).click();
     await page.getByRole('button',{name:'Cancel all remaining',exact:true}).click();
-    await page.getByLabel('Reason',{exact:true}).fill('Seller cancellation');
+    await chooseOtherReason(page,'Seller cancellation');
     await page.getByLabel('I confirm this cancellation.').check();
     await page.getByRole('button',{name:'Confirm cancel all remaining',exact:true}).click();
     await page.getByRole('alert').waitFor();
