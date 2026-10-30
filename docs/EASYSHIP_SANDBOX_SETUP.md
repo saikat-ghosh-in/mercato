@@ -81,6 +81,12 @@ Easyship may deactivate a webhook after repeated failures. Check its activation/
 - The sandbox's India-origin supported-courier filter returned no entries. Its sample couriers were used for the synthetic record. This proves test API behavior, not real domestic serviceability or a carrier contract.
 - The MCP documentation warns that MCP actions have no separate test environment. Mercato uses the REST sandbox directly and does not depend on an AI/MCP runtime.
 
+## Current beta verification
+
+On 30 October 2026, beta.8 generated a sandbox tracking record from the seller's item-level dialog and filled both references. The maximum packed quantity was selected automatically; closing/reopening retained the references. Confirmation enabled only after confirming handoff. No handoff was submitted: shipment quantities and physical inventory stayed unchanged.
+
+Both provider webhook tests succeeded through the beta Netlify URL; the version `2024-09` subscription is active for status changes and tracking checkpoints. A forged signature returned HTTP 401. Canonical delivery application, duplicate events, cooldown retry and polling exclusion are covered by PostgreSQL regressions. Sandbox progress still needs provider test events; this does not create a real carrier booking or automatically simulate delivery.
+
 ## Official references
 
 - [Sandbox and current domains](https://developers.easyship.com/docs/sandbox)
