@@ -4,7 +4,7 @@ import { createSubmission, remainingUntil, workflowSummary, cancellationPolicy }
 import ModalFrame from '../shared/ModalFrame';
 import Accordion from '../shared/Accordion';
 import SelectControl from '../shared/SelectControl';
-import InfoButton from '../shared/InfoButton';
+import InfoHint from '../shared/InfoHint';
 
 const cancellationReasons={
   seller:['Out of stock','Unable to fulfil this item','Item damaged or unavailable','Listing or pricing error'],
@@ -118,7 +118,7 @@ export function QuantityCommand({label, maximum, version, endpoint, makeBody, on
       disabled={disabled || busy || !maximum || !versionKnown} onClick={() => {if(!quantityEdited)setQuantity(String(maximum));setOpen(true);}}>{label}</button>
     {open && <ModalFrame title={label} onClose={() => {if (!busy) setOpen(false);}}>
       <form className="workflow-command-form surface p-5 w-full space-y-4" onSubmit={submit}>
-        <div className="flex items-center gap-2"><h2 className="text-base font-semibold">{label}</h2><InfoButton label={label}>{cancellation?'Choose eligible units and a reason. Other units stay in the order; refunds follow the cancellation policy.':actionHelp[label]||'Choose how many eligible units to update. The available maximum is selected initially.'}</InfoButton></div>
+        <div className="flex items-center gap-2"><h2 className="text-base font-semibold">{label}</h2><InfoHint label={label}>{cancellation?'Choose eligible units and a reason. Other units stay in the order; refunds follow the cancellation policy.':actionHelp[label]||'Choose how many eligible units to update. The available maximum is selected initially.'}</InfoHint></div>
         {!whole && <label className="block text-sm">
           Quantity <span className="text-gray-500">(maximum {maximum})</span>
           <input className="mt-2 w-full min-h-11 rounded-lg border border-gray-200 px-3 py-2 text-base" aria-label="Quantity" type="number" inputMode="numeric"

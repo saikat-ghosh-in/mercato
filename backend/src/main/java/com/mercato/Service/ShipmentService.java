@@ -54,6 +54,12 @@ public class ShipmentService {
     public record View(List<Parcel> shipments,List<Eligible> handoffItems,long version,boolean canCreate,boolean canRefresh,String message,List<Eligible> legacyDeliveryItems,String trackingProvider,boolean canGenerateTracking) {}
     public record PrepareRequest(String operationId,Long expectedVersion,int lineNumber) {}
     public record Preparation(String state,String waybill,String easyshipShipmentId,String message,long retryAfterSeconds) {}
+    private record DraftContext(UUID id,EasyshipClient.Destination destination) {}
+    private EasyshipClient.Destination destination(Order o){
+        var value=new EasyshipClient.Destination(o.getRecipientName(),o.getRecipientPhone(),o.getCustomerEmail(),o.getDeliveryAddressLine1(),o.getDeliveryAddressLine2(),o.getDeliveryCity(),o.getDeliveryState(),o.getDeliveryPincode());
+        try{value.request();}catch(IllegalArgumentException invalid){throw bad("The order's delivery details are incomplete. Contact Mercato before generating tracking.");}
+        return value;
+    }
     private <T> T tx(java.util.function.Supplier<T> work){return new TransactionTemplate(transactions).execute(t->work.get());}
     private ResponseStatusException bad(String text){return new ResponseStatusException(HttpStatus.BAD_REQUEST,text);}
     private ResourceNotFoundException missing(String id){return new ResourceNotFoundException("Shipment","id",id);}
@@ -99,40 +105,41 @@ public class ShipmentService {
         if(scope!=TransitionTrigger.SELLER&&scope!=TransitionTrigger.ADMIN)throw missing(fulfillment);
         if(request==null||request.expectedVersion()==null||request.expectedVersion()<0||request.lineNumber()<1)throw bad("Choose an item and current workflow version.");
         String operation=op("prepare",request.operationId());
-        UUID id=tx(()->{
+        DraftContext context=tx(()->{
             var o=scopedOrder(fulfillment,scope,true);
             UUID key=UUID.nameUUIDFromBytes((o.getOrderId()+":"+operation).getBytes(StandardCharsets.UTF_8));
             String body=commands.encode(List.of(fulfillment,scope,request));
             var rows=jdbc.queryForList("SELECT request_body FROM shipment_tracking_drafts WHERE id=? AND order_fk=?",key,o.getId());
             if(!rows.isEmpty()){
                 if(!body.equals(rows.get(0).get("request_body")))throw new ResponseStatusException(HttpStatus.CONFLICT,"Operation ID already used with different request");
-                return key;
+                return new DraftContext(key,destination(o));
             }
             if(!easyship.creationEnabled())throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,"Sandbox tracking generation is not configured.");
             if(request.expectedVersion()!=o.getWorkflowRevision())throw new ResponseStatusException(HttpStatus.CONFLICT,"Stale workflow version");
             var line=o.getOrderLines().stream().filter(l->l.getFulfillmentId().equals(fulfillment)&&l.getOrderLineNumber()==request.lineNumber()).findFirst().orElseThrow(()->missing(fulfillment));
             workflow.require(line,TransitionTrigger.ADMIN,OrderLineAction.SHIP,1);
             jdbc.update("INSERT INTO shipment_tracking_drafts(id,order_fk,request_body,waybill,state,created_at,updated_at) VALUES(?,?,?,?,'NEW',?,?)",key,o.getId(),body,"MCT"+key.toString().replace("-", "").toUpperCase(Locale.ROOT),java.sql.Timestamp.from(workflow.now()),java.sql.Timestamp.from(workflow.now()));
-            return key;
+            return new DraftContext(key,destination(o));
         });
+        UUID id=context.id();
         var row=jdbc.queryForMap("SELECT state,waybill,provider_reference FROM shipment_tracking_drafts WHERE id=?",id);
         String state=(String)row.get("state"),waybill=(String)row.get("waybill");
         if(state.equals("READY"))return new Preparation(state,waybill,(String)row.get("provider_reference"),"Sandbox tracking is ready. Confirm handoff separately.",0);
         if(state.equals("FAILED"))return new Preparation(state,null,null,"Sandbox tracking could not be generated. Contact Mercato or enter existing sandbox tracking.",0);
         boolean create=Boolean.TRUE.equals(tx(()->jdbc.update("UPDATE shipment_tracking_drafts SET state='SENDING',updated_at=? WHERE id=? AND state='NEW'",java.sql.Timestamp.from(workflow.now()),id)==1));
         try{
-            var prepared=create?easyship.createTracking("SANDBOX-"+id,waybill):easyship.findPrepared("SANDBOX-"+id,waybill);
-            if(prepared==null){draftState(id,"UNCONFIRMED");return new Preparation("UNCONFIRMED",null,null,"Tracking is not confirmed yet. Check again shortly; another request will not be created.",10);}
+            var prepared=create?easyship.createTracking("SANDBOX-"+id,waybill,context.destination()):easyship.findPrepared("SANDBOX-"+id,waybill);
+            if(prepared==null){draftState(id,"UNCONFIRMED");return new Preparation("UNCONFIRMED",null,null,"Tracking is being confirmed automatically. Please wait.",10);}
             jdbc.update("UPDATE shipment_tracking_drafts SET state='READY',provider_reference=?,updated_at=? WHERE id=?",prepared.reference(),java.sql.Timestamp.from(workflow.now()),id);
             return new Preparation("READY",prepared.waybill(),prepared.reference(),"Sandbox tracking is ready. Confirm handoff separately.",0);
         }catch(WaitingJobException waiting){
             // A local rate limit/HTTP 429 is known not to have created tracking.
             if(create)draftState(id,"NEW");
-            return new Preparation("WAITING",null,null,"Please wait briefly before checking sandbox tracking again.",Math.max(1,waiting.retryAfter().toSeconds()+1));
+            return new Preparation("WAITING",null,null,"Waiting briefly for the sandbox provider. Tracking will be confirmed automatically.",Math.max(1,waiting.retryAfter().toSeconds()+1));
         }catch(ManualInterventionJobException rejected){
             draftState(id,"FAILED");return new Preparation("FAILED",null,null,"Sandbox tracking is unavailable. Contact Mercato or enter existing sandbox tracking.",0);
         }catch(TransientJobException uncertain){
-            draftState(id,"UNCONFIRMED");return new Preparation("UNCONFIRMED",null,null,"The provider result is not confirmed. Check again to recover the same tracking request.",10);
+            draftState(id,"UNCONFIRMED");return new Preparation("UNCONFIRMED",null,null,"The provider result is not confirmed yet. Recovering the same tracking request automatically.",10);
         }
     }
     private void draftState(UUID id,String state){jdbc.update("UPDATE shipment_tracking_drafts SET state=?,updated_at=? WHERE id=? AND state<>'READY'",state,java.sql.Timestamp.from(workflow.now()),id);}

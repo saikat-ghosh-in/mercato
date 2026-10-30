@@ -11,6 +11,8 @@ async function fixture(component='seller', setup) {
     import FulfillmentTab from './src/components/seller/FulfillmentTab.jsx';
     import OrderDetails from './src/components/orders/OrderDetails.jsx';
     import ShipmentPanel, {ShipmentLineAction} from './src/components/orders/ShipmentPanel.jsx';
+    import InfoHint from './src/components/shared/InfoHint.jsx';
+    import AuthField from './src/components/shared/AuthField.jsx';
     import OrdersTab from './src/components/admin/OrdersTab.jsx';
     import Orders from './src/components/orders/Orders.jsx';
     import {privateApi} from './src/reduxStore/services/privateApi.js';
@@ -24,7 +26,7 @@ async function fixture(component='seller', setup) {
     const store=configureStore({reducer:{cart:()=>({deliveryOptions:[],deliveryMethod:'STANDARD',cartLoading:false}),[privateApi.reducerPath]:privateApi.reducer},middleware:get=>get().concat(privateApi.middleware)});
     function ShipFixture({scope}){const [request,setRequest]=React.useState(null);const [data,setData]=React.useState(null);return <><div>{(data?.handoffItems||[]).map(item=><div key={item.lineNumber}><ShipmentLineAction data={data} fulfillmentId={item.fulfillmentId} lineNumber={item.lineNumber} onOpen={setRequest}/></div>)}</div><ShipmentPanel scope={scope} recordId={scope==='seller'?'F1':'O1'} onData={setData} lineRequest={request}/></>;}
     function Resource(){const [url,setUrl]=React.useState('/one');const value=useWorkflowResource(url);window.refresh=value.refresh;window.selectUrl=setUrl;return <p>{value.data?.name || 'Loading'}{value.error}</p>;}
-    window.render=() => createRoot(document.getElementById('root')).render(<Provider store={store}><MemoryRouter initialEntries={[${component==='orders'?'"/orders?orderId=O1"':'"/"'}]}>${component==='shipment-seller'?'<ShipFixture scope="seller" />':component==='shipment-customer'?'<ShipmentPanel recordId="O1" version={3} onChanged={()=>{window.parentRefreshes=(window.parentRefreshes||0)+1;}} />':component==='shipment-admin'?'<ShipFixture scope="admin" />':component==='seller'?'<FulfillmentTab />':component==='admin'?'<OrdersTab />':component==='orders'?'<Orders />':component==='resource'?'<Resource />':component==='help'?'<Help />':component==='finance'?'<><RevenueCards revenue={{allTime:189,thisMonth:189,today:189,averagePerOrder:63}} admin/><MarketplaceFinance admin/></>':component==='checkout'?'<ReviewPaymentStep selectedAddress={{}} cartWithProducts={[]} />':'<OrderDetails orderId="O1" />'}</MemoryRouter></Provider>);
+    window.render=() => createRoot(document.getElementById('root')).render(<Provider store={store}><MemoryRouter initialEntries={[${component==='orders'?'"/orders?orderId=O1"':'"/"'}]}>${component==='info'?'<div className="app-page" style={{padding:16}}><AuthField label="GST" info="Your registration number."><input /></AuthField><div style={{display:"flex",justifyContent:"flex-end",marginTop:30}}><InfoHint label="Shipping help">Use the order delivery details. No real label or pickup is purchased.</InfoHint></div></div>':component==='shipment-seller'?'<ShipFixture scope="seller" />':component==='shipment-customer'?'<ShipmentPanel recordId="O1" version={3} onChanged={()=>{window.parentRefreshes=(window.parentRefreshes||0)+1;}} />':component==='shipment-admin'?'<ShipFixture scope="admin" />':component==='seller'?'<FulfillmentTab />':component==='admin'?'<OrdersTab />':component==='orders'?'<Orders />':component==='resource'?'<Resource />':component==='help'?'<Help />':component==='finance'?'<><RevenueCards revenue={{allTime:189,thisMonth:189,today:189,averagePerOrder:63}} admin/><MarketplaceFinance admin/></>':component==='checkout'?'<ReviewPaymentStep selectedAddress={{}} cartWithProducts={[]} />':'<OrderDetails orderId="O1" />'}</MemoryRouter></Provider>);
     window.render();`,resolveDir:root,loader:'jsx'},bundle:true,write:false,jsx:'automatic',plugins:[{name:'fixture',setup(build){
       build.onResolve({filter:/backend\/api(?:\.js)?$/},() => ({path:'api',namespace:'fixture'}));
       build.onResolve({filter:/toastUtils(?:\.js)?$/},() => ({path:'toast',namespace:'fixture'}));
@@ -64,6 +66,22 @@ async function fixture(component='seller', setup) {
 }
 
 async function chooseOtherReason(page,text){await page.getByRole('button',{name:'Cancellation reason',exact:true}).click();await page.getByRole('option',{name:'Other',exact:true}).click();await page.getByLabel('Reason',{exact:true}).fill(text);}
+
+test('information hints show on hover and keyboard focus, dismiss with Escape and stay within the viewport',async()=>{
+  const {browser,page}=await fixture('info');
+  try{
+    const hint=page.getByRole('img',{name:'About Shipping help',exact:true});
+    assert.equal(await page.getByRole('button',{name:/About /}).count(),0);
+    for(const width of [320,390,1440]){
+      await page.setViewportSize({width,height:740});await hint.hover();await page.getByRole('tooltip').waitFor();
+      const box=await page.getByRole('tooltip').boundingBox();assert.ok(box.x>=0&&box.x+box.width<=width);
+      await page.mouse.move(0,0);await page.getByRole('tooltip').waitFor({state:'hidden'});
+    }
+    await hint.focus();await page.getByRole('tooltip').waitFor();assert.ok(await hint.getAttribute('aria-describedby'));
+    await page.keyboard.press('Escape');await page.getByRole('tooltip').waitFor({state:'hidden'});
+    await page.getByRole('img',{name:'About GST',exact:true}).hover();await page.getByRole('tooltip').waitFor();
+  }finally{await browser.close();}
+});
 
 test('shipment seller handoff validates quantities, retries one identity and retains conflict drafts',async()=>{
   const {browser,page}=await fixture('shipment-seller',()=>{
@@ -124,11 +142,12 @@ test('per-item shipping defaults to its maximum and sandbox generation recovers 
   try{
     await page.setViewportSize({width:320,height:740});await page.getByRole('button',{name:'Mark shipped',exact:true}).nth(1).click();
     assert.equal(await page.getByRole('spinbutton').inputValue(),'5');assert.equal(await page.getByRole('spinbutton').count(),1);
-    await page.getByRole('button',{name:'About Shipping and tracking',exact:true}).click();await page.getByRole('note').waitFor();await page.keyboard.press('Escape');
+    await page.getByRole('img',{name:'About Shipping and tracking',exact:true}).hover();await page.getByRole('tooltip').waitFor();await page.keyboard.press('Escape');
     await page.getByRole('button',{name:'Generate sandbox tracking',exact:true}).click();await page.getByRole('alert').waitFor();
     await page.getByRole('button',{name:'Close',exact:true}).click();await page.getByRole('button',{name:'Mark shipped',exact:true}).nth(1).click();
-    await page.waitForTimeout(10100);await page.getByRole('button',{name:'Check again',exact:true}).click();
-    await page.waitForFunction(()=>document.querySelector('input[aria-label="Easyship shipment ID"]')?.value==='ESIN10000025');
+    await page.waitForFunction(()=>document.querySelector('input[aria-label="Easyship shipment ID"]')?.value==='ESIN10000025',null,{timeout:15000});
+    assert.equal(await page.getByRole('button',{name:'Check again',exact:true}).count(),0);
+    assert.equal(await page.getByRole('button',{name:'Generate sandbox tracking',exact:true}).count(),0);
     assert.equal(await page.getByLabel('Tracking number',{exact:true}).inputValue(),'MCT123456');
     const posts=await page.evaluate(()=>window.posts);assert.deepEqual(posts[0],posts[1]);assert.equal(posts[0].body.lineNumber,2);
     assert.equal(await page.getByRole('button',{name:'Confirm handoff',exact:true}).isDisabled(),true);
@@ -499,7 +518,7 @@ test('seller fulfillment workspace groups item actions and explains order timing
   try{
     await page.getByRole('button',{name:'View fulfillment F1'}).click();
     await page.getByRole('heading',{name:'Items to fulfil',exact:true}).waitFor();
-    await page.getByRole('button',{name:'About Fulfillment timing',exact:true}).click();await page.getByRole('note').waitFor();await page.keyboard.press('Escape');
+    await page.getByRole('img',{name:'About Fulfillment timing',exact:true}).hover();await page.getByRole('tooltip').waitFor();await page.keyboard.press('Escape');
     assert.equal(await page.locator('.fulfillment-item-actions').count(),1);
     await mkdir(new URL('../../backend/target/fulfillment-controls-review/',import.meta.url),{recursive:true});
     for(const width of [320,390,1440]){await page.setViewportSize({width,height:1000});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);await page.screenshot({path:fileURLToPath(new URL(`../../backend/target/fulfillment-controls-review/seller-${width}.png`,import.meta.url)),fullPage:true});}

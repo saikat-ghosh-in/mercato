@@ -1,10 +1,10 @@
 # Easyship sandbox tracking
 
-Mercato generates synthetic Easyship sandbox tracking or tracks existing sandbox shipments. Sellers select **Mark shipped** beside the specific item, generate its tracking references, then confirm the packed quantities handed over. The existing payment, stock, ownership, one-hour seller privacy and manual admin delivery controls remain in force. This integration does not purchase labels, book pickups or change checkout delivery charges.
+Mercato generates Easyship sandbox tracking or tracks existing sandbox shipments. Sellers select **Mark shipped** beside the specific item, generate its tracking references, then confirm the packed quantities handed over. The existing payment, stock, ownership, one-hour seller privacy and manual admin delivery controls remain in force. This integration does not purchase labels, book pickups or change checkout delivery charges.
 
 ## Access and configuration
 
-Create an API integration in Easyship and select its **Sandbox** token. The application requires a token beginning with `sand_` and uses only `https://public-api-sandbox.easyship.com/2024-09`. Production tokens are rejected when enabled; redirects and production fallback are disabled. Tracking reads require `public.track:read`. Synthetic tracking generation requires `public.track_3p:write`. Webhook setup requires `public.webhook:read` and `public.webhook:write`.
+Create an API integration in Easyship and select its **Sandbox** token. The application requires a token beginning with `sand_` and uses only `https://public-api-sandbox.easyship.com/2024-09`. Production tokens are rejected when enabled; redirects and production fallback are disabled. Tracking reads require `public.track:read`. Tracking generation requires `public.track_3p:write`. Webhook setup requires `public.webhook:read` and `public.webhook:write`.
 
 Keep the token only in the beta backend environment:
 
@@ -34,7 +34,7 @@ Set `EASYSHIP_ENABLED=false` for manual-only operation. Historical Delhivery par
 ## Test a parcel
 
 1. On a funded, packed Mercato beta fulfillment, select **Mark shipped** beside the item. Its maximum eligible quantity is selected initially.
-2. Select **Generate sandbox tracking** to fill both references automatically. This creates synthetic tracking with test contacts, not customer details. After a timeout, **Check again** reconciles the same saved request. Alternatively enter existing sandbox references. Confirm the test handoff separately; generation alone does not ship an item or change stock.
+2. Select **Generate sandbox tracking** to fill both references automatically. This uses the recipient name, phone, email and delivery address saved with the order. After a timeout, Mercato automatically reconciles the same saved request. A **Retry tracking** action appears only if automatic recovery cannot complete. Successful generation shows **Tracking ready**, with no extra check button. Alternatively enter existing sandbox references. Confirm the test handoff separately; generation alone does not ship an item or change stock.
 3. With webhooks configured, updates arrive automatically. **Refresh tracking** remains available. The backend matches both identifiers and requires a dated forward checkpoint to confirm delivery.
 4. After handoff, use Easyship's sandbox-only status simulation endpoint to generate a new dated event. A checkpoint earlier than Mercato's recorded handoff is intentionally rejected. The application does not expose the simulation endpoint to customers or automatically advance sandbox statuses.
 5. A dated, matching forward **Delivered** status completes only that parcel's shipped quantities once. Return/reverse evidence, conflicting identities, ambiguous multiple tracking numbers and invalid/future timestamps require manual verification. Delivery does not deduct stock again.
@@ -81,7 +81,9 @@ Easyship may deactivate a webhook after repeated failures. Check its activation/
 - The sandbox's India-origin supported-courier filter returned no entries. Its sample couriers were used for the synthetic record. This proves test API behavior, not real domestic serviceability or a carrier contract.
 - The MCP documentation warns that MCP actions have no separate test environment. Mercato uses the REST sandbox directly and does not depend on an AI/MCP runtime.
 
-## Current beta verification
+The configured sandbox sample courier still uses a fixed test origin; the destination is the order’s actual saved delivery information. No label or pickup is purchased. Tracking generation does not prove real domestic carrier serviceability.
+
+## Verified beta foundation
 
 On 30 October 2026, beta.8 generated a sandbox tracking record from the seller's item-level dialog and filled both references. The maximum packed quantity was selected automatically; closing/reopening retained the references. Confirmation enabled only after confirming handoff. No handoff was submitted: shipment quantities and physical inventory stayed unchanged.
 

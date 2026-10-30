@@ -406,7 +406,7 @@ Verify the dump with `sudo pg_restore --list /opt/mercato-beta/backups/<actual-f
 Then update only beta:
 
 ```bash
-bash ~/redeploy-beta.sh v0.1.0-beta.8
+bash ~/redeploy-beta.sh v0.1.0-beta.9
 sudo journalctl -u mercato-beta -n 100 --no-pager
 ```
 
@@ -416,7 +416,7 @@ The beta Netlify project deploys its `beta` frontend separately; verify frontend
 
 For the Easyship switch, keep `DELHIVERY_ENABLED=false`. Configure `EASYSHIP_SANDBOX_TOKEN`, `EASYSHIP_ENABLED=true` and `EASYSHIP_TRACKING_BATCH_SIZE=50` only in the beta backend environment after installing the compatible release. Follow [Easyship sandbox setup](docs/EASYSHIP_SANDBOX_SETUP.md), including token rotation and test delivery simulation. Leave Easyship disabled for manual-only operation. V17 additionally persists sandbox tracking generation identities across retries. Configure the sandbox courier and webhook secret using that guide; webhook mode replaces periodic Easyship polling. V16 adds explicit provider/reference fields; it preserves existing parcels and does not convert their provider. No production token, MCP action, label purchase or pickup is needed. The older [Delhivery setup](docs/DELHIVERY_SETUP.md) remains historical reference only for this beta.
 
-**Last verified beta rollout: 30 October 2026.** [v0.1.0-beta.8](https://github.com/saikat-ghosh-in/mercato/releases/tag/v0.1.0-beta.8) installs source `b7633cc` with Flyway V17. The [published beta frontend](https://app.netlify.com/projects/mercato-in-beta/deploys/6ae4bc45b476b65ab1958d75) uses the same source from branch `beta`. Application/release CI passed, including PostgreSQL migration and concurrency checks. Both Easyship sandbox webhook tests succeeded through Netlify and the subscription is active. Signed-in Browser verification generated both tracking references for one packed item, preserved them on reopening, and confirmed the handoff button requires confirmation. Generation alone created no shipment and changed no stock. Local verification passed 423 backend tests, 101 frontend tests, lint/build and 25 desktop/mobile Browser flows. Existing data, `main` and production were unchanged. Routine later updates use a new version tag and the same backend-first procedure above.
+The [beta.9 release](https://github.com/saikat-ghosh-in/mercato/releases/tag/v0.1.0-beta.9) uses the order's saved recipient/delivery details for sandbox tracking. Generation recovers uncertain requests automatically; a successful result has no extra “check again” action. Information icons reveal their help on hover or keyboard focus. V17 remains the latest database migration. After deployment, verify sign-in/MFA, item quantities, tracking generation and the existing sandbox webhook subscription. Keep `main`, production and all existing secrets unchanged.
 
 ## 12. Delete obsolete beta data and artifacts after acceptance
 

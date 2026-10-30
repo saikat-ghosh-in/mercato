@@ -81,13 +81,13 @@ class EasyshipClientTest {
         var failure=assertThrows(ManualInterventionJobException.class,()->client.fetch(List.of("ESIN10000001")));
         assertFalse(failure.getMessage().contains("private-provider-error"));server.verify();
     }
-    @Test void sandboxGenerationUsesSyntheticContactsAndReturnsBothTrackingReferences(){
+    @Test void sandboxGenerationUsesOrderDeliveryContactsAndReturnsBothTrackingReferences(){
         var generator=new EasyshipClient(http,new ObjectMapper(),clock,true,"sand_synthetic_test_only",50,"8f43c1e2-dec6-40b2-aa65-bdcfbb72e1c2");
         server.expect(requestTo("https://public-api-sandbox.easyship.com/2024-09/trackings")).andExpect(method(HttpMethod.POST))
             .andExpect(header("Authorization","Bearer sand_synthetic_test_only"))
-            .andExpect(request->{String body=request.getBody().toString();assertTrue(body.contains("sandbox@mercato.invalid"));assertFalse(body.contains("buy_label"));})
+            .andExpect(request->{String body=request.getBody().toString();var destination=new ObjectMapper().readTree(body).path("destination_address");assertEquals("buyer@test.invalid",destination.path("contact_email").asText());assertEquals("Buyer",destination.path("contact_name").asText());assertEquals("+919999999999",destination.path("contact_phone").asText());assertEquals("700001",destination.path("postal_code").asText());assertEquals("IN",destination.path("country_alpha2").asText());assertEquals("Saved delivery address",destination.path("line_1").asText());assertFalse(body.contains("buy_label"));})
             .andRespond(withSuccess("{\"tracking\":{\"tracking_number\":\"MCT123\",\"easyship_shipment_id\":\"ESIN10000001\"}}",MediaType.APPLICATION_JSON));
-        var generated=generator.createTracking("SANDBOX-123","MCT123");assertEquals("MCT123",generated.waybill());assertEquals("ESIN10000001",generated.reference());server.verify();
+        var generated=generator.createTracking("SANDBOX-123","MCT123",new EasyshipClient.Destination("Buyer","9999999999","buyer@test.invalid","Saved delivery address",null,"Kolkata","West Bengal","700001"));assertEquals("MCT123",generated.waybill());assertEquals("ESIN10000001",generated.reference());server.verify();
     }
     @Test void uncertainGenerationCanBeReconciledByItsOwnDeterministicReference(){
         server.expect(anything()).andExpect(queryParam("platform_order_number","SANDBOX-123"))

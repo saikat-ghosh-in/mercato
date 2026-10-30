@@ -10,7 +10,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.time.*;
 import java.util.*;
 
-/** Sandbox tracking reads and synthetic tracking setup only. No label, pickup, billing or production operation exists here. */
+/** Sandbox tracking only. No label, pickup, billing or production operation exists here. */
 public class EasyshipClient implements TrackingClient {
     public static final String ENDPOINT="https://public-api-sandbox.easyship.com/2024-09/shipments/trackings";
     private final RestTemplate http;
@@ -39,6 +39,18 @@ public class EasyshipClient implements TrackingClient {
     public int batchSize(){return batchSize;}
     public boolean creationEnabled(){return enabled&&sandboxCourier!=null&&!sandboxCourier.isBlank();}
     public record Prepared(String waybill,String reference){}
+    public record Destination(String name,String phone,String email,String line1,String line2,String city,String state,String pincode){
+        Map<String,String> request(){
+            if(java.util.stream.Stream.of(name,phone,email,line1,city,state,pincode).anyMatch(v->v==null||v.isBlank()))throw new IllegalArgumentException("Order delivery details are incomplete");
+            String digits=phone.replaceAll("[^0-9]","");
+            String international=digits.length()==10?"+91"+digits:digits.length()==12&&digits.startsWith("91")?"+"+digits:phone;
+            var result=new LinkedHashMap<String,String>();
+            result.put("line_1",line1);if(line2!=null&&!line2.isBlank())result.put("line_2",line2);
+            result.put("city",city);result.put("state",state);result.put("postal_code",pincode);result.put("country_alpha2","IN");
+            result.put("contact_name",name);result.put("contact_phone",international);result.put("contact_email",email);
+            return result;
+        }
+    }
     public static boolean validReference(String value){return value!=null&&value.matches("ES[A-Za-z0-9]{2}[0-9]{7,70}");}
 
     /** At most six sandbox calls per minute in this single-instance application; never sleep a worker. */
@@ -59,12 +71,12 @@ public class EasyshipClient implements TrackingClient {
         }
         ambiguous.forEach(found::remove);return new Result(Map.copyOf(found),false);
     }
-    public synchronized Prepared createTracking(String reference,String waybill){
+    public synchronized Prepared createTracking(String reference,String waybill,Destination destination){
         if(!creationEnabled())throw new ManualInterventionJobException("Sandbox tracking generation is not configured");
         validatePreparation(reference,waybill);
         var origin=Map.of("line_1","1 Sandbox Road","city","Hong Kong","state","Hong Kong","postal_code","0000","country_alpha2","HK","contact_name","Mercato Sandbox","contact_phone","+85230085678","contact_email","sandbox@mercato.invalid");
-        var destination=Map.of("line_1","2 Sandbox Road","city","Singapore","state","Singapore","postal_code","247964","country_alpha2","SG","contact_name","Sandbox Recipient","contact_phone","+6569101185","contact_email","sandbox@mercato.invalid");
-        var body=Map.of("tracking_number",waybill,"courier_service_id",sandboxCourier,"platform_order_number",reference,"origin_address",origin,"destination_address",destination,"items",List.of(Map.of("description","Mercato sandbox test item - no physical shipment","quantity",1)));
+        if(destination==null)throw new IllegalArgumentException("Order delivery details are required");
+        var body=Map.of("tracking_number",waybill,"courier_service_id",sandboxCourier,"platform_order_number",reference,"origin_address",origin,"destination_address",destination.request(),"items",List.of(Map.of("description","Mercato sandbox test item - no physical shipment","quantity",1)));
         var row=request(HttpMethod.POST,java.net.URI.create("https://public-api-sandbox.easyship.com/2024-09/trackings"),body).path("tracking");
         String id=row.path("easyship_shipment_id").asText("");
         if(!validReference(id)||!waybill.equals(row.path("tracking_number").asText("")))throw new TransientJobException("Sandbox tracking result needs reconciliation");

@@ -179,21 +179,21 @@ class PostgresQuantityWorkflowTest {
     }
     @Test void generatedTrackingIsScopedIdempotentAndDoesNotShipItems() {
         packAll();currentCaptureProof();when(easyship.creationEnabled()).thenReturn(true);
-        when(easyship.createTracking(anyString(),anyString())).thenAnswer(call->{assertFalse(org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive());return new EasyshipClient.Prepared(call.getArgument(1),"ESIN10000011");});
+        when(easyship.createTracking(anyString(),anyString(),any(EasyshipClient.Destination.class))).thenAnswer(call->{assertFalse(org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive());EasyshipClient.Destination destination=call.getArgument(2);assertEquals("buyer@test.invalid",destination.email());assertEquals("Synthetic address",destination.line1());return new EasyshipClient.Prepared(call.getArgument(1),"ESIN10000011");});
         var request=new ShipmentService.PrepareRequest("generate-tracking",3L,1);
         var ready=shipmentService.prepare(fulfillment,TransitionTrigger.SELLER,request);
         assertEquals("READY",ready.state());assertTrue(ready.waybill().startsWith("MCT"));assertEquals("ESIN10000011",ready.easyshipShipmentId());
-        assertEquals(ready,shipmentService.prepare(fulfillment,TransitionTrigger.SELLER,request));verify(easyship,times(1)).createTracking(anyString(),anyString());
+        assertEquals(ready,shipmentService.prepare(fulfillment,TransitionTrigger.SELLER,request));verify(easyship,times(1)).createTracking(anyString(),anyString(),any(EasyshipClient.Destination.class));
         assertEquals(0,snapshot().getShippedQty());assertEquals(20,products.findByProductId(orderId+"-P").orElseThrow().getPhysicalQty());
         IDENTITY.set("another-seller@test.invalid");assertThrows(com.mercato.ExceptionHandler.ResourceNotFoundException.class,()->shipmentService.prepare(fulfillment,TransitionTrigger.SELLER,request));
     }
     @Test void uncertainGenerationReconcilesInsteadOfRepeatingCreation() {
         packAll();currentCaptureProof();when(easyship.creationEnabled()).thenReturn(true);
-        when(easyship.createTracking(anyString(),anyString())).thenThrow(new TransientJobException("Synthetic timeout"));
+        when(easyship.createTracking(anyString(),anyString(),any(EasyshipClient.Destination.class))).thenThrow(new TransientJobException("Synthetic timeout"));
         var request=new ShipmentService.PrepareRequest("generate-uncertain",3L,1);
         assertEquals("UNCONFIRMED",shipmentService.prepare(fulfillment,TransitionTrigger.SELLER,request).state());
         when(easyship.findPrepared(anyString(),anyString())).thenAnswer(call->{assertFalse(org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive());return new EasyshipClient.Prepared(call.getArgument(1),"ESIN10000012");});
-        assertEquals("READY",shipmentService.prepare(fulfillment,TransitionTrigger.SELLER,request).state());verify(easyship,times(1)).createTracking(anyString(),anyString());verify(easyship).findPrepared(anyString(),anyString());assertEquals(0,snapshot().getShippedQty());
+        assertEquals("READY",shipmentService.prepare(fulfillment,TransitionTrigger.SELLER,request).state());verify(easyship,times(1)).createTracking(anyString(),anyString(),any(EasyshipClient.Destination.class));verify(easyship).findPrepared(anyString(),anyString());assertEquals(0,snapshot().getShippedQty());
     }
     @Test void webhookDeduplicatesAndQueuesACanonicalReadWithoutTrustingDeliveryBody() {
         packAll();currentCaptureProof();when(easyship.enabled()).thenReturn(true);when(easyship.batchSize()).thenReturn(50);

@@ -5,14 +5,14 @@ import { createSubmission } from '../../utils/fulfillment';
 import { formatDate } from '../../utils/formatDate';
 import ModalFrame from '../shared/ModalFrame';
 import Accordion from '../shared/Accordion';
-import InfoButton from '../shared/InfoButton';
+import InfoHint from '../shared/InfoHint';
 
 const labels={ SHIPPED:'Shipped', OUT_FOR_DELIVERY:'Out for delivery', DELIVERED:'Delivered' };
 
 export function ShipmentLineAction({ data, fulfillmentId, lineNumber, onOpen, disabled=false }) {
   const item=data?.handoffItems?.find(value=>value.fulfillmentId===fulfillmentId&&value.lineNumber===lineNumber&&value.maximum>0);
   if(!item)return null;
-  return <span className="inline-flex items-center gap-1"><button type="button" className="button button-outline" disabled={disabled} onClick={()=>onOpen({fulfillmentId,lineNumber,requestId:crypto.randomUUID()})}>Mark shipped</button><InfoButton label="Mark shipped">Generate sandbox tracking for this item, then confirm its carrier handoff. Packing alone does not mark an item shipped.</InfoButton></span>;
+  return <span className="inline-flex items-center gap-1"><button type="button" className="button button-outline" disabled={disabled} onClick={()=>onOpen({fulfillmentId,lineNumber,requestId:crypto.randomUUID()})}>Mark shipped</button><InfoHint label="Mark shipped">Generate sandbox tracking for this item, then confirm its carrier handoff. Packing alone does not mark an item shipped.</InfoHint></span>;
 }
 
 export default function ShipmentPanel({ scope='customer', recordId, version, onChanged, onData, lineRequest }) {
@@ -33,6 +33,7 @@ function ShipmentContent({ scope, recordId, version, onChanged, onData, lineRequ
   const [generationRetryAt,setGenerationRetryAt]=useState(0);
   const [generationWait,setGenerationWait]=useState(0);
   const draftGeneration=useRef(0);
+  const generateRef=useRef(null);
   const alive=useRef(true);
   const previousVersion=useRef(version);
   const reportedVersion=useRef(version);
@@ -66,7 +67,7 @@ function ShipmentContent({ scope, recordId, version, onChanged, onData, lineRequ
   useEffect(()=>{if(previousVersion.current!==version){previousVersion.current=version;refresh();}},[version,refresh]);
   const open=value=>{draftGeneration.current++;setGenerating(false);setGenerationAttempted(false);setGenerationRetryAt(0);submission.clear();setMessage('');setDraft(value);};
   const close=()=>{draftGeneration.current++;setDraft(null);};
-  const edit=values=>{submission.clear();setMessage('');setDraft(current=>({...current,...values}));};
+  const edit=values=>{submission.clear();setMessage('');if('waybill' in values||'easyshipShipmentId' in values)setGenerationRetryAt(0);setDraft(current=>({...current,...values}));};
   const eligible=(data?.handoffItems||[]).filter(item=>item.fulfillmentId===draft?.fulfillmentId&&(draft?.lineNumber==null||item.lineNumber===draft.lineNumber));
   const entries=eligible.map(item=>({lineNumber:item.lineNumber,qty:Number(draft?.quantities?.[item.lineNumber]||0)}));
   const validQuantities=entries.length>0&&entries.some(item=>item.qty>0)&&entries.every((item,index)=>Number.isSafeInteger(item.qty)&&item.qty>=0&&item.qty<=eligible[index].maximum);
@@ -99,13 +100,15 @@ function ShipmentContent({ scope, recordId, version, onChanged, onData, lineRequ
       run(()=>api.request({method:draft.type==='tracking'?'patch':'post',url:`/admin/shipments/${encodeURIComponent(draft.parcelId)}/${draft.type==='tracking'?'tracking':'delivered'}`,data:body}),true);
     }
   };
-  const generate=async()=>{
-    if(generating||generationWait||!draft||!data)return;
+  const generate=async(manualRetry=false)=>{
+    if(generating||Date.now()<generationRetryAt||!draft||!data)return;
     const epoch=session.getSnapshot().epoch,instance=draftGeneration.current;
     const current=()=>alive.current&&epoch===session.getSnapshot().epoch&&instance===draftGeneration.current;
     const key=`${draft.fulfillmentId}:${draft.lineNumber}`;
     if(!generations.has(key))generations.set(key,{submission:createSubmission(),attempted:false,retryAt:0});
     const generation=generations.get(key);generation.attempted=true;setGenerationAttempted(true);
+    if(manualRetry)generation.attempts=0;
+    generation.attempts=(generation.attempts||0)+1;
     setGenerating(true);setMessage('');
     try{
       const response=await api.post(`/${scope}/fulfillment-orders/${encodeURIComponent(draft.fulfillmentId)}/shipments/prepare`,generation.submission.payload({lineNumber:draft.lineNumber},data.version));
@@ -114,15 +117,25 @@ function ShipmentContent({ scope, recordId, version, onChanged, onData, lineRequ
       const result=response.data;
       if(result.state==='READY'){
         submission.clear();setDraft(value=>({...value,waybill:result.waybill,easyshipShipmentId:result.easyshipShipmentId}));generation.retryAt=0;
-      }else generation.retryAt=Date.now()+Math.max(0,result.retryAfterSeconds||0)*1000;
+      }else generation.retryAt=result.state==='FAILED'?0:Date.now()+Math.max(0,result.retryAfterSeconds||0)*1000;
       setGenerationRetryAt(generation.retryAt);
-      setMessage(result.message||'Check the sandbox tracking request again.');
+      setMessage(result.state==='READY'?'Tracking is ready. Confirm handoff when this item leaves with the carrier.':generation.attempts<4?(result.message||'Confirming tracking automatically…'):'Tracking is not confirmed yet. Retry tracking, or enter existing references.');
     }catch(failure){
       if(!current())return;
       if(failure.response?.status===409){generation.submission.clear();generation.attempted=false;setGenerationAttempted(false);await refresh();setMessage('This item changed. Review the available units, then generate tracking again.');}
-      else{setMessage(failure.response?.data?.message||'The result is uncertain. Use Check again to recover the same tracking request.');generation.retryAt=Date.now()+10000;setGenerationRetryAt(generation.retryAt);}
+      else if(failure.response?.status>=400&&failure.response?.status<500){generation.result={state:'FAILED'};setGenerationRetryAt(0);setMessage(failure.response?.data?.message||'Tracking could not be generated. Check the delivery details.');}
+      else{setMessage(generation.attempts<4?'Confirming tracking automatically…':'Tracking could not be confirmed. Retry tracking to recover the same request.');generation.retryAt=Date.now()+10000;setGenerationRetryAt(generation.retryAt);}
     }finally{if(current())setGenerating(false);}
   };
+  const generationEntry=generations.get(`${draft?.fulfillmentId}:${draft?.lineNumber}`);
+  const generationReady=generationEntry?.result?.state==='READY';
+  const automaticRecovery=!generationReady&&generationRetryAt>0&&(generationEntry?.attempts||0)<4;
+  useEffect(()=>{generateRef.current=generate;});
+  useEffect(()=>{
+    if(draft?.type!=='handoff'||!automaticRecovery||generating||busy)return;
+    const timer=window.setTimeout(()=>generateRef.current?.(),Math.max(0,generationRetryAt-Date.now())+30);
+    return()=>window.clearTimeout(timer);
+  },[draft?.type,draft?.fulfillmentId,draft?.lineNumber,automaticRecovery,generating,busy,generationRetryAt]);
   if(!data&&loading)return <section aria-label="Packages" aria-busy="true" className="surface p-4 space-y-3"><h2 className="text-sm font-semibold">Packages</h2><div className="h-12 rounded-lg bg-gray-100" /></section>;
   return <section aria-label="Packages" className="surface p-4 space-y-4 min-w-0">
     <div className="flex flex-wrap items-center justify-between gap-2">
@@ -150,8 +163,8 @@ function ShipmentContent({ scope, recordId, version, onChanged, onData, lineRequ
     </article>)}
     {draft&&<ModalFrame title={draft.type==='handoff'?'Record carrier handoff':draft.type==='tracking'?'Correct tracking':'Record delivery'} onClose={()=>{if(!busy&&!generating)close();}}>
       <form onSubmit={submit} className="surface p-5 space-y-4 w-full min-w-0">
-        <div className="flex items-center gap-2"><h2 className="text-base font-semibold">{draft.type==='handoff'?'Mark item shipped':draft.type==='tracking'?'Correct tracking':'Record delivery'}</h2><InfoButton label="Shipping and tracking">Tracking identifies the package. Confirming handoff marks only the selected units shipped. Sandbox tracking does not purchase a label or arrange a real pickup.</InfoButton></div>
-        {draft.type==='handoff'&&needsEasyshipId&&data?.canGenerateTracking&&<div className="space-y-2"><div className="flex items-center gap-2"><button type="button" className="button button-outline" disabled={busy||generating||generationWait>0} onClick={generate}>{generating?'Generating…':generationWait?`Check again in ${generationWait}s`:generationAttempted?'Check again':'Generate sandbox tracking'}</button><InfoButton label="Sandbox tracking">Creates test tracking references automatically using synthetic contact details. This does not buy postage, request a pickup or send a real parcel.</InfoButton></div><p className="text-xs text-gray-500">Generate both references here, or enter existing sandbox tracking below.</p></div>}
+        <div className="flex items-center gap-2"><h2 className="text-base font-semibold">{draft.type==='handoff'?'Mark item shipped':draft.type==='tracking'?'Correct tracking':'Record delivery'}</h2><InfoHint label="Shipping and tracking">Tracking identifies the package. Confirming handoff marks only the selected units shipped. Sandbox tracking does not purchase a label or arrange a real pickup.</InfoHint></div>
+        {draft.type==='handoff'&&needsEasyshipId&&data?.canGenerateTracking&&<div className="space-y-2"><div className="flex items-center gap-2">{generationReady?<p role="status" className="text-sm font-medium">Tracking ready</p>:<button type="button" className="button button-outline" disabled={busy||generating||automaticRecovery||generationWait>0||generationEntry?.result?.state==='FAILED'} onClick={()=>generate(true)}>{generating?'Generating…':automaticRecovery?'Confirming tracking…':generationWait>0?`Retry in ${generationWait}s`:generationAttempted?'Retry tracking':'Generate sandbox tracking'}</button>}<InfoHint label="Sandbox tracking">Uses the delivery details saved with this order to create test tracking. This does not buy postage, request a pickup or send a real parcel.</InfoHint></div>{!generationReady&&<p className="text-xs text-gray-500">Generate both references here, or enter existing sandbox tracking below.</p>}</div>}
         {draft.type!=='delivered'&&<label className="block text-sm">Tracking number<input aria-label="Tracking number" className="mt-2 w-full border rounded-lg px-3 py-2 text-base" value={draft.waybill} maxLength={80} required disabled={busy||generating} onChange={event=>edit({waybill:event.target.value.trim()})} /></label>}
         {needsEasyshipId&&draft.type!=='delivered'&&<label className="block text-sm">Easyship shipment ID<input aria-label="Easyship shipment ID" className="mt-2 w-full border rounded-lg px-3 py-2 text-base" value={draft.easyshipShipmentId||''} maxLength={80} placeholder="ESIN10000001" required disabled={busy||generating} onChange={event=>edit({easyshipShipmentId:event.target.value.trim()})} /><span className="block mt-1 text-xs text-gray-500">{data?.canGenerateTracking?'Filled automatically when you generate sandbox tracking.':'Use the shipment ID from your Easyship sandbox account.'}</span></label>}
         {draft.type==='handoff'?<>
