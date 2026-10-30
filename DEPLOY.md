@@ -23,8 +23,8 @@ SSH inventory on 25 October 2026 confirmed both old services are active, Postgre
 
 For the email-delivery repair and monthly admin/seller reports, see [Email operations](docs/email-operations.md). The additive `V8` migration runs during the normal release upgrade; keep the existing beta database and MFA keys. Production-profile releases enable monthly reports by default (`EMAIL_REPORTS_ENABLED=false` disables them).
 
-1. Wait for **Application checks** on the exact release commit to pass. Beta prereleases target `stg`; stable production releases target `main`. Beta's frontend and backend must use the same application revision.
-2. For beta, create a **GitHub prerelease** with a new tag such as `v0.1.0-beta.2` targeting the checked `stg` commit. Stable releases use a tag such as `v0.1.0`, must not be marked prerelease, and must descend from `main`. The release workflow enforces tag type and branch ancestry. Never move or reuse a tag.
+1. Wait for **Application checks** on the exact release commit to pass. Beta prereleases target `beta`; stable production releases target `main`. Beta's frontend and backend must use the same application revision.
+2. For beta, create a **GitHub prerelease** with a new tag such as `v0.1.0-beta.2` targeting the checked `beta` commit. Stable releases use a tag such as `v0.1.0`, must not be marked prerelease, and must descend from `main`. The release workflow enforces tag type and branch ancestry. Never move or reuse a tag.
 3. Publish it and wait for **Release backend** to finish successfully. It reruns the frontend, PostgreSQL/backend, Linux operations and dependency checks, then attaches:
    - `mercato-backend.jar`
    - `mercato-backend.jar.sha256`
@@ -318,7 +318,7 @@ Flyway continues to use the separate owner credentials on future releases. The a
 
 ## 8. Configure and deploy Netlify
 
-Open the existing [mercato-in-beta project](https://app.netlify.com/projects/mercato-in-beta). Link it to `saikat-ghosh-in/mercato`, production branch **stg**. This is the beta site's published branch: its Netlify deploy context is still **`production`**, despite the site's beta name. Do not change the separate production project. Use the repository-root `netlify.toml`:
+Open the existing [mercato-in-beta project](https://app.netlify.com/projects/mercato-in-beta). Link it to `saikat-ghosh-in/mercato`, production branch **beta**. This is the beta site's published branch: its Netlify deploy context is still **`production`**, despite the site's beta name. Do not change the separate production project. Use the repository-root `netlify.toml`:
 
 - Base directory: repository root (empty or `.`), not `frontend`.
 - Build command: `npm --prefix frontend ci --ignore-scripts && npm --prefix frontend run build`
@@ -339,7 +339,7 @@ Set these **production-context** variables in Netlify's environment settings:
 
 Remove the old direct-origin `VITE_API_BASE_URL` setting if present; the browser now calls same-origin `/api`. Keep secrets out of Git and client-prefixed variables.
 
-Trigger a **published deploy from stg on the beta project** after saving the variables. Check its build log for successful secure-ingress plugin and Edge Function deployment. Frontend-only local builds passing do not prove this deployed proxy path.
+Trigger a **published deploy from beta on the beta project** after saving the variables. Check its build log for successful secure-ingress plugin and Edge Function deployment. Frontend-only local builds passing do not prove this deployed proxy path.
 
 ## 9. Verify HTTPS, email, MFA and the empty marketplace
 
@@ -394,7 +394,7 @@ Validate with `sudo visudo -c`. Do not grant unrestricted passwordless sudo. The
 
 The fulfillment beta remains a **side-project sandbox**. Keep Cashfree authorization/delayed-capture activation disabled and use ordinary sandbox payment collection. The tracking revision adds seller parcel handoff and **Easyship sandbox** tracking, with audited admin manual delivery when carrier access is unavailable. Historical Delhivery parcels remain readable. It does not book pickups or labels. Customer returns, advanced RTO, deductions and seller disputes remain deferred. Do not enable account-wide card preauthorization to try out unfinished features.
 
-For each beta update, publish a **new prerelease tag from tested `stg`** and wait for its **Release backend** job/assets. Before a release containing new migrations, take a private recovery dump of the installed beta database on OCI:
+For each beta update, publish a **new prerelease tag from tested `beta`** and wait for its **Release backend** job/assets. Before a release containing new migrations, take a private recovery dump of the installed beta database on OCI:
 
 ```bash
 sudo install -d -o root -g root -m 0700 /opt/mercato-beta/backups
@@ -412,7 +412,7 @@ sudo journalctl -u mercato-beta -n 100 --no-pager
 
 Replace the example with the actual tag. The beta wrapper fixes the directory, service and site explicitly; the generic release script otherwise defaults to production. The updated script downloads/verifies the JAR, rejects changed content under an existing tag, preserves the previous artifact, installs by atomic rename, restarts the service and checks session JSON through Netlify. Retrying the same unchanged release after a failed restart is supported. Future additive migrations run automatically on startup; do not recreate this fresh database for routine updates.
 
-The beta Netlify project deploys its `stg` frontend separately; verify frontend/backend compatibility for each release. For the tracking revision, milestone commits use `[skip netlify]`: install the compatible backend first, then trigger a deploy from the current `stg` on **mercato-in-beta** and verify its source commit. Keep the separate production project unchanged. Preserve `.env`, the MFA encryption key, uploads, database and signing keys across redeploys. A failed readiness check requires investigation; do not automatically restore the old bearer-token application or roll back an incompatible database schema.
+The beta Netlify project deploys its `beta` frontend separately; verify frontend/backend compatibility for each release. For the tracking revision, milestone commits use `[skip netlify]`: install the compatible backend first, then trigger a deploy from the current `beta` on **mercato-in-beta** and verify its source commit. Keep the separate production project unchanged. Preserve `.env`, the MFA encryption key, uploads, database and signing keys across redeploys. A failed readiness check requires investigation; do not automatically restore the old bearer-token application or roll back an incompatible database schema.
 
 For the Easyship switch, keep `DELHIVERY_ENABLED=false`. Configure `EASYSHIP_SANDBOX_TOKEN`, `EASYSHIP_ENABLED=true` and `EASYSHIP_TRACKING_BATCH_SIZE=50` only in the beta backend environment after installing the compatible release. Follow [Easyship sandbox setup](docs/EASYSHIP_SANDBOX_SETUP.md), including token rotation and test delivery simulation. Leave Easyship disabled for manual-only operation. V16 adds explicit provider/reference fields; it preserves existing parcels and does not convert their provider. No production token, MCP action, label purchase or pickup is needed. The older [Delhivery setup](docs/DELHIVERY_SETUP.md) remains historical reference only for this beta.
 

@@ -41,3 +41,19 @@ frontend/node_modules/
 frontend/dist/
 frontend/.env
 frontend/.env.local
+
+### Local agent/checkpoint files and generated verification output ###
+.superpowers/
+.agents/
+AGENT.md
+AGENTS.md
+agent.md
+RESUME.md
+resume.md
+docs/superpowers/
+docs/EASYSHIP_REVIEW.md
+docs/review/easyship/
+**/test-results/
+**/test_results/
+**/test_result*.log
+**/test_result*.json
