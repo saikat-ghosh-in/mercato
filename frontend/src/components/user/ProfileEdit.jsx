@@ -12,6 +12,7 @@ import toast from "../../utils/toastUtils.js";
 import api from "../../backend/api";
 import { fetchUserDetails } from "../../reduxStore/actions/authActions";
 import { profileDraft } from "../../utils/accountState.js";
+import ProfilePhotoUpload from "../shared/ProfilePhotoUpload";
 
 
 const inputCls = "w-full text-sm text-gray-800 focus:outline-none bg-transparent placeholder-gray-300";
@@ -38,10 +39,11 @@ const ProfileEdit = () => {
   const form = initializedDraft?.form;
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
+  const [uploadingPhoto,setUploadingPhoto]=useState(false);
   if (!form) return <div className="site-container skeleton-page"><LoadingLayout variant="profile" label="Loading your profile" /></div>;
 
   const set = (key, val) => {
-    setDraft({ ...initializedDraft, dirty: true, form: { ...form, [key]: val } });
+    setDraft(current=>{const base=profileDraft(current,user);return {...base,dirty:true,form:{...base.form,[key]:val}};});
     if (errors[key]) setErrors(e => ({ ...e, [key]: "" }));
   };
 
@@ -63,6 +65,7 @@ const ProfileEdit = () => {
   };
 
   const handleSave = async () => {
+    if(uploadingPhoto||saving)return;
     const e = validate();
     if (Object.keys(e).length > 0) { setErrors(e); return; }
 
@@ -72,7 +75,7 @@ const ProfileEdit = () => {
         firstName: form.firstName,
         lastName: form.lastName,
         phoneNumber: form.phoneNumber || null,
-        profileImageUrl: form.profileImageUrl || null,
+        profileImageUrl: form.profileImageUrl ?? "",
         sellerDisplayName: isSeller ? form.sellerDisplayName : undefined,
       };
       await api.put("/user/edit-profile", payload);
@@ -94,6 +97,7 @@ const ProfileEdit = () => {
         <PageHeading title="Edit profile" description="Update your personal information."><button type="button" className="button button-outline" onClick={() => navigate("/profile")}><MdArrowBack aria-hidden="true" /> Back to account</button></PageHeading>
 
         <div className="space-y-4">
+          <ProfilePhotoUpload key={initializedDraft.userId} name={form.firstName||user.username} imageUrl={form.profileImageUrl} onChange={url=>set('profileImageUrl',url)} onBusyChange={setUploadingPhoto}/>
           {/* Personal info */}
           <div className="surface p-5 space-y-4">
             <h3 className="text-xs font-bold text-gray-400 ">Personal information</h3>
@@ -180,7 +184,7 @@ const ProfileEdit = () => {
             </button>
             <button
               onClick={handleSave}
-              disabled={saving}
+              disabled={saving||uploadingPhoto}
               className="control control-prominent flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm bg-gray-950 hover:bg-gray-800 text-white rounded-xl transition-[transform,opacity,background-color] cursor-pointer font-bold  disabled:opacity-50"
             >
 

@@ -37,7 +37,8 @@ async function fixture(setup,value){
     const page=await browser.newPage({viewport:{width:390,height:844}});page.setDefaultTimeout(5000);
     await page.route('http://localhost:4178/**',route=>route.fulfill({contentType:'text/html',body:'<div id="root"></div>'}));
     await page.goto('http://localhost:4178/');
-    for(const name of (await readdir(new URL('../dist/assets/',import.meta.url))).filter(name=>name.endsWith('.css')))await page.addStyleTag({content:await readFile(new URL('../dist/assets/'+name,import.meta.url),'utf8')});
+    // Local fixtures must not depend on a remote font service being reachable.
+    for(const name of (await readdir(new URL('../dist/assets/',import.meta.url))).filter(name=>name.endsWith('.css'))){const css=await readFile(new URL('../dist/assets/'+name,import.meta.url),'utf8');await page.addStyleTag({content:css.replace(/@import\s*(?:url\([^)]*\)|"[^"]*"|'[^']*')\s*;/g,'')});}
     await page.evaluate(()=>{
       window.epoch=1;window.startUrl='/checkout';window.posts=[];window.reads=[];window.opened=[];window.mode='network';
       window.addresses=[{addressId:'A1',recipientName:'Default buyer',addressLine1:'Default road',defaultAddress:true},{addressId:'A2',recipientName:'Chosen buyer',addressLine1:'Selected road',city:'City',state:'State',pincode:'123456',recipientPhone:'9999999999'}];

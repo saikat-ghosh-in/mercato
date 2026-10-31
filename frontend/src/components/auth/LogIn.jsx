@@ -44,12 +44,14 @@ const Login = () => {
                 <div className="surface p-7">
                     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
 
-                        {/* Username */}
-                        <Field label="Username" error={errors.username?.message} icon={FiUser} required>
+                        <Field label="Username or Email" error={errors.username?.message} icon={FiUser} required>
                             <input
-                                {...register("username", { required: "Username is required" })}
-                                placeholder="Your username"
+                                {...register("username", { required: "Username or email is required", maxLength: { value: 320, message: "Use at most 320 characters" } })}
+                                placeholder="Your username or email"
                                 autoComplete="username"
+                                autoCapitalize="none"
+                                spellCheck={false}
+                                maxLength={320}
                                 className={inputCls}
                             />
                         </Field>

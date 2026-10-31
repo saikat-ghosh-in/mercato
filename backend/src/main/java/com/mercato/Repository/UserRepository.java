@@ -21,6 +21,8 @@ public interface UserRepository extends JpaRepository<EcommUser, Long> {
     Optional<EcommUser> findByUserIdForUpdate(@Param("userId") String userId);
 
     Optional<EcommUser> findByUsername(String username);
+    @Query("select distinct u.username from EcommUser u where u.emailVerified=true and (u.username=:identifier or lower(u.email)=lower(:identifier))")
+    List<String> findLoginUsernames(@Param("identifier") String identifier);
 
     @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
     @Query("select u from EcommUser u where u.username = :username")
@@ -31,6 +33,10 @@ public interface UserRepository extends JpaRepository<EcommUser, Long> {
     boolean existsByUsername(String username);
 
     boolean existsByEmail(String email);
+
+    boolean existsByEmailIgnoreCase(String email);
+
+    boolean existsByUsernameIgnoreCase(String username);
 
     boolean existsByPhoneNumber(String phoneNumber);
 

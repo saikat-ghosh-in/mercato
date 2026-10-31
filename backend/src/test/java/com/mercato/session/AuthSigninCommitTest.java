@@ -32,6 +32,7 @@ class AuthSigninCommitTest {
         var user=new EcommUser();user.setUserId("USR-1");user.setUsername("shopper");user.setPassword("stored-hash");
         user.setEnabled(true);user.setEmailVerified(true);user.setRoles(Set.of(new Role(AppRole.ROLE_USER)));
         when(users.findByUsernameForUpdate("shopper")).thenReturn(Optional.of(user));
+        when(users.findLoginUsernames("shopper")).thenReturn(List.of("shopper"));
         when(passwords.matches("password","stored-hash")).thenReturn(true);
         doThrow(new org.springframework.dao.DataAccessResourceFailureException("commit unavailable"))
                 .when(transactions).commit(org.mockito.ArgumentMatchers.nullable(TransactionStatus.class));

@@ -1,6 +1,6 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/react";
-import { FiSearch, FiShoppingBag, FiUser, FiLock, FiHelpCircle, FiChevronDown } from "react-icons/fi";
+import { FiSearch, FiShoppingBag, FiUser, FiLock, FiHelpCircle, FiChevronDown, FiCheck } from "react-icons/fi";
 import { useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { logOutUser } from "../reduxStore/actions/authActions";
@@ -10,6 +10,7 @@ import ExplorePanel from "./ExplorePanel";
 import { useMeasuredHeight } from "../hooks/useMeasuredHeight";
 import { useInputModality } from "../hooks/useInputModality";
 import { isSellerAccount } from "../utils/accountRouting";
+import UserAvatar from "./shared/UserAvatar";
 
 export default function Header() {
   useInputModality();
@@ -19,9 +20,13 @@ export default function Header() {
   const location = useLocation();
   const user = useSelector(s => s.auth?.user);
   const details = useSelector(s => s.auth?.userDetails);
+  const sessionStatus = useSelector(s => s.auth?.sessionStatus);
   const categories = useSelector(s => s.categories.categories) ?? [];
   const count = useSelector(selectCartQty);
   const signedIn = Boolean(user);
+  const displayName=details?.firstName?.trim() || user?.firstName?.trim() || user?.username || details?.username || "Your account";
+  const initializing=!signedIn && ["idle","loading"].includes(sessionStatus);
+  const accountDescription=signedIn?`Signed in as ${displayName}`:initializing?"Checking your account":"Sign in or create an account";
   const [discoveryOpen, setDiscoveryOpen] = useState(false);
   const [keyword, setKeyword] = useState("");
   const checkout = location.pathname.startsWith("/checkout");
@@ -47,10 +52,13 @@ export default function Header() {
           }}><FiSearch /></button>
           <Link to="/help" className="header-help" aria-label="Help"><FiHelpCircle /><span>Help</span></Link>
           <Menu>
-            <MenuButton className="header-account" aria-label="Account menu"><FiUser /><span>Account</span><FiChevronDown className="account-chevron" aria-hidden="true" /></MenuButton>
+            <MenuButton className="header-account" aria-label="Account menu" aria-description={accountDescription} title={accountDescription} data-signed-in={signedIn}>
+              {signedIn?<span className="account-avatar" aria-hidden="true"><UserAvatar name={displayName} imageUrl={details?.profileImageUrl ?? user?.profileImageUrl}/><FiCheck className="account-signed-check"/></span>:<FiUser aria-hidden="true"/>}
+              <span className="account-label">{signedIn?`Hi, ${displayName}`:initializing?"Account":"Sign in"}</span><FiChevronDown className="account-chevron" aria-hidden="true" />
+            </MenuButton>
             <MenuItems anchor="bottom end" className="account-menu" transition>
               {signedIn ? <>
-                <p className="account-name">{details?.firstName || user.username || "Your account"}</p>
+                <p className="account-name"><span className="account-signed-label">Signed in as</span><strong>{displayName}</strong></p>
                 {links.map(([label, href]) => <MenuItem key={href}><Link to={href}>{label}</Link></MenuItem>)}
                 <MenuItem><button onClick={() => dispatch(logOutUser(navigate))}>Sign out</button></MenuItem>
               </> : <><MenuItem><Link to="/login">Sign in</Link></MenuItem><MenuItem><Link to="/register">Create an account</Link></MenuItem></>}

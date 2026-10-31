@@ -8,18 +8,23 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 @RestController
-@RequestMapping("/api/seller")
+@RequestMapping("/api")
 @RequiredArgsConstructor
 public class FileUploadController {
 
     private final FileService fileService;
 
-    @PostMapping("/upload-image")
+    @PostMapping("/seller/upload-image")
     public ResponseEntity<?> uploadProductImage(@RequestParam("file") MultipartFile file) {
         String imageUrl = fileService.uploadImage(file);
         return ResponseEntity.ok(new ImageUploadResponse(
                 imageUrl,
                 "Image uploaded successfully"
         ));
+    }
+
+    @PostMapping("/user/profile-image")
+    public ResponseEntity<ImageUploadResponse> uploadProfileImage(@RequestParam("file") MultipartFile file) {
+        return ResponseEntity.ok(new ImageUploadResponse(fileService.uploadImage(file), "Profile photo uploaded"));
     }
 }
