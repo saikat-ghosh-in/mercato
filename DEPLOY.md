@@ -1,3 +1,7 @@
+# Production launch
+
+For the approved fresh production launch at `mercato-in.netlify.app`, use [Production launch and redeployment](docs/PRODUCTION_LAUNCH.md). The beta-only procedure below remains for the separate beta environment.
+
 # Beta first: fresh Mercato launch on OCI + Netlify
 
 **Already installed beta:** use section 11 for updates. Do not repeat the initial database/account setup or regenerate encryption keys. The fulfillment revision uses additive migrations and preserves existing accounts, MFA, orders and uploads. Keep delayed authorization disabled until its enabled-account sandbox acceptance is recorded; deploy the compatible financial reader before changing Cashfree's account-wide settings.
@@ -453,7 +457,3 @@ Production deployment and production cleanup are a separate step after beta appr
 - **Release asset 404:** the tag is wrong or **Release backend** has not uploaded the assets successfully yet.
 
 The beta deployment was performed on 25 October 2026. See [the beta deployment review](docs/BETA_DEPLOYMENT_REVIEW.md) for the installed release, cleanup performed, verification evidence and remaining manual acceptance. Steps here describe the installation procedure; do not recreate the database or regenerate keys on an already installed beta instance.
-# Production launch
-
-For the approved fresh production launch at `mercato-in.netlify.app`, use [Production launch and redeployment](docs/PRODUCTION_LAUNCH.md). The beta-only procedure below remains for the separate beta environment.
-
