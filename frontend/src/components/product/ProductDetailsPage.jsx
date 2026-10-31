@@ -1,3 +1,4 @@
+import Accordion from "../shared/Accordion";
 import { LoadingLayout } from "../shared/LoadingStates";
 import ActionArrow from "../shared/ActionArrow";
 import { useEffect, useState } from "react";
@@ -48,8 +49,9 @@ function ProductContent({ productId }) {
         <WishlistToggle productId={productId} />
         {product.highlights?.length > 0 && <ul className="pdp-highlights">{product.highlights.map((text, i) => <li key={i}>{text}</li>)}</ul>}
         <p className="pdp-description">{product.description}</p>
-        <details className="product-disclosure" open><summary>Product details</summary><dl className="product-specs">{specs.map(([label, value], i) => <div key={label + i}><dt>{label}</dt><dd>{value}</dd></div>)}</dl></details>
-        {[[product.materials, "Materials"], [product.care, "Care instructions"], [product.warranty, "Warranty"], [product.packageContents, "What's in the box"], [product.deliveryReturns, "Delivery & returns"]].filter(([text]) => text?.trim()).map(([text,title]) => <details className="product-disclosure" key={title}><summary>{title}</summary><p>{text}</p></details>)}
+        <Accordion multiple defaultValue="details"><Accordion.Item className="product-disclosure" value="details"><Accordion.Trigger>Product details</Accordion.Trigger><Accordion.Content><dl className="product-specs">{specs.map(([label, value], i) => <div key={label + i}><dt>{label}</dt><dd>{value}</dd></div>)}</dl></Accordion.Content></Accordion.Item>
+        {[[product.materials, "Materials"], [product.care, "Care instructions"], [product.warranty, "Warranty"], [product.packageContents, "What's in the box"], [product.deliveryReturns, "Delivery & returns"]].filter(([text]) => text?.trim()).map(([text,title]) => <Accordion.Item className="product-disclosure" key={title} value={title}><Accordion.Trigger>{title}</Accordion.Trigger><Accordion.Content><p>{text}</p></Accordion.Content></Accordion.Item>)}
+        </Accordion>
         {!product.deliveryReturns && <p className="tax-note mt-6">Delivery charges are shown in your bag. <Link to="/help" className="text-link">Shopping help</Link></p>}
       </section>
     </div>

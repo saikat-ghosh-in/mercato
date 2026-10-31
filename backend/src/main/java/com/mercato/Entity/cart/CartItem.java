@@ -54,6 +54,16 @@ public class CartItem {
     @Column(name = "unit_price", precision = 10, scale = 2)
     private BigDecimal unitPrice;
 
+    @Column(precision=10,scale=2)
+    private BigDecimal selectedRetailPrice;
+    @Column(precision=5,scale=2)
+    private BigDecimal selectedDiscountPercent;
+    @Column(length=40)
+    private String selectedPriceProvenance;
+    @Column(length=36,nullable=false)
+    @Builder.Default
+    private String selectionGeneration=java.util.UUID.randomUUID().toString();
+
     @Column(name = "out_of_stock", nullable = false)
     @Builder.Default
     private boolean outOfStock = false;
@@ -61,6 +71,10 @@ public class CartItem {
     @Transient
     @Builder.Default
     private BigDecimal sellerDeliveryCharge = BigDecimal.ZERO;
+    @Transient @Builder.Default
+    private BigDecimal buyerNormalDeliveryCharge=BigDecimal.ZERO;
+    @Transient @Builder.Default
+    private BigDecimal buyerExpeditedDeliveryCharge=BigDecimal.ZERO;
 
 
     @Transient
@@ -80,11 +94,27 @@ public class CartItem {
 
     public void addQuantity(int qty) {
         if (qty <= 0) throw new IllegalArgumentException("Quantity must be greater than 0");
-        this.quantity += qty;
+        this.quantity = Math.addExact(this.quantity,qty);
     }
 
     public void updateQuantity(int qty) {
         if (qty <= 0) throw new IllegalArgumentException("Quantity must be greater than 0");
+        if(qty<this.quantity)selectionGeneration=java.util.UUID.randomUUID().toString();
         this.quantity = qty;
     }
+
+    public static CartItem selected(Cart cart,Product product,int quantity) {
+        var item=CartItem.builder().cart(cart).product(product).quantity(quantity).unitPrice(product.getSellingPrice()).build();
+        var retail=product.getRetailPrice();var percent=product.getDiscountPercent()==null?BigDecimal.ZERO:product.getDiscountPercent();
+        if(retail!=null && item.unitPrice!=null && retail.multiply(BigDecimal.ONE.subtract(percent.movePointLeft(2))).setScale(2,RoundingMode.HALF_UP).compareTo(item.unitPrice)==0) {
+            item.selectedRetailPrice=retail;item.selectedDiscountPercent=percent;item.selectedPriceProvenance="PRODUCT_PRICE_AT_SELECTION";
+        }
+        return item;
+    }
+    public CartItem copySelection(Cart target,Product current) {
+        return CartItem.builder().cart(target).product(current).quantity(quantity).unitPrice(getItemPrice())
+            .selectedRetailPrice(selectedRetailPrice).selectedDiscountPercent(selectedDiscountPercent)
+            .selectedPriceProvenance(selectedPriceProvenance).build();
+    }
+
 }

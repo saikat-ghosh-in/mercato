@@ -1,6 +1,6 @@
 # Mercato hardening review — 24 October 2026
 
-Authority: [approved implementation contract](superpowers/plans/2026-10-22-mercato-hardening.md). Work started on local `stg` at `e9abdc4`. No push, remote/main change, OCI database alteration, deployed service restart, Netlify deployment or gateway URL cutover was performed.
+Authority: [archived implementation contract](https://github.com/saikat-ghosh-in/mercato/blob/1cf8efeb6a69f6c4d7aefb38cfe8b30c7f6ff9c2/docs/superpowers/plans/2026-10-22-mercato-hardening.md). Work started on local `stg` at `e9abdc4`. No push, remote/main change, OCI database alteration, deployed service restart, Netlify deployment or gateway URL cutover was performed.
 
 ## Review units
 
@@ -21,7 +21,7 @@ Seller onboarding, listing approval, promotions, delivery options/seller-paid sh
 - **Dependencies:** npm audit 0 vulnerabilities. Resolved CycloneDX/Trivy scan exits 0 with no unassessed HIGH/CRITICAL findings. Two non-executable Spring MVC rendering findings have exact-version OpenVEX assessments and a runtime regression guard; see [dependency assessment](DEPENDENCY_SECURITY.md).
 - **Operations tooling:** 15 Python tests, 14 pass and one Windows-only symlink test skipped (enabled in Linux CI). Python/CLI checks pass. Linux systemd execution, actual backup/restore and external alert delivery are not claimed.
 - **Browser:** catalog/bag/sign-in/cart merge, addresses/default selection, delivery recalculation, failed-payment value retention, profile editing, PDP gallery/wishlist, cross-tab logout and administrator/seller reads exercised. Mobile 320px/390px and desktop evidence: [Browser acceptance](HARDENING_BROWSER_CHECKS.md). No live charge/email was sent.
-- **Review:** partial independent source review found cancellation snapshot, OSIV retry and raw-evidence gaps, corrected with regressions. Its remaining pass hit the review agent's usage limit; it is not unconditional independent approval. [Disposition](superpowers/hardening-final-review.md).
+- **Review:** partial independent source review found cancellation snapshot, OSIV retry and raw-evidence gaps, corrected with regressions. Its remaining pass hit the review agent's usage limit; it is not unconditional independent approval. [Archived disposition](https://github.com/saikat-ghosh-in/mercato/blob/1cf8efeb6a69f6c4d7aefb38cfe8b30c7f6ff9c2/docs/superpowers/hardening-final-review.md).
 
 ## Preservation
 

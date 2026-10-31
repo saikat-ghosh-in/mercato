@@ -1,9 +1,9 @@
 name: Application checks
 on:
   push:
-    branches: [stg, main]
+    branches: [beta, main]
   pull_request:
-    branches: [stg, main]
+    branches: [beta, main]
   workflow_dispatch:
   workflow_call:
 permissions:

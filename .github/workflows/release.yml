@@ -17,12 +17,11 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Require a versioned release from main
+      - name: Require reviewed branch ancestry and matching release type
         env:
           RELEASE_TAG: ${{ github.event.release.tag_name }}
-        run: |
-          [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[A-Za-z0-9.-]+)?$ ]]
-          git merge-base --is-ancestor HEAD origin/main
+          RELEASE_IS_PRERELEASE: ${{ github.event.release.prerelease }}
+        run: python3 ops/check_release_ref.py
       - uses: actions/setup-java@v4
         with:
           distribution: temurin

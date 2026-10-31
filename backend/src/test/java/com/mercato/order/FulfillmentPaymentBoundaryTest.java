@@ -22,23 +22,26 @@ class FulfillmentPaymentBoundaryTest {
     private final RefundService refunds = mock(RefundService.class);
     private final ShipmentNotificationService mail = mock(ShipmentNotificationService.class);
     private final AuthUtil auth = mock(AuthUtil.class);
-    private final OrderLineUpdateServiceImpl service = new OrderLineUpdateServiceImpl(lines, orders, reservations, refunds, mail, auth);
+    private final OrderLineUpdateServiceImpl service = new OrderLineUpdateServiceImpl(lines, orders, reservations, refunds, mock(CashfreeService.class), mail, auth, new FulfillmentWorkflow(java.time.Clock.systemUTC(),new FulfillmentFunding()),mock(WorkflowCommands.class),new SellerOrderVisibility(new FulfillmentWorkflow(java.time.Clock.systemUTC(),new FulfillmentFunding()),java.time.Clock.systemUTC()),mock(com.mercato.Repository.ShipmentRepository.class));
     private Order order;
     private OrderLine line;
 
     @BeforeEach void prepare() {
+        var admin=new com.mercato.Entity.EcommUser();admin.setEmail("admin@test");when(auth.getLoggedInUser()).thenReturn(admin);
         order = new Order(); order.setOrderId("ORD-BOUNDARY"); order.setOrderStatus(OrderStatus.CONFIRMED);
+        order.setTotalAmount(new BigDecimal("200.00"));order.setCurrency("INR");
         order.setPaymentStatus(PaymentStatus.SUCCESS);
         Payment payment = new Payment(); payment.setStatus(PaymentStatus.SUCCESS); payment.setCompletedAt(Instant.now());
-        order.setPayment(payment);
-        line = new OrderLine(); line.setId(1L); line.setOrderedQty(2); line.setUnitPrice(new BigDecimal("100.00"));
+        payment.setAmount(new BigDecimal("200.00"));payment.setCurrency("INR");
+        order.setPayment(payment);payment.setCapturedAt(Instant.now().minusSeconds(7200));payment.setCapturedAmount(new BigDecimal("200"));payment.setCaptureVerifiedAt(payment.getCapturedAt());payment.setCaptureEvidenceId("test-reader-proof");order.setAllocationCompletedAt(payment.getCapturedAt());order.establishConfirmation(payment.getCapturedAt());
+        line = new OrderLine(); line.setId(1L);line.setFulfillmentId("FUL-1");line.setOrderLineNumber(1); line.setOrderedQty(2); line.setUnitPrice(new BigDecimal("100.00"));
         line.setOrderLineStatus(OrderLineStatus.CONFIRMED); order.addOrderLine(line);
-        when(lines.findByFulfillmentIdAndOrderLineNumberForUpdate("FUL-1", 1)).thenReturn(Optional.of(line));
+
         when(orders.lockByFulfillment("FUL-1",1)).thenReturn(Optional.of(order));
     }
     private OrderLineUpdateRequestDTO request(OrderLineAction action) {
         var request = new OrderLineUpdateRequestDTO(); request.setFulfillmentId("FUL-1"); request.setOrderLineNumber(1);
-        request.setAction(action); request.setQty(2); return request;
+        request.setAction(action); request.setQty(2);request.setReason("Synthetic regression");request.setOperationId("test-command");request.setExpectedVersion(0L); return request;
     }
     @Test void cancellationBeforeAcceptanceClosesThePaidOrder() {
         service.updateOrderLine(request(OrderLineAction.CANCEL), TransitionTrigger.ADMIN);
@@ -58,7 +61,7 @@ class FulfillmentPaymentBoundaryTest {
         assertEquals(0, line.getShippedQty());
     }
     @Test void failedAttemptCompletionIsNotCapturedMoney() {
-        order.setPaymentStatus(PaymentStatus.FAILED); order.getPayment().setStatus(PaymentStatus.FAILED);
+        order.setPaymentStatus(PaymentStatus.FAILED); order.getPayment().setStatus(PaymentStatus.FAILED);order.getPayment().setCapturedAt(null);order.getPayment().setCapturedAmount(null);
         assertFalse(MarketplaceFinanceService.paid(order));
     }
     @Test void verifiedCaptureCannotDisappearBecauseOfAGenericAttemptStatus() {

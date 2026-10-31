@@ -10,6 +10,7 @@ public class CartMapper {
     public static CartResponseDTO toDTO(Cart cart) {
         if (cart == null) return null;
         return new CartResponseDTO(
+                cart.getVersion(),
                 cart.getCartId(),
                 cart.getSubtotal(),
                 cart.getCharges().stream()

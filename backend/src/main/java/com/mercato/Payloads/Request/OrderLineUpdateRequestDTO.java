@@ -22,4 +22,6 @@ public class OrderLineUpdateRequestDTO {
     private Integer qty;
 
     private String reason;
+    private String operationId;
+    private Long expectedVersion;
 }

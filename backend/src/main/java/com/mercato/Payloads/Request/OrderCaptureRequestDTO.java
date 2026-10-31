@@ -13,4 +13,10 @@ public class OrderCaptureRequestDTO {
     @jakarta.validation.constraints.DecimalMin("0.00")
     private java.math.BigDecimal expectedTotal;
     private com.mercato.Entity.cart.DeliveryMethod deliveryMethod;
+    @jakarta.validation.constraints.NotBlank
+    @jakarta.validation.constraints.Size(max=120)
+    private String operationId;
+    @NotNull
+    @jakarta.validation.constraints.Min(0)
+    private Long expectedCartVersion;
 }

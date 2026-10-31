@@ -9,8 +9,10 @@ import java.math.BigDecimal;
 import java.time.Instant;
 
 @Getter
-@AllArgsConstructor
+@lombok.RequiredArgsConstructor
 public class OrderSummaryDTO {
+    @lombok.Setter
+    private com.mercato.Service.FulfillmentWorkflow.Summary workflow;
     private final String orderId;
     private final OrderStatus orderStatus;
     private final PaymentStatus paymentStatus;

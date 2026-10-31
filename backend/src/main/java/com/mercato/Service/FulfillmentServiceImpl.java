@@ -21,6 +21,9 @@ public class FulfillmentServiceImpl implements FulfillmentService {
 
     private final OrderLineRepository orderLineRepository;
     private final AuthUtil authUtil;
+    private final FulfillmentWorkflow workflow;
+    private final SellerOrderVisibility visibility;
+    private final OrderProductImages images;
 
     @Override
     @Transactional(readOnly = true)
@@ -28,7 +31,7 @@ public class FulfillmentServiceImpl implements FulfillmentService {
         EcommUser seller = authUtil.getLoggedInUser();
 
         List<OrderLine> lines = orderLineRepository
-                .findAllBySellerEmail(seller.getEmail());
+                .findAllBySellerEmail(seller.getEmail(),visibility.now());
 
         return groupByFulfillmentId(lines, true);
     }
@@ -39,7 +42,7 @@ public class FulfillmentServiceImpl implements FulfillmentService {
         EcommUser seller = authUtil.getLoggedInUser();
 
         List<OrderLine> lines = orderLineRepository
-                .findAllBySellerEmail(seller.getEmail());
+                .findAllBySellerEmail(seller.getEmail(),visibility.now());
 
         return groupByFulfillmentId(lines, false);
     }
@@ -50,13 +53,14 @@ public class FulfillmentServiceImpl implements FulfillmentService {
         EcommUser seller = authUtil.getLoggedInUser();
 
         List<OrderLine> lines = orderLineRepository
-                .findAllByFulfillmentIdAndSellerEmail(fulfillmentId, seller.getEmail());
+                .findAllByFulfillmentIdAndSellerEmail(fulfillmentId, seller.getEmail(),visibility.now());
 
         if (lines.isEmpty()) {
             throw new ResourceNotFoundException("FulfillmentOrder", "fulfillmentId", fulfillmentId);
         }
 
-        return FulfillmentOrderMapper.toDTO(fulfillmentId, lines);
+        var result=FulfillmentOrderMapper.toDTO(fulfillmentId, lines,workflow);
+        images.enrich(result.getOrderLines());return result;
     }
 
 
@@ -64,11 +68,13 @@ public class FulfillmentServiceImpl implements FulfillmentService {
         Map<String, List<OrderLine>> grouped = lines.stream()
                 .collect(Collectors.groupingBy(OrderLine::getFulfillmentId));
 
-        return grouped.entrySet().stream()
+        var result=grouped.entrySet().stream()
                 .filter(entry -> open
                         ? entry.getValue().stream().anyMatch(line -> !line.isTerminal())
                         : entry.getValue().stream().allMatch(OrderLine::isTerminal))
-                .map(entry -> FulfillmentOrderMapper.toDTO(entry.getKey(), entry.getValue()))
+                .map(entry -> FulfillmentOrderMapper.toDTO(entry.getKey(), entry.getValue(),workflow))
+                .sorted(java.util.Comparator.comparing(FulfillmentOrderResponseDTO::getCreatedAt,java.util.Comparator.nullsLast(java.util.Comparator.reverseOrder())).thenComparing(FulfillmentOrderResponseDTO::getFulfillmentId))
                 .toList();
+        images.enrich(result.stream().flatMap(f->f.getOrderLines().stream()).toList());return result;
     }
 }

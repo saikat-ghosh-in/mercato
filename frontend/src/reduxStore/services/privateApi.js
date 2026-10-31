@@ -17,7 +17,7 @@ export const privateApi = createApi({
     addresses: build.query({ query: () => ({ url: "/user/addresses" }), providesTags: ["Addresses"] }),
     wishlist: build.query({ query: () => ({ url: "/wishlist" }), providesTags: ["Wishlist"] }),
     orders: build.query({ query: () => ({ url: "/user/orders/summary" }), providesTags: ["Orders"] }),
-    paymentSession: build.query({ query: orderId => ({ url: `/user/orders/${encodeURIComponent(orderId)}/payment-session` }) }),
+    paymentSession: build.query({ query: orderId => ({ url: `/user/orders/${encodeURIComponent(orderId)}/payment-session`, method: "post" }) }),
     management: build.query({ query: role => ({ url: `/${role === "admin" ? "admin" : "seller"}/dashboard/stats` }), providesTags: ["Management"] }),
   }),
 });

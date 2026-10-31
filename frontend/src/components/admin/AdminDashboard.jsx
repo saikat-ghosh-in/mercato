@@ -5,7 +5,7 @@ import { useSelector } from "react-redux";
 import {
   MdDashboard, MdPeople, MdShoppingBag,
   MdCategory, MdShoppingCart,
-  MdInventory,
+  MdInventory, MdMailOutline,
 } from "react-icons/md";
 import AdminOverviewTab from "./AdminOverviewTab";
 import UsersTab from "./UserManagement";
@@ -15,6 +15,7 @@ import CategoriesTab from "./CategoriesTab";
 import CartsTab from "./CartsTab";
 import SellerApplicationsTab from "./SellerApplicationsTab";
 import CommissionTab from "./CommissionTab";
+import EmailActivityTab from "./EmailActivityTab";
 
 const NAV = [
   { id: "overview", label: "Overview", icon: MdDashboard },
@@ -25,6 +26,7 @@ const NAV = [
   { id: "categories", label: "Categories", icon: MdCategory },
   { id: "products", label: "Products", icon: MdInventory },
   { id: "carts", label: "Carts", icon: MdShoppingCart },
+  { id: "emails", label: "Email activity", icon: MdMailOutline },
 ];
 
 const AdminDashboard = () => {
@@ -42,6 +44,7 @@ const AdminDashboard = () => {
       case "categories": return <CategoriesTab />;
       case "products": return <ProductsTab mode="admin" />;
       case "carts": return <CartsTab />;
+      case "emails": return <EmailActivityTab />;
       default: return <AdminOverviewTab />;
     }
   };

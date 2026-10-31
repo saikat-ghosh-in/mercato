@@ -14,6 +14,31 @@ import static org.junit.jupiter.api.Assertions.*;
 
 /** Required CI acceptance: a real PostgreSQL engine validates baseline, populated upgrades and locking. */
 class PostgresMigrationTest {
+    @Test void simulatorUpgradePreservesJobKeysAndBackfillsGenerationWithoutParsingOtherPayloads()throws Exception{
+        String url=database("sandbox_simulator");
+        Flyway.configure().dataSource(url,PostgresTestSupport.username(),PostgresTestSupport.password()).locations("classpath:db/migration").target("18").load().migrate();
+        String id="00000000-0000-0000-0000-000000000091";
+        try(Connection c=connect(url);Statement s=c.createStatement()){
+            s.execute("INSERT INTO durable_jobs(id,job_type,business_key,payload,payload_version,status,attempts,due_at,failure_count,created_at,updated_at) VALUES('"+id+"','EASYSHIP_SIMULATE','sandbox-sim:"+id+":7:1','{\"id\":\""+id+"\",\"stage\":1,\"version\":1}',1,'READY',0,CURRENT_TIMESTAMP,0,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)");
+            s.execute("INSERT INTO durable_jobs(id,job_type,business_key,payload,payload_version,status,attempts,due_at,failure_count,created_at,updated_at) VALUES('00000000-0000-0000-0000-000000000092','EASYSHIP_SIMULATE','sandbox-sim:00000000-0000-0000-0000-000000000092:0:1','{',1,'READY',0,CURRENT_TIMESTAMP,0,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)");
+        }
+        migrate(url);
+        try(Connection c=connect(url);Statement s=c.createStatement();ResultSet rows=s.executeQuery("SELECT payload::jsonb->>'generation',business_key FROM durable_jobs WHERE id='"+id+"'")){
+            assertTrue(rows.next());assertEquals("7",rows.getString(1));assertEquals("sandbox-sim:"+id+":7:1",rows.getString(2));
+        }
+    }
+    @Test void emailTrackingUpgradePreservesMalformedJobsWithoutPublishingPrivatePayloads()throws Exception{
+        String url=database("email_tracking");
+        Flyway.configure().dataSource(url,PostgresTestSupport.username(),PostgresTestSupport.password()).locations("classpath:db/migration").target("7").load().migrate();
+        try(Connection c=connect(url);Statement s=c.createStatement()){
+            s.execute("INSERT INTO durable_jobs(id,job_type,business_key,payload,payload_version,status,attempts,due_at,failure_count,created_at,updated_at) VALUES('00000000-0000-0000-0000-000000000001','AUTH_EMAIL','verify-email:test','{',1,'READY',0,CURRENT_TIMESTAMP,0,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)");
+            s.execute("INSERT INTO durable_jobs(id,job_type,business_key,payload,payload_version,status,attempts,due_at,failure_count,created_at,updated_at) VALUES('00000000-0000-0000-0000-000000000002','AUTH_EMAIL','legacy-mail','{\"to\":\"legacy@example.test\",\"text\":\"private-link\"}',1,'SUCCEEDED',1,CURRENT_TIMESTAMP,0,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)");
+        }
+        migrate(url);
+        try(Connection c=connect(url);Statement s=c.createStatement();ResultSet rows=s.executeQuery("SELECT email_recipient,email_state,email_accepted_at FROM durable_jobs WHERE business_key='legacy-mail'")){
+            assertTrue(rows.next());assertEquals("legacy@example.test",rows.getString(1));assertEquals("LEGACY_COMPLETED",rows.getString(2));assertNull(rows.getObject(3));
+        }
+    }
     @AfterAll static void cleanup(){PostgresTestSupport.cleanup();}
     @Test void freshAndBothPopulatedOciSchemasConvergeWithoutLosingLegacyData() throws Exception {
         String fresh=database("fresh");

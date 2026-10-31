@@ -31,6 +31,8 @@ public class AuthController {
     private final com.mercato.Auth.AbuseCounters abuse;
     private final com.mercato.Auth.CustomerStepUpService stepUp;
     private final com.mercato.Auth.LegacyGuestMigrationService legacy;
+    private final com.mercato.Mail.PendingVerificationDelivery pendingMail;
+    @GetMapping("/verification-delivery") public Object verificationDelivery(HttpServletRequest request){return pendingMail.status(request);}
 
     @GetMapping("/session")
     public Object session(HttpServletRequest request) { return sessions.bootstrap(request); }
@@ -55,7 +57,7 @@ public class AuthController {
     @PostMapping("/mfa/replace") public Object replace(HttpServletRequest request,@RequestBody Proof proof) {proofBudget(request,false);return mfa.enroll(request,proof.code(),true);}
     @PostMapping("/mfa/verify") public Object verifyMfa(HttpServletRequest request,@RequestBody Proof proof) {proofBudget(request,false);return mfa.verify(request,proof.code(),false);}
     @PostMapping("/mfa/recovery") public Object recovery(HttpServletRequest request,@RequestBody Proof proof) {proofBudget(request,true);return mfa.verify(request,proof.code(),true);}
-    @PostMapping("/step-up/send") public Object sendStepUp(HttpServletRequest request) {proofBudget(request,true);stepUp.send(request);return java.util.Map.of("message","A verification code has been sent.");}
+    @PostMapping("/step-up/send") public Object sendStepUp(HttpServletRequest request) {proofBudget(request,true);stepUp.send(request);return java.util.Map.of("message","Your verification code is queued for email. Delivery may take a moment.");}
     @PostMapping("/step-up/verify") public Object verifyStepUp(HttpServletRequest request,@RequestBody Proof proof) {proofBudget(request,false);return stepUp.verify(request,proof.code());}
     @PostMapping("/legacy-guest-cart") public Object migrateGuest(HttpServletRequest request,@RequestBody LegacyGuest body) {legacy.migrate(request,body.guestToken());return sessions.bootstrap(request);}
     @ExceptionHandler(com.mercato.Auth.AuthProofException.class) public ResponseEntity<?> proofFailure(com.mercato.Auth.AuthProofException e,HttpServletRequest request){var id=sessions.identity(request);if(id!=null&&!request.getRequestURI().endsWith("/mfa/recovery"))abuse.consume("mfa-account",id.userId(),5,3600,true);return ResponseEntity.status(401).body(java.util.Map.of("code","AUTH_PROOF_INVALID","message",e.getMessage()));}
@@ -70,8 +72,9 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<MessageResponse> registerNewUser(@Valid @RequestBody RegisterUserRequest registerUserRequest) {
+    public ResponseEntity<MessageResponse> registerNewUser(@Valid @RequestBody RegisterUserRequest registerUserRequest,HttpServletRequest request) {
         String response = authService.registerNewUser(registerUserRequest);
+        pendingMail.registered(request,registerUserRequest.getEmail());
         return ResponseEntity.ok(new MessageResponse(response));
     }
 
@@ -85,7 +88,8 @@ public class AuthController {
     public ResponseEntity<MessageResponse> resendVerification(@RequestParam @Email String email,HttpServletRequest servlet) {
         emailRecoveryBudget(servlet,email);
         emailVerificationService.resendVerificationEmail(email);
-        return ResponseEntity.ok(new MessageResponse("Verification email sent! Please check your inbox."));
+        pendingMail.resent(servlet,email);
+        return ResponseEntity.ok(new MessageResponse("If this account needs verification, an email is queued. This does not confirm delivery."));
     }
 
     @PostMapping("/forgot-password")

@@ -33,6 +33,11 @@ public class Cart {
     @SequenceGenerator(name = "cart_seq", sequenceName = "cart_seq", initialValue = 70000001, allocationSize = 10)
     private Long id;
 
+    /** Quote revision, advanced under the cart mutex, including checkout consumption. */
+    @Column(nullable=false)
+    private long version;
+    public void advanceVersion(){version=Math.addExact(version,1);}
+
     @Column(name = "cart_id", nullable = false, updatable = false, length = 30)
     private String cartId;
 
@@ -119,9 +124,9 @@ public class Cart {
     }
 
     @Transient
-    public int getCartQuantity() {
+    public long getCartQuantity() {
         return cartItems.stream()
-                .mapToInt(CartItem::getQuantity)
+                .mapToLong(CartItem::getQuantity)
                 .sum();
     }
 
@@ -130,12 +135,7 @@ public class Cart {
         findItemByProductId(product.getProductId())
                 .ifPresentOrElse(
                         item -> item.addQuantity(quantity),
-                        () -> addCartItem(CartItem.builder()
-                                .cart(this)
-                                .product(product)
-                                .quantity(quantity)
-                                .unitPrice(product.getSellingPrice())
-                                .build())
+                        () -> addCartItem(CartItem.selected(this,product,quantity))
                 );
     }
 
@@ -149,7 +149,7 @@ public class Cart {
         item.updateQuantity(quantity);
     }
 
-    private void addCartItem(CartItem cartItem) {
+    public void addCartItem(CartItem cartItem) {
         if (cartItem == null) return;
         cartItem.setCart(this);
         cartItems.add(cartItem);

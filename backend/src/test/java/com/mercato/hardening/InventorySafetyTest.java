@@ -20,6 +20,8 @@ class InventorySafetyTest {
         CartRepository carts = mock(CartRepository.class);
         CartReservationService reservations = mock(CartReservationService.class);
         CartServiceImpl service = new CartServiceImpl(carts, mock(ProductRepository.class), mock(CartPricingService.class), mock(UserRepository.class), reservations);
+        var entityManager=mock(jakarta.persistence.EntityManager.class);
+        org.springframework.test.util.ReflectionTestUtils.setField(service,"entityManager",entityManager);
         Product purchased = Product.builder().productId("purchased").physicalQty(10).sellingPrice(BigDecimal.TEN).build();
         Product other = Product.builder().productId("other").physicalQty(10).sellingPrice(BigDecimal.ONE).build();
         Cart cart = new Cart();
@@ -29,7 +31,10 @@ class InventorySafetyTest {
         var line = new com.mercato.Entity.fulfillment.OrderLine();
         line.setProductId("purchased");
         line.setOrderedQty(2);
+        var selected=cart.findItemByProductId("purchased").orElseThrow();selected.setCartItemId(101L);
+        line.setSourceCartItemId(selected.getCartItemId());line.setSourceSelectionGeneration(selected.getSelectionGeneration());
         order.setOrderLines(List.of(line));
+        when(entityManager.getLockMode(cart)).thenReturn(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE);
 
         service.removePurchasedItems(cart, order);
 
@@ -45,13 +50,18 @@ class InventorySafetyTest {
         ProductRepository products = mock(ProductRepository.class);
         CartReservationService reservations = mock(CartReservationService.class);
         CartServiceImpl service = new CartServiceImpl(carts, products, mock(CartPricingService.class), mock(UserRepository.class), reservations);
+        org.springframework.test.util.ReflectionTestUtils.setField(service,"entityManager",mock(jakarta.persistence.EntityManager.class));
         Product product = Product.builder().productId("P-1").physicalQty(2).sellingPrice(BigDecimal.TEN).build();
         Cart guest = new Cart();
         guest.addProduct(product, 2);
         product.setReservedQty(2);
         Cart user = new Cart();
-        when(carts.findByGuestToken("guest")).thenReturn(Optional.of(guest));
-        when(carts.findByUser_UserId("user")).thenReturn(Optional.of(user));
+        guest.setId(1L);user.setId(2L);
+        when(carts.findIdByGuestToken("guest")).thenReturn(Optional.of(guest.getId()));
+        when(carts.findIdByUserId("user")).thenReturn(Optional.of(user.getId()));
+        when(carts.lockById(guest.getId())).thenReturn(Optional.of(guest));
+        when(carts.lockById(user.getId())).thenReturn(Optional.of(user));
+        when(carts.productIds(guest.getId())).thenReturn(List.of("P-1"));
         when(products.findByProductIdForUpdate("P-1")).thenReturn(Optional.of(product));
         doAnswer(i -> { product.adjustReservedQty(-2); return null; }).when(reservations).releaseAllForCart(guest);
         doAnswer(i -> { product.adjustReservedQty(((CartItem)i.getArgument(0)).getQuantity()); return null; }).when(reservations).reserve(any());

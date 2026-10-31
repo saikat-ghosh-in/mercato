@@ -39,7 +39,7 @@ public class JobProcessor {
             Duration delay=failure instanceof WaitingJobException waiting?waiting.retryAfter():backoff(job.attempts());
             // Persist category and class only: provider messages can contain credentials or personal data.
             String safe=(permanent?"Attention required: ":"Retryable failure: ")+failure.getClass().getSimpleName();
-            store.fail(job,permanent?JobStatus.NEEDS_ATTENTION:JobStatus.WAITING,Instant.now().plus(delay),fingerprint,repeated,safe);
+            store.fail(job,permanent?JobStatus.NEEDS_ATTENTION:JobStatus.WAITING,store.currentTime().plus(delay),fingerprint,repeated,safe);
         }
     }
 

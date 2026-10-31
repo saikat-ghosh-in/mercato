@@ -18,16 +18,25 @@ import java.util.Optional;
 
 @Repository
 public interface OrderRepository extends JpaRepository<Order, Long> {
+    @Query("select o.orderId,o.checkoutRequestBody from Order o where o.customerUserId=:buyer and o.checkoutOperationId=:operation")
+    List<Object[]> checkoutIntent(@Param("buyer")String buyer,@Param("operation")String operation);
     long countByCustomerEmail(String email);
     @Query("select new com.mercato.Payloads.Response.OrderSummaryDTO(o.orderId,o.orderStatus,o.paymentStatus,o.totalAmount,o.createdAt) from Order o where o.customerEmail=:email")
     org.springframework.data.domain.Page<OrderSummaryDTO> userActivityOrders(@Param("email") String email,org.springframework.data.domain.Pageable page);
     @EntityGraph(attributePaths={"orderLines", "payment"})
-    @Query("select distinct o from Order o where o.createdAt >= :start and o.createdAt < :end and (:email is null or exists (select l.id from OrderLine l where l.order = o and l.sellerEmail = :email)) order by o.createdAt desc")
-    List<Order> financialOrders(@Param("start") Instant start, @Param("end") Instant end, @Param("email") String email);
+    @Query("select distinct o from Order o where coalesce(o.payment.captureVerifiedAt,o.payment.capturedAt,o.createdAt) >= :start and coalesce(o.payment.captureVerifiedAt,o.payment.capturedAt,o.createdAt) < :end and (:email is null or (exists (select l.id from OrderLine l where l.order = o and l.sellerEmail = :email) and " + com.mercato.Service.SellerOrderVisibility.ORDER_PREDICATE + ")) order by o.createdAt desc")
+    List<Order> financialOrders(@Param("start") Instant start, @Param("end") Instant end, @Param("email") String email,@Param("visibleAt") Instant visibleAt);
+
+    @Query("select o from Order o join o.payment p join p.refunds r where r.refundId=:refundId")
+    Optional<Order> findByRefundId(@Param("refundId") String refundId);
 
     @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
     @Query("select o from Order o where o.orderId=:orderId")
     Optional<Order> lockByOrderId(@Param("orderId") String orderId);
+
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("select o from Order o where o.id=(select distinct l.order.id from OrderLine l where l.fulfillmentId=:fulfillmentId)")
+    Optional<Order> lockByFulfillmentId(@Param("fulfillmentId") String fulfillmentId);
 
     @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
     @Query("select o from Order o where o.id=(select l.order.id from OrderLine l where l.fulfillmentId=:fulfillmentId and l.orderLineNumber=:lineNumber)")
@@ -39,8 +48,14 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     @EntityGraph(attributePaths = {"orderLines"})
     Optional<Order> findByOrderIdAndCustomerEmail(String orderId, String email);
 
+    @EntityGraph(attributePaths={"orderLines"})
+    @Query("select o from Order o where o.orderId=:id and ((o.customerUserId is not null and o.customerUserId=:customerId) or (o.customerUserId is null and o.customerEmail=:email))")
+    Optional<Order> findOwnedForShipment(@Param("id")String id,@Param("customerId")String customerId,@Param("email")String email);
+
     @EntityGraph(attributePaths = {"orderLines"})
     List<Order> findByCustomerEmail(String email);
+    @EntityGraph(attributePaths={"orderLines"})
+    List<Order> findByCustomerEmailOrderByCreatedAtDescIdDesc(String email);
 
     @Query("""
             SELECT new com.mercato.Payloads.Response.OrderSummaryDTO(

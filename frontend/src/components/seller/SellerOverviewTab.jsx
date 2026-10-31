@@ -5,7 +5,7 @@ import { useManagementQuery } from "../../reduxStore/services/privateApi.js";
 import { formatCurrency } from "../../utils/formatCurrency";
 import {
     DashboardSkeleton, DashboardError,
-    StatCard, SectionLabel,
+    StatCard, SectionLabel, RevenueCards,
     TopSellingProducts, InventoryAlerts,
     StatusBreakdownBars,
 } from "../shared/DashboardWidgets";
@@ -24,6 +24,7 @@ const SellerOverviewTab = () => {
 
             {/* Revenue */}
             <MarketplaceFinance />
+            {stats.revenue && <RevenueCards revenue={stats.revenue} />}
 
             {/* Fulfillment stats */}
             <div>

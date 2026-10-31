@@ -52,7 +52,7 @@ public class StateTransition {
     @Column(length = 500)
     private String reason;
 
-    @CreationTimestamp
     @Column(name = "occurred_at", updatable = false)
     private Instant occurredAt;
+    @PrePersist void defaultTime(){if(occurredAt==null)occurredAt=Instant.now();}
 }

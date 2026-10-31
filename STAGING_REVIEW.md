@@ -1,3 +1,9 @@
+Latest beta follow-up — 25 October 2026: [Checkout reservation expiry and cleanup race repair](docs/CHECKOUT_HOLD_REVIEW.md). Saved bags reacquire expired stock holds atomically; cleanup rechecks expiry after locking to preserve concurrent renewal. Four PostgreSQL regressions, 212 backend tests, 82 frontend tests, lint/build and the beta validation are recorded there.
+
+Previous beta follow-up — 25 October 2026: [Cashfree sandbox handoff and reachable checkout action](docs/PAYMENT_SANDBOX_REVIEW.md). The sandbox checkout opens under enforced CSP; checkout uses a sticky desktop summary and a phone bottom action. Beta Browser, responsive screenshots, 82 frontend tests/lint/build, 208 backend tests and exact-commit GitHub checks are recorded there.
+
+Previous beta follow-up — 25 October 2026: [Email reliability, monthly reports and branded messages](docs/EMAIL_REVIEW.md). Safe administrator email activity, truthful verification feedback, stale-auth-email guards, scoped monthly seller/admin reports, embedded Mercato branding and clickable email actions. Additive V8 migration; beta-only delivery.
+
 Latest follow-up — 20 October 2026: [Role-specific user activity and direct admin creation](docs/USER_ACTIVITY_REVIEW.md). Shopper cart/orders, seller products and persistent listing-request history, conditional store fields, and immediate admin product creation. Backend: 92 tests pass. Frontend: 37 tests, lint/build pass. Browser evidence and additive SQL linked there.
 
 Previous UI follow-up — 20 October 2026: [User details, custom dropdowns and navigation](docs/CONTROL_POLISH_REVIEW.md). Fixed the dim-only user drawer; replaced OS selects with accessible custom menus; kept All products on one line without an icon; restored search in checkout; renamed Apply. Frontend: 37 tests, lint/build pass. Browser and mobile evidence linked there.

@@ -12,6 +12,8 @@ import java.util.Optional;
 
 @Repository
 public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpecificationExecutor<Product> {
+    @Query("select p.productId,p.primaryImageUrl from Product p where p.productId in :ids")
+    List<Object[]> primaryImages(@Param("ids") java.util.Collection<String> ids);
 
     Optional<Product> findByProductIdAndActiveTrue(String productId);
 

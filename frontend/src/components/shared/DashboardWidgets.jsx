@@ -31,15 +31,16 @@ export const SectionLabel = ({ children }) => (
     <h2 className="dashboard-section-heading">{children}</h2>
 );
 
-export const RevenueCards = ({ revenue }) => (
+export const RevenueCards = ({ revenue, admin = false }) => (
     <div>
-        <SectionLabel>Revenue</SectionLabel>
+        <SectionLabel>{admin ? "Marketplace seller earnings" : "Earnings"}</SectionLabel>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <StatCard label="All-Time" value={formatCurrency(revenue.allTime)} icon={MdTrendingUp} iconBg="bg-blue-500" />
             <StatCard label="This Month" value={formatCurrency(revenue.thisMonth)} icon={MdTrendingUp} iconBg="bg-blue-500" />
             <StatCard label="Today" value={formatCurrency(revenue.today)} icon={MdTrendingUp} iconBg="bg-blue-500" />
             <StatCard
-                label="Avg Revenue / Order"
+                label="Average earnings / order"
+                sub="Across all scoped orders"
                 value={formatCurrency(revenue.averagePerOrder)}
                 icon={MdTrendingUp}
                 iconBg="bg-gray-700"

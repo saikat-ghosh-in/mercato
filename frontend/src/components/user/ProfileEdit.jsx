@@ -41,7 +41,7 @@ const ProfileEdit = () => {
   if (!form) return <div className="site-container skeleton-page"><LoadingLayout variant="profile" label="Loading your profile" /></div>;
 
   const set = (key, val) => {
-    setDraft({ ...initializedDraft, dirty: true, form: { ...form, [key]: val } });
+    setDraft(current=>{const base=profileDraft(current,user);return {...base,dirty:true,form:{...base.form,[key]:val}};});
     if (errors[key]) setErrors(e => ({ ...e, [key]: "" }));
   };
 
@@ -63,6 +63,7 @@ const ProfileEdit = () => {
   };
 
   const handleSave = async () => {
+    if(saving)return;
     const e = validate();
     if (Object.keys(e).length > 0) { setErrors(e); return; }
 
@@ -72,7 +73,6 @@ const ProfileEdit = () => {
         firstName: form.firstName,
         lastName: form.lastName,
         phoneNumber: form.phoneNumber || null,
-        profileImageUrl: form.profileImageUrl || null,
         sellerDisplayName: isSeller ? form.sellerDisplayName : undefined,
       };
       await api.put("/user/edit-profile", payload);

@@ -66,8 +66,11 @@ class OrderRetryHoldServiceTest {
         order = new Order();
         order.addOrderLine(orderLine);
 
-        when(cartService.getCartByUser(user)).thenReturn(cart);
+        when(cartService.getCartForOrderAllocation(user,order)).thenReturn(cart);
         when(productRepository.findByProductIdForUpdate(PRODUCT_ID)).thenReturn(Optional.of(product));
+        org.mockito.Mockito.lenient().when(cartRepository.saveAndFlush(any(Cart.class))).thenAnswer(inv->{
+            Cart saved=inv.getArgument(0);saved.getCartItems().forEach(item->item.setCartItemId(100L));return saved;
+        });
     }
 
     @Test
@@ -79,6 +82,23 @@ class OrderRetryHoldServiceTest {
         verify(cartReservationService).reserve(cartItem);
         verify(cartPricingService).applyCharges(cart);
         verify(cartRepository).save(cart);
+        org.junit.jupiter.api.Assertions.assertEquals(1L,cart.getVersion(),"Recreating bag selections invalidates its previous quote");
+        org.junit.jupiter.api.Assertions.assertEquals(cartItem.getCartItemId(),order.getOrderLines().get(0).getRetryCartItemId());
+        org.junit.jupiter.api.Assertions.assertEquals(cartItem.getSelectionGeneration(),order.getOrderLines().get(0).getRetrySelectionGeneration());
+    }
+    @Test void restoringReducedRetryQuantitiesInvalidatesTheCartQuote() {
+        cart.addProduct(product,1);
+        orderRetryHoldService.ensureCartHoldsForRetry(order,user);
+        org.junit.jupiter.api.Assertions.assertEquals(2,cart.getCartItems().get(0).getQuantity());
+        org.junit.jupiter.api.Assertions.assertEquals(1L,cart.getVersion());
+        org.junit.jupiter.api.Assertions.assertEquals(cart.getCartItems().get(0).getSelectionGeneration(),order.getOrderLines().get(0).getRetrySelectionGeneration());
+    }
+    @Test void adequateNewBuyerSelectionIsNotAdoptedByTheRetry() {
+        cart.addProduct(product,2);cart.getCartItems().get(0).setCartItemId(101L);
+        orderRetryHoldService.ensureCartHoldsForRetry(order,user);
+        org.junit.jupiter.api.Assertions.assertNull(order.getOrderLines().get(0).getRetryCartItemId());
+        org.junit.jupiter.api.Assertions.assertNull(order.getOrderLines().get(0).getRetrySelectionGeneration());
+        org.mockito.Mockito.verify(cartRepository,org.mockito.Mockito.never()).saveAndFlush(any());
     }
     @Test void retryCannotPayForAnUnapprovedProductAlreadyInTheBag() {
         cart.addProduct(product, 2);

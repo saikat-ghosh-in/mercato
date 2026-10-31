@@ -12,7 +12,7 @@ public class SpringSecurityConfig {
  @Bean public PasswordEncoder passwordEncoder(){return new BCryptPasswordEncoder();}
  @Bean public SecurityFilterChain filterChain(HttpSecurity http)throws Exception{
   var csrf=new HttpSessionCsrfTokenRepository();csrf.setHeaderName("X-CSRF-TOKEN");
-  http.cors(AbstractHttpConfigurer::disable).csrf(c->c.csrfTokenRepository(csrf).ignoringRequestMatchers(new org.springframework.security.web.util.matcher.AntPathRequestMatcher("/api/public/cashfree/webhook"),new org.springframework.security.web.util.matcher.AntPathRequestMatcher("/api/public/cashfree/webhook-v2")))
+  http.cors(AbstractHttpConfigurer::disable).csrf(c->c.csrfTokenRepository(csrf).ignoringRequestMatchers(new org.springframework.security.web.util.matcher.AntPathRequestMatcher("/api/public/easyship/webhook","POST"),new org.springframework.security.web.util.matcher.AntPathRequestMatcher("/api/public/cashfree/webhook"),new org.springframework.security.web.util.matcher.AntPathRequestMatcher("/api/public/cashfree/webhook-v2")))
    .securityContext(c->c.securityContextRepository(new NullSecurityContextRepository()))
    .requestCache(AbstractHttpConfigurer::disable).authenticationProvider(authenticationProvider())
    .addFilterAfter(sessionBoundary,SecurityContextHolderFilter.class)

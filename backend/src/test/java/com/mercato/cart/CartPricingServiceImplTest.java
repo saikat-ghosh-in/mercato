@@ -65,6 +65,16 @@ class CartPricingServiceImplTest {
         assertTrue(cart.getCharges().isEmpty());
     }
 
+    @Test void largeSavedBagKeepsItsExactHandlingQuoteBeforeCheckoutLimitValidation() {
+        Cart cart=cartWithSubtotal(BigDecimal.ONE);
+        cart.setCartItems(new java.util.ArrayList<>(cart.getCartItems()));
+        cart.getCartItems().get(0).setQuantity(Integer.MAX_VALUE);
+        cart.addCartItem(CartItem.builder().product(Product.builder().productId("P-2").sellingPrice(BigDecimal.ONE).build())
+                .quantity(Integer.MAX_VALUE).build());
+        pricingService.applyCharges(cart);
+        assertEquals(0,new BigDecimal("8589934595").compareTo(cart.getChargeAmount(ChargeType.PROCESSING_AND_HANDLING)));
+    }
+
     private void assertShipping(String expected, Cart cart) { assertEquals(0, new BigDecimal(expected).compareTo(cart.getChargeAmount(ChargeType.SHIPPING))); }
 
     private Cart cartWithSubtotal(BigDecimal unitPrice) {
@@ -138,8 +148,12 @@ class CartPricingServiceImplTest {
         Cart cart=cartWithSubtotal(new BigDecimal("1000"));var first=cart.getCartItems().get(0);makeBulky(first.getProduct());first.getProduct().setSellerPaysShipping(true);
         var second=CartItem.builder().quantity(1).product(Product.builder().productId("P-2").sellingPrice(new BigDecimal("1000")).build()).build();makeBulky(second.getProduct());
         cart.setCartItems(List.of(first,second));pricingService.applyCharges(cart);assertShipping("125",cart);
+        assertEquals(0,first.getBuyerNormalDeliveryCharge().signum());
+        assertEquals(new BigDecimal("125.00"),second.getBuyerNormalDeliveryCharge());
         assertEquals(new BigDecimal("125.00"),first.getSellerDeliveryCharge());assertEquals(0,second.getSellerDeliveryCharge().signum());
         cart.setDeliveryMethod(com.mercato.Entity.cart.DeliveryMethod.EXPEDITED);pricingService.applyCharges(cart);assertShipping("174",cart);
+        assertEquals(new BigDecimal("24.50"),first.getBuyerExpeditedDeliveryCharge());
+        assertEquals(new BigDecimal("24.50"),second.getBuyerExpeditedDeliveryCharge());
     }
     @Test void thresholdBaseChargeIsSplitByItemValueWithExactTotals() {
         Cart cart=cartWithSubtotal(new BigDecimal("100"));var first=cart.getCartItems().get(0);first.getProduct().setSellerPaysShipping(true);

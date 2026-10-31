@@ -76,16 +76,21 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public ResponseEntity<?> authenticateUser(LoginRequest loginRequest, HttpServletRequest request, HttpServletResponse response) {
-        String username=loginRequest.getUsername();
+        String identifier=loginRequest.getUsername().trim();
         String client=request.getRemoteAddr();
         int delay=abuse.consume("login-ip",client,1000,3600,false);
+        var candidates=delay>0?java.util.List.<String>of():userRepository.findLoginUsernames(identifier);
+        boolean resolved=candidates.size()==1;
+        // All aliases share existing account-level abuse limits and MFA; ambiguous legacy identifiers fail closed.
+        String username=resolved?candidates.get(0):identifier.toLowerCase(java.util.Locale.ROOT);
         delay=Math.max(delay,abuse.retryAfter("login-client",username+":"+client));
         delay=Math.max(delay,abuse.retryAfter("login-account-delay",username));
         if(delay>0) return ResponseEntity.status(429).header("Retry-After",Integer.toString(delay))
                 .body(java.util.Map.of("code","AUTH_RETRY_LATER","message","Please wait before trying again."));
         String guest=(String)request.getSession().getAttribute(com.mercato.Session.SessionService.GUEST);
         SignIn proven=new org.springframework.transaction.support.TransactionTemplate(transactions).execute(status -> {
-            EcommUser user=userRepository.findByUsernameForUpdate(username).orElse(null);
+            EcommUser user=resolved?userRepository.findByUsernameForUpdate(username).orElse(null):null;
+            if(user!=null&&!identifier.equals(user.getUsername())&&(user.getEmail()==null||!identifier.equalsIgnoreCase(user.getEmail())))user=null;
             boolean valid=encoder.matches(loginRequest.getPassword(),user==null?userNotFoundHash:user.getPassword());
             if(!valid || user==null || !user.isEmailVerified() || user.isAccountLocked()
                     || (!user.isEnabled()&&!user.isSelfDeactivated())) return null;
@@ -151,7 +156,7 @@ public class AuthServiceImpl implements AuthService {
 
         emailVerificationService.createAndSendVerificationToken(savedUser);
 
-        return "User registered successfully! Please check your email to verify your account.";
+        return "Account created. Your verification email is queued; delivery is not yet confirmed.";
     }
 
     @Override
@@ -192,9 +197,9 @@ public class AuthServiceImpl implements AuthService {
     }
 
     private void throwIfAnExistingUser(String username, String email) {
-        if (userRepository.existsByUsername(username))
+        if (userRepository.existsByUsername(username) || userRepository.existsByEmailIgnoreCase(username))
             throw new ResourceAlreadyExistsException("User", "username", username);
-        if (userRepository.existsByEmail(email))
+        if (userRepository.existsByEmailIgnoreCase(email) || userRepository.existsByUsernameIgnoreCase(email))
             throw new ResourceAlreadyExistsException("User", "email", email);
     }
 }

@@ -6,6 +6,38 @@ import static org.junit.jupiter.api.Assertions.*;import static org.springframewo
 @SpringBootTest(properties={"spring.datasource.url=jdbc:h2:mem:mercato-session-security;MODE=PostgreSQL;DB_CLOSE_DELAY=-1","mercato.auth.mfa-bypass=false","mercato.auth.mfa-encryption-key=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=","marketplace.notices.initial-delay-ms=3600000","spring.session.jdbc.initialize-schema=always","spring.flyway.enabled=false","spring.jpa.open-in-view=false"})
 @ActiveProfiles("demo") @AutoConfigureMockMvc
 class CookieSessionIntegrationTest {
+ @Autowired com.mercato.Jobs.JobStore jobStore;
+ @Autowired com.mercato.Mail.AuthenticationMailGuard mailGuard;
+ @Test void stepUpMailIsSkippedAfterChallengeExpiryReplacementOrSessionRevocation()throws Exception{
+  var account=users.findByUsername("shopperreview").orElseThrow();String id=account.getUserId();
+  try{
+   for(int i=0;i<50;i++){var failure=new LoginFailure();failure.setId(UUID.randomUUID().toString());failure.setAccountHash(AuthHash.digest(account.getUsername()));failure.setFailedAt(Instant.now());failures.save(failure);}
+   var b=browser();b=update(b,postJson(b,"/api/auth/signin",Map.of("username",account.getUsername(),"password","ShopOnly!2026")).andExpect(status().isOk()).andReturn());
+   postJson(b,"/api/auth/step-up/send",Map.of()).andExpect(status().isOk());
+   UUID first=jdbc.queryForObject("SELECT id FROM durable_jobs WHERE business_key LIKE 'step-up:%' AND email_recipient=? ORDER BY created_at DESC LIMIT 1",UUID.class,account.getEmail());
+   assertTrue(mailGuard.current(jobStore.get(first)));
+   postJson(b,"/api/auth/step-up/send",Map.of()).andExpect(status().isOk());
+   assertFalse(mailGuard.current(jobStore.get(first)));
+   var current=jdbc.queryForObject("SELECT id FROM durable_jobs WHERE business_key LIKE 'step-up:%' AND email_recipient=? AND id<>? ORDER BY created_at DESC LIMIT 1",UUID.class,account.getEmail(),first);
+   assertTrue(mailGuard.current(jobStore.get(current)));
+   jdbc.update("UPDATE auth_email_challenges SET expires_at=? WHERE user_id=?",java.sql.Timestamp.from(Instant.now().minusSeconds(1)),id);
+   assertFalse(mailGuard.current(jobStore.get(current)));
+   jdbc.update("UPDATE auth_email_challenges SET expires_at=? WHERE user_id=?",java.sql.Timestamp.from(Instant.now().plusSeconds(300)),id);
+   assertTrue(mailGuard.current(jobStore.get(current)));
+   revocation.revokeAll(id);assertFalse(mailGuard.current(jobStore.get(current)));
+  }finally{failures.deleteAll();emailChallenges.deleteById(id);}
+ }
+ @Test void verificationStatusIsBoundToTheRegistrationBrowserAndDoesNotEnumerateEmails()throws Exception{
+  var owner=browser();String unique="mail"+UUID.randomUUID().toString().substring(0,8);
+  postJson(owner,"/api/auth/register",Map.of("username",unique,"email",unique+"@mercato.invalid","password","TestingOnly!2026","phoneNumber",String.format(java.util.Locale.ROOT,"6%09d",new java.security.SecureRandom().nextInt(1000000000)),"firstName","Mail","lastName","Test" )).andExpect(status().isOk());
+  mvc.perform(get("/api/auth/verification-delivery").cookie(owner.cookie())).andExpect(status().isOk()).andExpect(jsonPath("$.state").value("QUEUED"));
+  jdbc.update("UPDATE durable_jobs SET email_state='FAILED',email_code='SMTP_IP_NOT_AUTHORIZED',status='NEEDS_ATTENTION' WHERE email_recipient=?",unique+"@mercato.invalid");
+  mvc.perform(get("/api/auth/verification-delivery").cookie(owner.cookie())).andExpect(jsonPath("$.state").value("FAILED")).andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("couldn’t send")));
+  var stranger=browser();
+  mvc.perform(get("/api/auth/verification-delivery").cookie(stranger.cookie()).param("email",unique+"@mercato.invalid")).andExpect(jsonPath("$.state").value("UNKNOWN"));
+  postJson(stranger,"/api/auth/resend-verification?email="+unique+"@mercato.invalid",Map.of()).andExpect(status().isOk()).andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("queued")));
+  mvc.perform(get("/api/auth/verification-delivery").cookie(stranger.cookie())).andExpect(jsonPath("$.state").value("UNKNOWN"));
+ }
  @Autowired org.springframework.context.ApplicationContext application;
  @Test void restApiCannotActivateTheVexExcludedViewRenderingFeatures(){
   assertTrue(application.getBeansOfType(org.springframework.web.servlet.view.xslt.XsltViewResolver.class).isEmpty());

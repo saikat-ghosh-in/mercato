@@ -16,9 +16,10 @@ public class PaymentReconciler {
     private final GatewayEventRepository inbox; private final GatewayAttemptRepository attempts;
     private final OrderRepository orders;private final RefundRepository refunds;private final ObjectMapper json;private final DurableJobs jobs;
     private final RefundObligations obligations;
+    private final java.time.Clock clock;
     @jakarta.persistence.PersistenceContext private jakarta.persistence.EntityManager entityManager;
-    public PaymentReconciler(GatewayEventRepository inbox,GatewayAttemptRepository attempts,OrderRepository orders,RefundRepository refunds,ObjectMapper json,DurableJobs jobs,RefundObligations obligations){
-        this.inbox=inbox;this.attempts=attempts;this.orders=orders;this.refunds=refunds;this.json=json;this.jobs=jobs;this.obligations=obligations;
+    public PaymentReconciler(GatewayEventRepository inbox,GatewayAttemptRepository attempts,OrderRepository orders,RefundRepository refunds,ObjectMapper json,DurableJobs jobs,RefundObligations obligations,java.time.Clock clock){
+        this.clock=clock;this.inbox=inbox;this.attempts=attempts;this.orders=orders;this.refunds=refunds;this.json=json;this.jobs=jobs;this.obligations=obligations;
     }
     /** Capture and its allocation job commit here, before any attempt to allocate inventory. */
     @Transactional
@@ -26,49 +27,185 @@ public class PaymentReconciler {
         var envelope=inbox.findById(id).orElseThrow(()->new PoisonJobException("Missing gateway inbox event"));
         JsonNode event;
         try{event=json.readTree(envelope.getEventJson());}catch(Exception e){throw new PoisonJobException("Invalid gateway inbox payload");}
-        if("refund".equals(event.path("kind").asText())) {processRefund(event);envelope.setProcessedAt(Instant.now());return;}
+        if("refund".equals(event.path("kind").asText())) {processRefund(event);envelope.setProcessedAt(clock.instant());return;}
         String orderId=event.path("orderId").asText();
         Order order=orders.lockByOrderId(orderId).orElseThrow(()->new TransientJobException("Awaiting committed order"));
         if(envelope.getProcessedAt()!=null)return;
         var payment=order.getPayment();if(payment==null)throw new TransientJobException("Awaiting committed payment");
         String attemptId="cashfree:"+event.path("identity").asText();
         GatewayAttempt attempt=attempts.findById(attemptId).orElseGet(GatewayAttempt::new);
-        if(attempt.getOrderId()!=null && !attempt.getOrderId().equals(orderId))throw new PoisonJobException("Gateway attempt belongs to another order");
+        if(attempt.getOrderId()!=null && !attempt.getOrderId().equals(orderId)) {
+            halt(payment,"CONFLICTING_PROVIDER_EVIDENCE");
+            jobs.enqueue("CAPTURE_ATTENTION","conflicting-evidence:"+id,Map.of("orderId",orderId,"eventId",id));
+            envelope.setProcessedAt(clock.instant());return;
+        }
         String status=event.path("status").asText();
-        if(!Set.of("SUCCESS","FAILED","USER_DROPPED","PENDING","NOT_ATTEMPTED","CANCELLED").contains(status)) throw new PoisonJobException("Unsupported payment state");
+        boolean supported=Set.of("SUCCESS","FAILED","USER_DROPPED","PENDING","NOT_ATTEMPTED","CANCELLED").contains(status);
         attempt.setId(attemptId);attempt.setOrderId(orderId);attempt.setProvider("cashfree");attempt.setProviderPaymentId(event.path("identity").asText());
-        if(!"SUCCESS".equals(attempt.getStatus()))attempt.setStatus(status);
-        attempt.setUpdatedAt(Instant.now());
-        if("SUCCESS".equals(status)) {
-            BigDecimal amount=verifiedAmount(event,order);
-            attempt.setAmount(amount);attempt.setCurrency(order.getCurrency());
-            if(attempt.getCapturedAt()==null)attempt.setCapturedAt(Instant.now());
-            if(payment.getCapturedAt()!=null && !attempt.getProviderPaymentId().equals(payment.getGatewayReference())) {
-                // Preserve the extra verified capture evidence before the separate attention job.
-                attempts.save(attempt);envelope.setProcessedAt(Instant.now());
-                jobs.enqueue("CAPTURE_ATTENTION","extra-capture:"+attemptId,Map.of("orderId",orderId,"attemptId",attemptId));return;
+        if(!"SUCCESS".equals(attempt.getStatus()))attempt.setStatus(supported?status:"UNSUPPORTED");
+        attempt.setUpdatedAt(clock.instant());
+        attempt.setLatestEvidenceId(id);
+        attempt.setEvidenceSource(event.path("source").asText("LEGACY_UNKNOWN"));
+        attempt.setApiVersion(event.path("apiVersion").asText("UNSPECIFIED"));
+        // Establish eligibility from facts stored BEFORE this observation. A newly supplied
+        // matching auth_id on another cf_payment_id cannot claim the aggregate's pending hold.
+        boolean pendingOwner=pendingAuthorizationOwner(order,attempt);
+        if (!supported) attention(order,attempt,id,"Unsupported provider payment status");
+        else if (!"SUCCESS".equals(status) && PaymentEvidence.read(event,order.getTotalAmount(),order.getCurrency()).state()==PaymentEvidence.State.CONFLICTING)
+            attention(order,attempt,id,"Payment status contradicts collection evidence");
+        else if ("SUCCESS".equals(status)) {
+            var facts = PaymentEvidence.read(event, order.getTotalAmount(), order.getCurrency());
+            attempt.setEvidenceReason(facts.reason());
+            switch (facts.state()) {
+                case CONFLICTING -> attention(order, attempt, id, facts.reason());
+                case INSUFFICIENT -> {
+                    if (attempt.getCapturedAt() == null) attempt.setEvidenceState("INSUFFICIENT");
+                    if (payment.getCapturedAt() == null) halt(payment,"INSUFFICIENT_PROVIDER_EVIDENCE");
+                    // Per-observation key permits a later independent observation to request another GET.
+                    jobs.enqueue("RECONCILE_ORDER","reconcile-evidence:" + id,Map.of("orderId",orderId));
+                    if ("AUTHENTICATED_POLL".equals(event.path("source").asText()))
+                        jobs.enqueue("CAPTURE_ATTENTION","insufficient-evidence:" + id,Map.of("orderId",orderId,"eventId",id));
+                }
+                case AUTHORIZED, RELEASED -> {
+                    if (attempt.getCapturedAt() == null) {
+                        attempt.setEvidenceState(facts.state().name());
+                        if (!attemptAuthorization(order,attempt,facts,id)) break;
+                        if (payment.getCapturedAt() == null) {
+                            if (!pendingOwner) {authorizationOwnershipAttention(order,attempt,id);break;}
+                            if (!promoteAuthorization(order,attempt,facts,id)) break;
+                            payment.setStatus(PaymentStatus.AUTHORIZED);
+                            order.setPaymentStatus(PaymentStatus.AUTHORIZED);
+                            halt(payment,"AUTHORIZATION_REQUIRES_FINANCIAL_INTEGRATION");
+                        }
+                        jobs.enqueue("CAPTURE_ATTENTION","authorization-review:" + id,Map.of("orderId",orderId,"eventId",id));
+                    }
+                }
+                case CAPTURED -> capture(order, attempt, facts, id, event.path("group").asText(),pendingOwner);
+                case NONE -> { /* No new collection evidence. */ }
             }
-            if(payment.getCapturedAt()==null) {
-                payment.setCapturedAt(attempt.getCapturedAt());payment.setCapturedAmount(amount);payment.setCompletedAt(attempt.getCapturedAt());
-                payment.setGatewayReference(attempt.getProviderPaymentId());payment.setPaymentMethod(method(event.path("group").asText()));
-                payment.setStatus(PaymentStatus.SUCCESS);order.setPaymentStatus(PaymentStatus.SUCCESS);
-            }
-            if(order.getOrderStatus()==OrderStatus.CANCELLED)obligations.full(order,"Capture received after cancellation");
-            else if(order.getAllocationCompletedAt()==null && !order.isAutomaticFullRefund())
-                jobs.enqueue("ALLOCATE_ORDER","allocate:"+orderId,Map.of("orderId",orderId));
-        } else if(payment.getCapturedAt()==null && order.getOrderStatus()!=OrderStatus.CANCELLED) {
+        } else if(payment.getCapturedAt()==null && payment.getAuthorizedAt()==null && order.getOrderStatus()!=OrderStatus.CANCELLED) {
             PaymentStatus state=switch(status){case "FAILED"->PaymentStatus.FAILED;case "USER_DROPPED"->PaymentStatus.USER_DROPPED;default->PaymentStatus.PENDING;};
             payment.setStatus(state);order.setPaymentStatus(state);
         }
-        attempts.save(attempt);envelope.setProcessedAt(Instant.now());
+        attempts.save(attempt);envelope.setProcessedAt(clock.instant());
     }
-    private BigDecimal verifiedAmount(JsonNode event,Order order) {
-        try {
-            BigDecimal amount=PaymentRules.decimal(event.path("amount").asText());
-            if(amount.compareTo(order.getTotalAmount())!=0 || !order.getCurrency().equals(event.path("currency").asText()))
-                throw new PoisonJobException("Captured amount or currency does not match order");
-            return amount;
-        }catch(IllegalArgumentException e){throw new PoisonJobException("Missing or invalid captured amount");}
+    private boolean attemptAuthorization(Order order,GatewayAttempt attempt,PaymentEvidence.Facts facts,String id) {
+        if ((!facts.authorizationId().isBlank() && attempt.getAuthorizationId()!=null && !attempt.getAuthorizationId().equals(facts.authorizationId()))
+                || (facts.authorizedAt()!=null && attempt.getAuthorizedAt()!=null && !attempt.getAuthorizedAt().equals(facts.authorizedAt()))) {
+            attention(order,attempt,id,"Authorization identity or clock changed");return false;
+        }
+        // New verified authorization metadata requires identity AND qualified start/expiry.
+        // Capture can be proven without those fields; absence must not erase earlier facts.
+        if (!facts.authorizationId().isBlank() && facts.authorizedAt()!=null && facts.expiresAt()!=null) {
+            attempt.setAuthorizationId(facts.authorizationId());
+            attempt.setAuthorizedAmount(facts.originalAmount());
+            attempt.setAuthorizedAt(facts.authorizedAt());
+        }
+        if (attempt.getAuthorizationId()!=null && !attempt.getAuthorizationId().isBlank() && facts.expiresAt()!=null
+                && (attempt.getAuthorizationExpiresAt()==null || facts.expiresAt().isBefore(attempt.getAuthorizationExpiresAt())))
+            attempt.setAuthorizationExpiresAt(facts.expiresAt());
+        return true;
+    }
+    private boolean pendingAuthorizationOwner(Order order,GatewayAttempt attempt) {
+        var payment=order.getPayment();
+        if (payment.getCapturedAt()!=null) return true; // Captured primary selection uses gatewayReference below.
+        if (payment.getAuthorizationId()==null && payment.getAuthorizedAt()==null
+                && payment.getAuthorizedAmount()==null && payment.getAuthorizationExpiresAt()==null) return true;
+        return attempt.getAuthorizationId()!=null && !attempt.getAuthorizationId().isBlank()
+            && attempt.getAuthorizationId().equals(payment.getAuthorizationId())
+            && attempt.getAuthorizedAt()!=null && attempt.getAuthorizedAt().equals(payment.getAuthorizedAt())
+            && attempt.getAuthorizedAmount()!=null && attempt.getAuthorizedAmount().equals(payment.getAuthorizedAmount())
+            && attempt.getAuthorizationExpiresAt()!=null && attempt.getAuthorizationExpiresAt().equals(payment.getAuthorizationExpiresAt())
+            && attempts.countByOrderIdAndAuthorizationId(order.getOrderId(),payment.getAuthorizationId())==1;
+    }
+    private boolean promoteAuthorization(Order order,GatewayAttempt attempt,PaymentEvidence.Facts facts,String id) {
+        var payment=order.getPayment();
+        if ((!facts.authorizationId().isBlank() && payment.getAuthorizationId()!=null && !payment.getAuthorizationId().equals(facts.authorizationId()))
+                || (facts.authorizedAt()!=null && payment.getAuthorizedAt()!=null && !payment.getAuthorizedAt().equals(facts.authorizedAt()))) {
+            attention(order,attempt,id,"Primary authorization identity or clock changed");return false;
+        }
+        if (attempt.getAuthorizationId()!=null && !attempt.getAuthorizationId().isBlank()) {
+            if (payment.getAuthorizationId()==null) {
+                payment.setAuthorizationId(attempt.getAuthorizationId());payment.setAuthorizedAmount(attempt.getAuthorizedAmount());
+                payment.setAuthorizedAt(attempt.getAuthorizedAt());payment.setAuthorizationExpiresAt(attempt.getAuthorizationExpiresAt());
+            } else if (attempt.getAuthorizationExpiresAt()!=null && (payment.getAuthorizationExpiresAt()==null
+                    || attempt.getAuthorizationExpiresAt().isBefore(payment.getAuthorizationExpiresAt())))
+                payment.setAuthorizationExpiresAt(attempt.getAuthorizationExpiresAt());
+        }
+        return true;
+    }
+    private void authorizationOwnershipAttention(Order order,GatewayAttempt attempt,String id) {
+        attempt.setEvidenceReason("Authorization provider-attempt ownership requires review");
+        halt(order.getPayment(),"AUTHORIZATION_ATTEMPT_OWNERSHIP_REQUIRES_REVIEW");
+        jobs.enqueue("CAPTURE_ATTENTION","authorization-ownership:"+id,Map.of("orderId",order.getOrderId(),"eventId",id));
+    }
+    private void capture(Order order,GatewayAttempt attempt,PaymentEvidence.Facts facts,String id,String group,boolean pendingOwner) {
+        var payment = order.getPayment();
+        if (!attemptAuthorization(order,attempt,facts,id)) return;
+        if (attempt.getCapturedAt() != null && attempt.getCapturedAmount() != null
+                && attempt.getCapturedAmount().compareTo(facts.capturedAmount()) != 0) {
+            attention(order,attempt,id,"Captured amount changed for proven attempt");return;
+        }
+        attempt.setAmount(facts.originalAmount());attempt.setCurrency(order.getCurrency());
+        attempt.setCapturedAmount(facts.capturedAmount());
+        Instant verifiedAt=clock.instant();
+        if (attempt.getCaptureVerifiedAt()==null) attempt.setCaptureVerifiedAt(verifiedAt);
+        if (attempt.getCapturedAt() == null) {
+            attempt.setCapturedAt(verifiedAt);attempt.setCapturedAtProvenance("OBSERVED_VERIFICATION");
+        } else if (attempt.getCapturedAtProvenance()==null) attempt.setCapturedAtProvenance("LEGACY_COMPATIBILITY");
+        if (attempt.getProviderCapturedAt()==null) {
+            attempt.setProviderCapturedAt(facts.capturedAt());attempt.setProviderCaptureTimeSource(facts.captureTimeSource());
+        }
+        if (attempt.getCaptureEvidenceId() == null) attempt.setCaptureEvidenceId(id);
+        attempt.setEvidenceState("CAPTURED");
+        if (payment.getCapturedAt() != null && !attempt.getProviderPaymentId().equals(payment.getGatewayReference())) {
+            attention(order,attempt,id,"Extra verified capture requires reconciliation");return;
+        }
+        if (payment.getCapturedAt() != null && payment.getCapturedAmount()!=null && payment.getCapturedAmount().compareTo(facts.capturedAmount()) != 0) {
+            attention(order,attempt,id,"Capture conflicts with preserved payment evidence");return;
+        }
+        if (payment.getCapturedAt()==null && !pendingOwner) {authorizationOwnershipAttention(order,attempt,id);return;}
+        if (!promoteAuthorization(order,attempt,facts,id)) return;
+        if (payment.getCapturedAt() == null) {
+            payment.setCapturedAt(attempt.getCapturedAt());payment.setCapturedAmount(facts.capturedAmount());
+            payment.setCapturedAtProvenance("OBSERVED_VERIFICATION");
+            payment.setCaptureEvidenceId(id);payment.setCompletedAt(verifiedAt);
+            payment.setGatewayReference(attempt.getProviderPaymentId());payment.setPaymentMethod(method(group));
+            payment.setStatus(PaymentStatus.SUCCESS);order.setPaymentStatus(PaymentStatus.SUCCESS);
+        }
+        if (payment.getCapturedAtProvenance()==null) payment.setCapturedAtProvenance("LEGACY_COMPATIBILITY");
+        if (payment.getCapturedAmount()==null) payment.setCapturedAmount(facts.capturedAmount());
+        if (payment.getCaptureVerifiedAt()==null) payment.setCaptureVerifiedAt(verifiedAt);
+        if (payment.getProviderCapturedAt()==null) {
+            payment.setProviderCapturedAt(facts.capturedAt());payment.setProviderCaptureTimeSource(facts.captureTimeSource());
+        }
+        if (payment.getCaptureEvidenceId()==null) payment.setCaptureEvidenceId(id);
+        if (facts.capturedAmount().compareTo(order.getTotalAmount()) != 0) {
+            halt(payment,"PARTIAL_CAPTURE_REQUIRES_UNIT_ATTRIBUTION");
+            jobs.enqueue("CAPTURE_ATTENTION","partial-capture:" + id,Map.of("orderId",order.getOrderId(),"eventId",id));
+            return;
+        }
+        if (Set.of("INSUFFICIENT_PROVIDER_EVIDENCE","AUTHORIZATION_REQUIRES_FINANCIAL_INTEGRATION","LEGACY_CAPTURE_REQUIRES_RECONCILIATION").contains(payment.getFinancialHaltReason()==null?"":payment.getFinancialHaltReason())) {
+            payment.setFinancialHalt(false);payment.setFinancialHaltReason(null);
+        }
+        if (payment.isFinancialHalt()) return;
+        if (order.getOrderStatus()==OrderStatus.CANCELLED) obligations.full(order,"Capture received after cancellation");
+        else if (order.getAllocationCompletedAt()==null && !order.isAutomaticFullRefund())
+            jobs.enqueue("ALLOCATE_ORDER","allocate:" + order.getOrderId(),Map.of("orderId",order.getOrderId()));
+    }
+    private void attention(Order order,GatewayAttempt attempt,String id,String reason) {
+        if (attempt.getCapturedAt() == null) attempt.setEvidenceState("CONFLICTING");
+        attempt.setEvidenceReason(reason);
+        halt(order.getPayment(),"CONFLICTING_PROVIDER_EVIDENCE");
+        jobs.enqueue("CAPTURE_ATTENTION","conflicting-evidence:" + id,Map.of("orderId",order.getOrderId(),"eventId",id));
+    }
+    private void halt(Payment payment,String reason) {
+        // A weak/missing observation may never clear or weaken an existing explicit conflict.
+        if (!"CONFLICTING_PROVIDER_EVIDENCE".equals(payment.getFinancialHaltReason())
+                && (!"AUTHORIZATION_ATTEMPT_OWNERSHIP_REQUIRES_REVIEW".equals(payment.getFinancialHaltReason())
+                    || "CONFLICTING_PROVIDER_EVIDENCE".equals(reason))) {
+            payment.setFinancialHalt(true);payment.setFinancialHaltReason(reason);
+        }
     }
     private void processRefund(JsonNode event) {
         var existing=refunds.findByRefundId(event.path("identity").asText()).orElseThrow(()->new ManualInterventionJobException("Unknown merchant refund identity"));
@@ -80,6 +217,11 @@ public class PaymentReconciler {
         if(event.has("amount")&&PaymentRules.decimal(event.path("amount").asText()).compareTo(refund.getAmount())!=0)throw new PoisonJobException("Refund amount mismatch");
         if(event.has("currency")&&!refund.getCurrency().equals(event.path("currency").asText()))throw new PoisonJobException("Refund currency mismatch");
         if(refund.getStatus()==RefundStatus.SUCCESS)return;
+        if(refund.getExpectedPaymentReference()==null || refund.getExpectedPaymentReference().isBlank())throw new ManualInterventionJobException("Legacy refund primary attempt requires review");
+        if(event.path("paymentIdentity").asText().isBlank()||!event.has("amount")||!event.has("currency")){
+            jobs.enqueue("REFUND_ORDER","refund-reconcile:"+refund.getRefundId()+":"+event.path("status").asText(),Map.of("refundId",refund.getRefundId()));return;
+        }
+        if(!refund.getExpectedPaymentReference().equals(event.path("paymentIdentity").asText()))throw new ManualInterventionJobException("Refund belongs to another provider payment attempt");
         if("SUCCESS".equals(event.path("status").asText())) {
             refund.setStatus(RefundStatus.SUCCESS);refund.setGatewayReference(event.path("providerReference").asText());
             obligations.completed(order,refund);

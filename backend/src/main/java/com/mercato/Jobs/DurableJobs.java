@@ -16,6 +16,11 @@ public class DurableJobs {
         return store.enqueue(type, businessKey, payload);
     }
 
+    @Transactional
+    public JobRecord enqueueAt(String type,String businessKey,Map<String,Object> payload,java.time.Instant dueAt) {
+        return store.enqueueAt(type,businessKey,payload,dueAt);
+    }
+
     /** Caller must establish operator authorization; identity and reason are retained atomically. */
     public JobRecord retry(UUID jobId, String actor, String reason) { return store.retry(jobId, actor, reason); }
 }

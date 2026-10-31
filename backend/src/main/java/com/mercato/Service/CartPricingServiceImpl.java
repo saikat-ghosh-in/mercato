@@ -38,7 +38,7 @@ public class CartPricingServiceImpl implements CartPricingService {
     @Override
     public void applyCharges(Cart cart) {
         BigDecimal subtotal = cart.getSubtotal();
-        int cartQty = cart.getCartQuantity();
+        long cartQty = cart.getCartQuantity();
 
         BigDecimal base = subtotal.signum() > 0 && subtotal.compareTo(CART_SHIPPING_THRESHOLD) < 0 ? CART_SHIPPING_CHARGE : BigDecimal.ZERO;
         Map<String, BigDecimal> weights = new LinkedHashMap<>();
@@ -57,6 +57,7 @@ public class CartPricingServiceImpl implements CartPricingService {
             String id = item.getProduct().getProductId(); BigDecimal share = shares.get(id);
             boolean covered = item.getProduct().isSellerPaysShipping();
             item.setSellerDeliveryCharge(covered ? share : BigDecimal.ZERO);
+            item.setBuyerNormalDeliveryCharge(covered?BigDecimal.ZERO.setScale(2):share);
             if (covered) sellerCovered = sellerCovered.add(share);
             else {
                 standard = standard.add(share);
@@ -71,9 +72,14 @@ public class CartPricingServiceImpl implements CartPricingService {
                 new DeliveryOptionDTO(DeliveryMethod.CONSOLIDATED, "Grouped delivery", "4–7 business days", "Extra time to group deliveries, aiming for fewer trips and lower carbon emissions.", standard, customerBulky, sellerPaid)
         ));
         if (cart.getDeliveryMethod() == null) cart.setDeliveryMethod(DeliveryMethod.STANDARD);
+        Map<String,BigDecimal> upgradeWeights=new LinkedHashMap<>();
+        cart.getCartItems().forEach(item->upgradeWeights.put(item.getProduct().getProductId(),item.getLineTotal()));
+        var upgrades=com.mercato.Utils.DeliveryAllocation.split(cart.getDeliveryMethod()==DeliveryMethod.EXPEDITED && subtotal.signum()>0?expeditedSurcharge:BigDecimal.ZERO,upgradeWeights);
+        cart.getCartItems().forEach(item->item.setBuyerExpeditedDeliveryCharge(upgrades.get(item.getProduct().getProductId())));
 
         if (subtotal.compareTo(BigDecimal.ZERO) == 0) {
             cart.clearCharges();
+            cart.getCartItems().forEach(item->{item.setBuyerNormalDeliveryCharge(BigDecimal.ZERO);item.setBuyerExpeditedDeliveryCharge(BigDecimal.ZERO);item.setSellerDeliveryCharge(BigDecimal.ZERO);});
             return;
         }
 
@@ -102,15 +108,15 @@ public class CartPricingServiceImpl implements CartPricingService {
         );
     }
 
-    private void applyProcessing(Cart cart, int qty) {
+    private void applyProcessing(Cart cart, long qty) {
         BigDecimal charge;
         if (qty <= 2) {
             charge = BigDecimal.ZERO;
         } else if (qty <= 10) {
             charge = BigDecimal.valueOf(25);
         } else {
-            int extraQty = qty - 10;
-            int blocks = (int) Math.ceil(extraQty / 5.0);
+            long extraQty = qty - 10;
+            long blocks = (extraQty + 4) / 5;
             charge = BigDecimal.valueOf(25 + (blocks * 10L));
         }
 

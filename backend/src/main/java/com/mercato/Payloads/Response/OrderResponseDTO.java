@@ -8,8 +8,11 @@ import java.time.Instant;
 import java.util.List;
 
 @Getter
-@AllArgsConstructor
+@lombok.NoArgsConstructor(force=true)
+@lombok.RequiredArgsConstructor
 public class OrderResponseDTO {
+    @lombok.Setter
+    private com.mercato.Service.FulfillmentWorkflow.Summary workflow;
     private final String orderId;
     private final String orderStatus;
 
@@ -33,6 +36,7 @@ public class OrderResponseDTO {
 
 
     @Getter
+@lombok.NoArgsConstructor(force=true)
     @AllArgsConstructor
     public static class Customer {
         private final String name;
@@ -40,6 +44,7 @@ public class OrderResponseDTO {
     }
 
     @Getter
+@lombok.NoArgsConstructor(force=true)
     @AllArgsConstructor
     public static class DeliveryAddress {
         private final String recipientName;

@@ -1,6 +1,34 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { checkoutIssue, currentDeliveryAddress, paymentHandoff } from "../src/utils/checkout.js";
+import * as checkout from "../src/utils/checkout.js";
+import { cartReducer } from "../src/reduxStore/reducers/cartReducer.js";
+
+test("checkout keeps the full uncertain intent even after quote and address change; reload restores server body", () => {
+  assert.equal(typeof checkout.createCheckoutIntent, "function");
+  let id=0;const intent=checkout.createCheckoutIntent(()=>`operation-${++id}`);
+  const original={addressId:"one",expectedTotal:612,deliveryMethod:"STANDARD",expectedCartVersion:7};
+  const submitted=intent.payload(original);
+  assert.equal(intent.payload({...original,addressId:"two",expectedCartVersion:9}),submitted);
+  assert.equal(submitted.operationId,"operation-1");
+  const reloaded=checkout.createCheckoutIntent();reloaded.restore({...submitted});
+  assert.deepEqual(reloaded.payload({}),submitted);
+  intent.clear();assert.equal(intent.payload({...original,expectedCartVersion:9}).operationId,"operation-2");
+});
+test("cart preserves the authoritative quote version without predicting it",()=>{
+  const first=cartReducer(undefined,{type:"SYNC_CART_SUCCESS",payload:{cartItems:[],version:8}});
+  assert.equal(first.version,8);
+  assert.equal(cartReducer(first,{type:"CART_PENDING",productId:"one"}).version,8);
+});
+test("recovery only offers a payable session or exact safe replay and otherwise opens the existing order",()=>{
+  assert.equal(typeof checkout.recoveryAction,"function");
+  const order={orderId:"original",totalAmount:612};
+  assert.equal(checkout.recoveryAction({state:"PAYMENT_READY",canReplayCapture:true,paymentSessionId:"safe",order}),"payment");
+  assert.equal(checkout.recoveryAction({state:"PAYMENT_READY",canReplayCapture:true,paymentSessionId:null,order}),"payment");
+  assert.equal(checkout.recoveryAction({state:"REPLAY_CAPTURE",canReplayCapture:true,order}),"replay");
+  assert.equal(checkout.recoveryAction({state:"ORDER_UPDATED",canReplayCapture:false,order}),"order");
+  assert.equal(checkout.recoveryAction({state:"PAYMENT_READY",canReplayCapture:false,paymentSessionId:"old",order}),"order");
+});
 
 test("checkout uses the latest saved address and rejects deleted or stale selections", () => {
   const selected = { addressId: "one", addressLine1: "Old address" };

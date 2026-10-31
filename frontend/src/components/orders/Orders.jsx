@@ -1,7 +1,7 @@
 import { LoadingLayout } from "../shared/LoadingStates";
 import PageHeading from "../shared/PageHeading";
 import ActionArrow from "../shared/ActionArrow";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
@@ -14,6 +14,7 @@ import OrderDetails from "./OrderDetails";
 import { formatCurrency } from "../../utils/formatCurrency";
 import { formatDate } from "../../utils/formatDate";
 import { getOrderStatus } from "../../utils/orderUtils";
+import { workflowLabel } from "../../utils/fulfillment";
 import { retryPayment } from "../../utils/paymentUtils";
 
 const OrderSkeleton = () => <LoadingLayout variant="list" label="Loading content" rows={1} />;
@@ -51,7 +52,7 @@ const ErrorState = ({ message, onRetry }) => (
 );
 
 const OrderCard = ({ ord, onClick, onResumePayment, resumingOrderId }) => {
-  const { label, color, sublabel, icon: StatusIcon } = getOrderStatus(ord.orderStatus);
+  const { color, icon: StatusIcon } = getOrderStatus(ord.orderStatus);
   const needsPayment = ord.orderStatus === "CREATED"
     && ord.paymentStatus
     && ord.paymentStatus !== "SUCCESS";
@@ -71,17 +72,12 @@ const OrderCard = ({ ord, onClick, onResumePayment, resumingOrderId }) => {
           <div className="flex items-center gap-2 flex-wrap mb-0.5">
             <p className="text-sm font-semibold text-gray-900 break-words">Order #{ord.orderId}</p>
             <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${color}`}>
-              <StatusIcon size={10} /> {label}
+              <StatusIcon size={10} /> {workflowLabel(ord, 'customer')}
             </span>
           </div>
           <p className="text-xs text-gray-500 flex flex-wrap items-center gap-1">
             <MdAccessTime size={11} /> {formatDate(ord.createdAt)}
-            {sublabel && (
-              <>
-                <span className="text-gray-300">·</span>
-                {sublabel}
-              </>
-            )}
+            <span className="text-gray-300">·</span> View quantity progress
           </p>
         </div>
         <div className="flex items-center gap-3 shrink-0">
@@ -117,6 +113,7 @@ const Orders = () => {
   const { data: orders = [], isLoading: loading, error: queryError, refetch: fetchOrders } = useOrdersQuery();
   const error = queryError ? queryError.data?.message || "Failed to fetch orders" : "";
   const [resumingOrderId, setResumingOrderId] = useState(null);
+  useEffect(() => { if (!orderId) fetchOrders(); }, [orderId, fetchOrders]);
 
   const handleResumePayment = async (ord) => {
     setResumingOrderId(ord.orderId);
@@ -136,14 +133,15 @@ const Orders = () => {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
 
         {/* Header */}
-        <PageHeading title="Your orders" description={!loading && !error ? `${orders.length} ${orders.length === 1 ? "order" : "orders"} placed` : "Track deliveries and view previous orders."}><button type="button" className="button button-outline" onClick={() => navigate("/products")}>Continue shopping <ActionArrow /></button></PageHeading>
+        <PageHeading title="My orders" description={!loading && !error ? `${orders.length} ${orders.length === 1 ? "order" : "orders"} placed` : "Track deliveries and view previous orders."}><button type="button" className="button button-outline" onClick={() => navigate("/products")}>Continue shopping <ActionArrow /></button></PageHeading>
 
         {/* Content */}
+        {error && orders.length > 0 && <p role="alert" className="text-sm text-red-700 mb-4">{error}. Your last loaded orders are retained. <button className="text-link" onClick={fetchOrders}>Retry refresh</button></p>}
         {loading && !orders.length ? (
           <div className="space-y-3">
             {[1, 2, 3].map(i => <OrderSkeleton key={i} />)}
           </div>
-        ) : error ? (
+        ) : error && !orders.length ? (
           <div className="surface">
             <ErrorState message={error} onRetry={fetchOrders} />
           </div>

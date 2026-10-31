@@ -93,13 +93,15 @@ public class CartReservationServiceImpl implements CartReservationService {
     @Override
     @Transactional
     public void releaseExpired() {
-        List<CartReservation> expired =
-                cartReservationRepository.findAllExpired(Instant.now());
+        var expired = cartReservationRepository.findExpiredCandidates(Instant.now());
 
         if (expired.isEmpty()) return;
 
-        for (CartReservation cartReservation : expired) {
-            Product product = getProductForUpdate(cartReservation.getProduct().getProductId());
+        for (var candidate : expired) {
+            Product product = getProductForUpdate(candidate.getProductId());
+            var current = cartReservationRepository.findById(candidate.getId());
+            if (current.isEmpty() || current.get().getExpiresAt().isAfter(Instant.now())) continue;
+            CartReservation cartReservation = current.get();
             CartItem cartItem = cartReservation.getCartItem();
 
             product.adjustReservedQty(-cartReservation.getReservedQty());

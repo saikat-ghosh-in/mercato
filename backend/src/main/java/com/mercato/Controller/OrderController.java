@@ -86,7 +86,16 @@ public class OrderController {
     }
 
     @GetMapping("/user/orders/{orderId}/payment-session")
-    public Object paymentSession(@PathVariable String orderId) {return recovery.recover(orderId);}
+    public ResponseEntity<Object> paymentSession(@PathVariable String orderId) {return ResponseEntity.ok().header("Cache-Control","private, no-store").body(recovery.recover(orderId));}
+
+    @PostMapping("/user/orders/{orderId}/payment-session")
+    public ResponseEntity<Object> preparePaymentSession(@PathVariable String orderId) {
+        String session=orderService.retryPayment(orderId);
+        return ResponseEntity.ok().header("Cache-Control","private, no-store").body(recovery.prepared(orderId,session));
+    }
+
+    @GetMapping("/user/checkout-intents/{operationId}")
+    public ResponseEntity<Object> checkoutIntent(@PathVariable String operationId){return ResponseEntity.ok().header("Cache-Control","private, no-store").body(recovery.recoverIntent(operationId));}
 
     @PutMapping("/user/orders/{orderId}")
     public ResponseEntity<OrderResponseDTO> editCurrentUserOrder(@PathVariable String orderId) {
@@ -129,6 +138,7 @@ public class OrderController {
 
     @PostMapping("/order-line/update")
     public ResponseEntity<OrderLineResponseDTO> updateOrderLine(@RequestBody OrderLineUpdateRequestDTO request) {
+        com.mercato.Service.WorkflowCommands.requireExternalOperation(request.getOperationId());
         TransitionTrigger trigger = authUtil.resolveTransitionTrigger();
         OrderLineResponseDTO response = orderLineUpdateService.updateOrderLine(request, trigger);
         return ResponseEntity.ok(response);
@@ -136,7 +146,9 @@ public class OrderController {
 
     @PostMapping("/user/orders/cancel")
     public ResponseEntity<OrderResponseDTO> cancelOrder(@RequestBody @Valid OrderCancelRequestDTO request) {
+        com.mercato.Service.WorkflowCommands.requireExternalOperation(request.getOperationId());
         TransitionTrigger trigger = authUtil.resolveTransitionTrigger();
+        if(trigger!=TransitionTrigger.ADMIN)trigger=TransitionTrigger.CUSTOMER;
         OrderResponseDTO response = orderService.cancelOrder(request, trigger);
         return ResponseEntity.ok(response);
     }

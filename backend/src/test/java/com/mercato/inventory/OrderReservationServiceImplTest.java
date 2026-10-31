@@ -96,6 +96,9 @@ class OrderReservationServiceImplTest {
         orderLine.setId(LINE_ID);
         orderLine.setProductId(PRODUCT_ID);
         orderLine.setOrderedQty(ORDER_QTY);
+        // A transfer is valid only for the selected item generation, as captured at checkout.
+        orderLine.setSourceCartItemId(CART_ITEM_ID);
+        orderLine.setSourceSelectionGeneration(cartItem.getSelectionGeneration());
         order.addOrderLine(orderLine);
 
         cartReservationDeleted.set(false);
@@ -210,6 +213,14 @@ class OrderReservationServiceImplTest {
         assertEquals(ORDER_QTY, captor.getValue().getReservedQty());
         assertEquals(ORDER_QTY, product.getReservedQty(), "transfer moves hold without net reservedQty change");
         assertTrue(cartReservationDeleted.get());
+    }
+    @Test void explicitRetryBindingTransfersWithoutRewritingOriginalSelection() {
+        String original=orderLine.getSourceSelectionGeneration();
+        cartItem.setCartItemId(CART_ITEM_ID);cartItem.setSelectionGeneration("retry-generation");
+        orderLine.setRetryCartItemId(CART_ITEM_ID);orderLine.setRetrySelectionGeneration("retry-generation");
+        orderReservationService.finalizeInventoryForPaidOrder(order,cart);
+        assertEquals(ORDER_QTY,product.getReservedQty());assertTrue(cartReservationDeleted.get());
+        assertEquals(original,orderLine.getSourceSelectionGeneration());
     }
 
     @Test

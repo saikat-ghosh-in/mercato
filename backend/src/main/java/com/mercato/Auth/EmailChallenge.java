@@ -7,4 +7,5 @@ public class EmailChallenge {
  @Column(nullable=false,length=64) private String sessionHash;
  @Column(nullable=false) private Instant expiresAt;
  private int attempts;
+ @Column(name="delivery_id") private java.util.UUID deliveryId;
 }
