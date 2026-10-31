@@ -59,7 +59,7 @@ export default function Header() {
                 {links.map(([label, href]) => <MenuItem key={href}><Link to={href}>{label}</Link></MenuItem>)}
                 <MenuItem><button onClick={() => dispatch(logOutUser(navigate))}>Sign out</button></MenuItem>
             </MenuItems>
-          </Menu> : initializing ? <span className="icon-button" role="status" aria-label="Checking your account"><FiUser aria-hidden="true"/></span> : <nav className="header-auth-links" aria-label="Account"><Link to="/login">Sign in</Link><Link to="/register">Register</Link></nav>}
+          </Menu> : initializing ? <span className="icon-button" role="status" aria-label="Checking your account"><FiUser aria-hidden="true"/></span> : <nav className="header-auth-links" aria-label="Account"><Link to="/login">Sign in</Link></nav>}
           <Link to="/cart" className="icon-button cart-link" aria-label={"Shopping bag, " + count + (count === 1 ? " item" : " items")}><FiShoppingBag />{count > 0 && <span className="cart-count" aria-hidden="true">{count > 99 ? "99+" : count}</span>}</Link>
         </div>
       </div>

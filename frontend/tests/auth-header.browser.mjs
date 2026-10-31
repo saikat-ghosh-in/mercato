@@ -41,7 +41,7 @@ test('header clearly distinguishes signed in, guest and initialization states at
     for(const width of [320,390,768,1440]){await page.setViewportSize({width,height:900});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);assert.equal(await account.isVisible(),true);}
     await page.setViewportSize({width:390,height:900});await account.screenshot({path:root+'/../backend/target/email-login-preview/mobile-signed-in.png'});
     await page.evaluate(()=>window.account({user:null,userDetails:null,sessionStatus:'ready'}));
-    for(const width of [320,390,768,1440]){await page.setViewportSize({width,height:900});assert.equal(await page.locator('header').getByRole('link',{name:'Sign in',exact:true}).isVisible(),true);assert.equal(await page.locator('header').getByRole('link',{name:'Register',exact:true}).isVisible(),true);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);}
+    for(const width of [320,390,768,1440]){await page.setViewportSize({width,height:900});assert.equal(await page.locator('header').getByRole('link',{name:'Sign in',exact:true}).isVisible(),true);assert.equal(await page.locator('header').getByRole('link',{name:'Register',exact:true}).count(),0);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);}
     assert.equal(await account.count(),0);await page.locator('.header-auth-links').screenshot({path:root+'/../backend/target/email-login-preview/guest.png'});
     await page.evaluate(()=>window.account({sessionStatus:'loading'}));assert.equal(await page.locator('.header-auth-links').count(),0);
     await page.evaluate(()=>window.account({user:{username:'longname'},userDetails:{firstName:'A very long display name that must never overflow the header'},sessionStatus:'authenticated'}));await page.setViewportSize({width:768,height:900});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
@@ -67,13 +67,14 @@ test('profile editing has no photo controls and retains the personal details for
   }finally{await browser.close();}
 });
 
-test('checkout retains guest sign in/register, search and Help at narrow mobile sizes',async()=>{
+test('checkout retains guest sign in, search and Help at narrow mobile sizes',async()=>{
   const {browser,page}=await fixture('login','/checkout');try{
     await page.evaluate(()=>window.account({user:null,userDetails:null,sessionStatus:'ready'}));
     for(const width of [320,360,390,768,1024,1440]){
       await page.setViewportSize({width,height:900});
       assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
-      for(const name of ['Sign in','Register','Help'])assert.equal(await page.locator('header').getByRole('link',{name,exact:true}).isVisible(),true);
+      for(const name of ['Sign in','Help'])assert.equal(await page.locator('header').getByRole('link',{name,exact:true}).isVisible(),true);
+      assert.equal(await page.locator('header').getByRole('link',{name:'Register',exact:true}).count(),0);
       assert.equal(await page.getByRole('button',{name:'Open search',exact:true}).isVisible(),true);
     }
     await page.setViewportSize({width:320,height:900});await page.locator('header').screenshot({path:root+'/../backend/target/email-login-preview/guest-mobile.png'});
