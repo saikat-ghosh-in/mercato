@@ -30,7 +30,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-@SpringBootTest(classes=PostgresQuantityWorkflowTest.Config.class,properties={"spring.flyway.enabled=true","spring.jpa.hibernate.ddl-auto=validate","spring.jpa.open-in-view=false","mercato.jobs.enabled=false"})
+@SpringBootTest(classes=PostgresQuantityWorkflowTest.Config.class,properties={"EASYSHIP_SANDBOX_SIMULATION_ENABLED=true","spring.flyway.enabled=true","spring.jpa.hibernate.ddl-auto=validate","spring.jpa.open-in-view=false","mercato.jobs.enabled=false"})
 @TestExecutionListeners(listeners=org.springframework.test.context.support.DependencyInjectionTestExecutionListener.class,mergeMode=TestExecutionListeners.MergeMode.REPLACE_DEFAULTS)
 class PostgresQuantityWorkflowTest {
     static final String DATABASE=PostgresTestSupport.database();
@@ -220,6 +220,27 @@ class PostgresQuantityWorkflowTest {
         assertEquals(ready,shipmentService.prepare(fulfillment,TransitionTrigger.SELLER,request));verify(easyship,times(1)).createTracking(anyString(),anyString(),any(EasyshipClient.Destination.class));
         assertEquals(0,snapshot().getShippedQty());assertEquals(20,products.findByProductId(orderId+"-P").orElseThrow().getPhysicalQty());
         IDENTITY.set("another-seller@test.invalid");assertThrows(com.mercato.ExceptionHandler.ResourceNotFoundException.class,()->shipmentService.prepare(fulfillment,TransitionTrigger.SELLER,request));
+    }
+    @Test void sandboxHandoffSchedulesRealDaysRatherThanMinutesAndNeverShipsAgain(){
+        packAll();currentCaptureProof();when(easyship.enabled()).thenReturn(true);when(easyship.batchSize()).thenReturn(50);
+        var parcel=shipmentService.create(fulfillment,TransitionTrigger.SELLER,easyshipHandoff("simulate-days",3,"ESIN10000091","SIM"+orderId)).shipments().get(0);
+        var due=jdbc.queryForList("select due_at from durable_jobs where job_type='EASYSHIP_SIMULATE' and payload::text like ? order by due_at",java.sql.Timestamp.class,"%"+parcel.id()+"%");
+        assertEquals(3,due.size());assertEquals(List.of(86400L,259200L,288000L),due.stream().map(t->Duration.between(parcel.handedOffAt(),t.toInstant()).toSeconds()).toList());
+        shipmentService.pollActive();assertEquals(3,jdbc.queryForObject("select count(*) from durable_jobs where job_type='EASYSHIP_SIMULATE' and payload::text like ?",Integer.class,"%"+parcel.id()+"%"));
+        assertEquals(10,snapshot().getShippedQty());assertEquals(0,snapshot().getDeliveredQty());
+    }
+    @Test void simulatorRespectsDayBoundariesCatchesUpAndRequiresCanonicalDeliveryEvidence(){
+        packAll();currentCaptureProof();when(easyship.enabled()).thenReturn(true);when(easyship.batchSize()).thenReturn(50);
+        var parcel=shipmentService.create(fulfillment,TransitionTrigger.SELLER,easyshipHandoff("simulation-flow",3,"ESIN10000092","SIMFLOW"+orderId)).shipments().get(0);
+        var trackingId=UUID.randomUUID();tx.executeWithoutResult(t->{var s=parcels.findById(parcel.id()).orElseThrow();s.setTrackingId(trackingId);s.setCourierName("SFExpress");});
+        doAnswer(call->{assertFalse(org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive());return null;}).when(easyship).simulate(any(),anyString());
+        clock.value.set(parcel.handedOffAt().plusSeconds(86399));assertThrows(WaitingJobException.class,()->shipmentService.simulate(parcel.id(),1));verify(easyship,never()).simulate(any(),anyString());
+        clock.value.set(parcel.handedOffAt().plusSeconds(86400));shipmentService.simulate(parcel.id(),1);shipmentService.simulate(parcel.id(),1);verify(easyship,times(1)).simulate(trackingId,"in_transit_to_customer");
+        assertEquals(0,snapshot().getDeliveredQty());
+        clock.value.set(parcel.handedOffAt().plusSeconds(288001));shipmentService.simulate(parcel.id(),2);verify(easyship,never()).simulate(trackingId,"out_for_delivery");shipmentService.simulate(parcel.id(),3);
+        verify(easyship).simulate(trackingId,"delivered");assertEquals(0,snapshot().getDeliveredQty());
+        when(easyship.fetch(anyCollection())).thenReturn(new TrackingClient.Result(Map.of("ESIN10000092",new TrackingClient.Update(parcel.waybill(),"Delivered","DL",clock.instant(),null,List.of(new TrackingClient.Event("DL","Delivered",clock.instant())),false)),false));
+        shipmentService.process(List.of(parcel.id()));shipmentService.process(List.of(parcel.id()));assertEquals(10,snapshot().getDeliveredQty());assertEquals(10,products.findByProductId(orderId+"-P").orElseThrow().getPhysicalQty());
     }
     @Test void uncertainGenerationReconcilesInsteadOfRepeatingCreation() {
         packAll();currentCaptureProof();when(easyship.creationEnabled()).thenReturn(true);

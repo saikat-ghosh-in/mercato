@@ -14,6 +14,11 @@ public class Shipment {
     @Column(nullable=false,unique=true,length=80) private String waybill;
     @Column(nullable=false,length=20) private String provider="DELHIVERY";
     @Column(length=80) private String providerReference;
+    private UUID trackingId;
+    @Column(length=120) private String courierName;
+    @Column(nullable=false) private boolean manualTracking;
+    @Column(nullable=false) private int simulationStage;
+    @Column(nullable=false) private int trackingLookupPage=1;
     @Column(nullable=false,length=30) private String status;
     @Column(nullable=false) private Instant handedOffAt;
     private Instant deliveredAt;

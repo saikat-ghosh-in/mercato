@@ -94,4 +94,27 @@ class EasyshipClientTest {
             .andRespond(withSuccess("{\"shipments\":[{\"platform_order_number\":\"SANDBOX-123\",\"easyship_shipment_id\":\"ESIN10000001\",\"trackings\":[{\"tracking_number\":\"MCT123\"}]}]}",MediaType.APPLICATION_JSON));
         assertEquals("ESIN10000001",client.findPrepared("SANDBOX-123","MCT123").reference());server.verify();
     }
+    @Test void generationPreservesSimulatorIdentityAndCourierName(){
+        var generator=new EasyshipClient(http,new ObjectMapper(),clock,true,"sand_synthetic_test_only",50,"8f43c1e2-dec6-40b2-aa65-bdcfbb72e1c2");
+        server.expect(anything()).andRespond(withSuccess("""
+            {"tracking":{"id":"9fd75c1b-144f-40f9-bad0-456fb64d3c09","tracking_number":"MCT123","easyship_shipment_id":"ESIN10000001","courier_service":{"name":"Sandbox Courier"}}}
+            """,MediaType.APPLICATION_JSON));
+        var prepared=generator.createTracking("SANDBOX-123","MCT123",new EasyshipClient.Destination("Buyer","9999999999","buyer@test.invalid","Saved address",null,"City","State","123456"));
+        var result=new ObjectMapper().valueToTree(prepared);
+        assertEquals("9fd75c1b-144f-40f9-bad0-456fb64d3c09",result.path("trackingId").asText());
+        assertEquals("Sandbox Courier",result.path("courierName").asText());server.verify();
+    }
+    @Test void simulatorUsesOnlySandboxPatchAndNeverAcceptsArbitraryStatuses(){
+        var id=UUID.fromString("9fd75c1b-144f-40f9-bad0-456fb64d3c09");
+        assertThrows(IllegalArgumentException.class,()->client.simulate(id,"unknown"));
+        server.expect(requestTo("https://public-api-sandbox.easyship.com/2024-09/sandbox/trackings/"+id)).andExpect(method(HttpMethod.PATCH)).andExpect(content().json("{\"status_slug\":\"in_transit_to_customer\"}"))
+            .andRespond(withSuccess("{}",MediaType.APPLICATION_JSON));
+        client.simulate(id,"in_transit_to_customer");server.verify();
+    }
+    @Test void paginatedMetadataMatchesBothReferencesAndDisplaysCourierUmbrellaName(){
+        server.expect(requestTo("https://public-api-sandbox.easyship.com/2024-09/trackings?per_page=100&page=2"))
+            .andRespond(withSuccess("{\"trackings\":[{\"id\":\"9fd75c1b-144f-40f9-bad0-456fb64d3c09\",\"easyship_shipment_id\":\"ESIN10000001\",\"tracking_number\":\"MCT123\",\"courier_service\":{\"umbrella_name\":\"SFExpress\"}}]}",MediaType.APPLICATION_JSON));
+        var page=client.trackingMetadata("ESIN10000001","MCT123",2);
+        assertEquals("SFExpress",page.tracking().courierName());assertNotNull(page.tracking().trackingId());assertFalse(page.hasMore());server.verify();
+    }
 }

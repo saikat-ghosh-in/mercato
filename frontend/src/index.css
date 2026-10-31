@@ -1002,6 +1002,22 @@ html[data-input=keyboard] .report-timeframe-panel,html[data-input=keyboard] .fie
 @media (prefers-reduced-motion:reduce) { .accordion-content,.accordion-chevron,.accordion-trigger { transition:none; } }
 :root[data-input=keyboard] .accordion-chevron { transition:none; }
 /* Linked product thumbnails retain the same reserved dimensions as their cards. */
+.package-card{border:1px solid #e5e7eb;border-radius:8px;padding:20px;min-width:0}
+.package-status-row{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+.package-status,.package-details h3{font-size:15px;font-weight:650;line-height:1.5}
+.package-courier{font-size:12px;color:#667085;margin-top:4px;text-transform:capitalize;overflow-wrap:anywhere}
+.package-see-updates{display:inline-flex;align-items:center;gap:7px;white-space:nowrap;font-size:12px;min-height:36px}
+.package-items{display:grid;gap:16px;margin-top:20px}.package-items li{display:flex;gap:12px;align-items:center}
+.package-item-image{display:grid;place-items:center;flex-shrink:0;width:48px;height:56px;border-radius:5px;overflow:hidden;background:#f6f6f5;color:#9ca3af}
+.package-item-image img{width:100%;height:100%;object-fit:contain}.package-product-name{font-size:13px;font-weight:550;overflow-wrap:anywhere;line-height:1.5}
+.package-quantity{font-size:12px;color:#667085;margin-top:5px}.package-detail-top{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:22px}
+.package-detail-top>.text-link{display:inline-flex;align-items:center;gap:6px;font-size:12px;min-height:36px}
+.package-timeline{margin:28px 0 18px;padding:0;list-style:none}.package-timeline li{position:relative;display:flex;gap:16px;padding-bottom:26px;min-width:0}
+.package-timeline li:not(:last-child):before{content:'';position:absolute;left:4px;top:11px;bottom:0;width:1px;background:#dfe4eb}
+.package-timeline-dot{position:relative;z-index:1;width:9px;height:9px;border-radius:50%;background:#cad1db;flex-shrink:0;margin-top:5px}
+.package-timeline li:first-child .package-timeline-dot{background:#171717;box-shadow:0 0 0 4px #edf2f7}.package-timeline p{font-size:13px;overflow-wrap:anywhere}.package-timeline time{display:block;font-size:11px;color:#667085;margin-top:5px}
+.package-card[data-status=DELIVERED] .package-status{color:#23653b}.package-card[data-status=LOST_IN_TRANSIT] .package-status,.package-card[data-status=RETURNED_TO_SENDER] .package-status{color:#a52424}
+@media(max-width:639px){.package-card{padding:16px}.package-status-row{gap:10px}.package-status{font-size:14px}.package-see-updates{min-height:44px;font-size:11px}.package-detail-top .button{font-size:11px;padding:8px 10px}}
 .app-page .button-danger{color:#a52424;background:#fff7f7;border:1px solid #e9bcbc}
 @media(hover:hover) and (pointer:fine){.app-page .button-danger:hover{background:#ffecec;border-color:#d99a9a}}
 .fulfillment-card-thumbnails>a{width:42px;height:48px;display:grid;place-items:center;background:#f6f6f5;border-radius:5px;overflow:hidden;color:#a2a7af}

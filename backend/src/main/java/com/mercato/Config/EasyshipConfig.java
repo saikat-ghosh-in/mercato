@@ -4,10 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mercato.Service.EasyshipClient;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.*;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.web.client.RestTemplate;
-import java.io.IOException;
-import java.net.HttpURLConnection;
 import java.time.Clock;
 
 @Configuration
@@ -17,12 +15,9 @@ public class EasyshipConfig {
             @Value("${EASYSHIP_SANDBOX_TOKEN:}")String token,
             @Value("${EASYSHIP_TRACKING_BATCH_SIZE:50}")int batchSize,
             @Value("${EASYSHIP_SANDBOX_COURIER_ID:}")String courier){
-        var factory=new SimpleClientHttpRequestFactory(){
-            @Override protected void prepareConnection(HttpURLConnection connection,String method)throws IOException{
-                super.prepareConnection(connection,method);connection.setInstanceFollowRedirects(false);
-            }
-        };
-        factory.setConnectTimeout(5000);factory.setReadTimeout(15000);
+        var http=java.net.http.HttpClient.newBuilder().connectTimeout(java.time.Duration.ofSeconds(5)).followRedirects(java.net.http.HttpClient.Redirect.NEVER).build();
+        var factory=new JdkClientHttpRequestFactory(http);
+        factory.setReadTimeout(15000);
         return new EasyshipClient(new RestTemplate(factory),json,clock,enabled,token,batchSize,courier);
     }
 }

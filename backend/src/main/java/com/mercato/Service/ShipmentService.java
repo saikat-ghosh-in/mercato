@@ -37,6 +37,8 @@ public class ShipmentService {
     private final org.springframework.jdbc.core.JdbcTemplate jdbc;
     @org.springframework.beans.factory.annotation.Value("${EASYSHIP_WEBHOOK_ENABLED:false}")
     private boolean webhookEnabled;
+    @org.springframework.beans.factory.annotation.Value("${EASYSHIP_SANDBOX_SIMULATION_ENABLED:false}")
+    private boolean simulationEnabled;
 
     public record Item(int lineNumber,int qty) {}
     @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
@@ -47,9 +49,9 @@ public class ShipmentService {
     public record Change(String operationId,Long expectedVersion,String reason,String waybill,String easyshipShipmentId) {
         public Change(String operationId,Long expectedVersion,String reason,String waybill){this(operationId,expectedVersion,reason,waybill,null);}
     }
-    public record ParcelItem(int lineNumber,String productName,int qty) {}
+    public record ParcelItem(int lineNumber,String productName,int qty,String productId,String primaryImageUrl) {}
     public record Parcel(UUID id,String fulfillmentId,String waybill,String status,Instant handedOffAt,Instant deliveredAt,
-        Instant lastCheckedAt,Instant eta,String message,List<TrackingClient.Event> history,List<ParcelItem> items,long version,String provider,String providerReference) {}
+        Instant lastCheckedAt,Instant eta,String message,List<TrackingClient.Event> history,List<ParcelItem> items,long version,String provider,String providerReference,String courierName,boolean manualTracking) {}
     public record Eligible(String fulfillmentId,int lineNumber,String productName,int maximum) {}
     public record View(List<Parcel> shipments,List<Eligible> handoffItems,long version,boolean canCreate,boolean canRefresh,String message,List<Eligible> legacyDeliveryItems,String trackingProvider,boolean canGenerateTracking) {}
     public record PrepareRequest(String operationId,Long expectedVersion,int lineNumber) {}
@@ -97,7 +99,10 @@ public class ShipmentService {
         boolean refresh=ps.stream().anyMatch(s->client(s.getProvider()).enabled()&&!s.getStatus().equals("DELIVERED")&&trackingReady(s)&&
             (s.getLastRequestedAt()==null||!s.getLastRequestedAt().isAfter(workflow.now().minusSeconds(60))));
         String provider=easyship.enabled()?"EASYSHIP":carrier.enabled()?"DELHIVERY":"MANUAL";
-        return new View(ps.stream().map(this::dto).toList(),eligible,o.getWorkflowRevision(),!eligible.isEmpty(),refresh,
+        var imageMap=new HashMap<String,String>();
+        var productIds=ps.stream().flatMap(s->s.getItems().stream()).map(i->i.getLine().getProductId()).distinct().toList();
+        if(!productIds.isEmpty())for(var row:products.primaryImages(productIds))imageMap.put((String)row[0],(String)row[1]);
+        return new View(ps.stream().map(s->dto(s,imageMap)).toList(),eligible,o.getWorkflowRevision(),!eligible.isEmpty(),refresh,
             !provider.equals("MANUAL")?(webhookEnabled&&provider.equals("EASYSHIP")?"Tracking updates arrive automatically.":"Tracking updates are checked periodically."):scope==TransitionTrigger.ADMIN?"Sandbox tracking is not configured. Manual delivery is available.":"Tracking updates pending.",legacy,provider,easyship.creationEnabled());
     }
     /** Persist identity before I/O. An uncertain POST is reconciled, never blindly repeated. */
@@ -130,7 +135,7 @@ public class ShipmentService {
         try{
             var prepared=create?easyship.createTracking("SANDBOX-"+id,waybill,context.destination()):easyship.findPrepared("SANDBOX-"+id,waybill);
             if(prepared==null){draftState(id,"UNCONFIRMED");return new Preparation("UNCONFIRMED",null,null,"Tracking is being confirmed automatically. Please wait.",10);}
-            jdbc.update("UPDATE shipment_tracking_drafts SET state='READY',provider_reference=?,updated_at=? WHERE id=?",prepared.reference(),java.sql.Timestamp.from(workflow.now()),id);
+            jdbc.update("UPDATE shipment_tracking_drafts SET state='READY',provider_reference=?,tracking_id=?,courier_name=?,updated_at=? WHERE id=?",prepared.reference(),prepared.trackingId(),prepared.courierName(),java.sql.Timestamp.from(workflow.now()),id);
             return new Preparation("READY",prepared.waybill(),prepared.reference(),"Sandbox tracking is ready. Confirm handoff separately.",0);
         }catch(WaitingJobException waiting){
             // A local rate limit/HTTP 429 is known not to have created tracking.
@@ -143,9 +148,9 @@ public class ShipmentService {
         }
     }
     private void draftState(UUID id,String state){jdbc.update("UPDATE shipment_tracking_drafts SET state=?,updated_at=? WHERE id=? AND state<>'READY'",state,java.sql.Timestamp.from(workflow.now()),id);}
-    private Parcel dto(Shipment s) {
+    private Parcel dto(Shipment s,Map<String,String> images) {
         return new Parcel(s.getId(),s.getFulfillmentId(),s.getWaybill(),s.getStatus(),s.getHandedOffAt(),s.getDeliveredAt(),s.getLastCheckedAt(),s.getEta(),s.getSafeMessage(),history(s),
-            s.getItems().stream().map(i->new ParcelItem(i.getLine().getOrderLineNumber(),i.getLine().getProductName(),i.getQty())).toList(),s.getVersion(),s.getProvider(),s.getProviderReference());
+            s.getItems().stream().map(i->new ParcelItem(i.getLine().getOrderLineNumber(),i.getLine().getProductName(),i.getQty(),i.getLine().getProductId(),images.get(i.getLine().getProductId()))).toList(),s.getVersion(),s.getProvider(),s.getProviderReference(),s.getCourierName(),s.isManualTracking());
     }
     private List<TrackingClient.Event> history(Shipment s){try{return json.readValue(s.getHistory(),new TypeReference<>(){});}catch(Exception e){throw new IllegalStateException("Persisted shipment history is unreadable",e);}}
     private void event(Shipment s,String code,String description,Instant at) {
@@ -169,6 +174,8 @@ public class ShipmentService {
             if(r.easyshipShipmentId()!=null){
                 if(parcels.existsByProviderAndProviderReference("EASYSHIP",r.easyshipShipmentId()))throw bad("This Easyship shipment is already assigned to a parcel.");
                 s.setProvider("EASYSHIP");s.setProviderReference(r.easyshipShipmentId());
+                var metadata=jdbc.queryForList("SELECT tracking_id,courier_name FROM shipment_tracking_drafts WHERE order_fk=? AND waybill=? AND provider_reference=? AND state='READY'",o.getId(),r.waybill(),r.easyshipShipmentId());
+                if(!metadata.isEmpty()){s.setTrackingId((UUID)metadata.get(0).get("tracking_id"));s.setCourierName((String)metadata.get(0).get("courier_name"));}
             }
             var seen=new HashSet<Integer>();
             for(var requested:r.items().stream().sorted(Comparator.comparingInt(Item::lineNumber)).toList()){
@@ -182,6 +189,7 @@ public class ShipmentService {
             parcels.saveAndFlush(s);
             for(var item:s.getItems())apply(o,item,OrderLineAction.SHIP,scope,operation,"Actual carrier handoff confirmed");
             event(s,"HANDED_OVER","Handed to carrier",workflow.now());parcels.saveAndFlush(s);notice(s,"shipped");
+            scheduleSimulation(s);
             if(webhookEnabled&&"EASYSHIP".equals(s.getProvider()))enqueue(List.of(s),0);
             var result=view(o,scope,fulfillment);commands.recordAggregate(o,operation,body,scope,actor(scope),"Actual carrier handoff", "PARCEL_HANDOFF",s.getItems().stream().mapToInt(ShipmentItem::getQty).sum(),commands.encode(result));return result;
         });
@@ -240,8 +248,49 @@ public class ShipmentService {
     public void pollActive(){if(easyship.enabled()||carrier.enabled())tx(()->{
         var active=parcels.findAllById(parcels.active());
         active.stream().map(s->s.getOrder().getOrderId()).distinct().sorted().forEach(id->orders.lockByOrderId(id).orElseThrow());
+        active.forEach(this::scheduleSimulation);
         enqueue(active.stream().filter(s->!webhookEnabled||!"EASYSHIP".equals(s.getProvider())).toList(),900);return null;
     });}
+    private void scheduleSimulation(Shipment s){
+        if(!simulationEnabled||!easyship.enabled()||!"EASYSHIP".equals(s.getProvider())||s.isManualTracking()||s.getStatus().equals("DELIVERED"))return;
+        for(int stage=1;stage<=3;stage++)jobs.enqueueAt("EASYSHIP_SIMULATE","sandbox-sim:"+s.getId()+":"+s.getTrackingGeneration()+":"+stage,Map.of("id",s.getId().toString(),"stage",stage),s.getHandedOffAt().plus(SandboxTrackingSchedule.OFFSETS.get(stage-1)));
+    }
+    private record Simulation(UUID id,String reference,String waybill,long generation,UUID trackingId,int page){}
+    public void simulate(UUID id,int stage){
+        if(stage<1||stage>3)throw new IllegalArgumentException("Invalid simulation stage");
+        if(!simulationEnabled||!easyship.enabled())return;
+        var target=tx(()->{
+            var orderId=parcels.orderId(id).orElse(null);if(orderId==null)return null;
+            orders.lockByOrderId(orderId).orElseThrow();var s=parcels.findById(id).orElseThrow();
+            if(!"EASYSHIP".equals(s.getProvider())||s.isManualTracking()||s.getStatus().equals("DELIVERED")||s.getSimulationStage()>=stage)return null;
+            int due=SandboxTrackingSchedule.dueStage(s.getHandedOffAt(),workflow.now());
+            if(stage<due)return null; // Catch up to the latest due stage, never regress after downtime.
+            if(stage>due)throw new WaitingJobException("Waiting for sandbox delivery day",Duration.between(workflow.now(),s.getHandedOffAt().plus(SandboxTrackingSchedule.OFFSETS.get(stage-1))));
+            return new Simulation(id,s.getProviderReference(),s.getWaybill(),s.getTrackingGeneration(),s.getTrackingId(),s.getTrackingLookupPage());
+        });
+        if(target==null)return;
+        if(target.trackingId()==null){
+            var page=easyship.trackingMetadata(target.reference(),target.waybill(),target.page());
+            if(page==null)throw new TransientJobException("Sandbox metadata is unavailable");
+            tx(()->{
+                orders.lockByOrderId(parcels.orderId(id).orElseThrow()).orElseThrow();var s=parcels.findById(id).orElseThrow();
+                if(s.isManualTracking()||s.getTrackingGeneration()!=target.generation())return null;
+                if(page.tracking()!=null){s.setTrackingId(page.tracking().trackingId());s.setCourierName(page.tracking().courierName());}
+                else if(page.hasMore()&&s.getTrackingLookupPage()==target.page())s.setTrackingLookupPage(target.page()+1);
+                return null;
+            });
+            if(page.tracking()==null&&!page.hasMore()||page.tracking()!=null&&page.tracking().trackingId()==null)throw new ManualInterventionJobException("Sandbox tracking identity needs verification");
+            throw new WaitingJobException("Sandbox metadata recovered; waiting for provider request window",Duration.ofSeconds(10));
+        }
+        easyship.simulate(target.trackingId(),SandboxTrackingSchedule.STATUSES.get(stage-1));
+        tx(()->{
+            orders.lockByOrderId(parcels.orderId(id).orElseThrow()).orElseThrow();var s=parcels.findById(id).orElseThrow();
+            if(s.isManualTracking()||s.getTrackingGeneration()!=target.generation())return null;
+            s.setSimulationStage(Math.max(stage,s.getSimulationStage()));
+            jobs.enqueueAt("EASYSHIP_TRACK","sandbox-read:"+id+":"+target.generation()+":"+stage,Map.of("ids",List.of(id.toString()),"event",true),workflow.now().plusSeconds(12));
+            return null;
+        });
+    }
     /** A signed notification is a wake-up only; delivery still requires provider evidence. */
     public void trackingEvent(byte[] raw){
         com.fasterxml.jackson.databind.JsonNode event;
@@ -302,7 +351,7 @@ public class ShipmentService {
         tx(()->{
             String id=parcels.orderId(target.id()).orElse(null);if(id==null)return null;
             var o=orders.lockByOrderId(id).orElseThrow();var s=parcels.findById(target.id()).orElseThrow();
-            if(s.getTrackingGeneration()!=target.generation()||!s.getWaybill().equals(target.waybill())||!s.getProvider().equals(target.provider())||!Objects.equals("EASYSHIP".equals(s.getProvider())?s.getProviderReference():s.getWaybill(),target.reference())||s.getStatus().equals("DELIVERED"))return null;
+            if(s.isManualTracking()||s.getTrackingGeneration()!=target.generation()||!s.getWaybill().equals(target.waybill())||!s.getProvider().equals(target.provider())||!Objects.equals("EASYSHIP".equals(s.getProvider())?s.getProviderReference():s.getWaybill(),target.reference())||s.getStatus().equals("DELIVERED"))return null;
             s.setLastCheckedAt(workflow.now());s.setObservedAt(workflow.now());s.setSafeMessage(message);
             if(next!=null&&(s.getNextTrackingAt()==null||next.isAfter(s.getNextTrackingAt())))s.setNextTrackingAt(next);
             if(receivedResponse&&next==null&&"EASYSHIP".equals(target.provider()))s.setNextTrackingAt(workflow.now().plusSeconds(60));
@@ -311,6 +360,7 @@ public class ShipmentService {
             if(update.providerAt()==null||update.providerAt().isAfter(workflow.now())||update.providerAt().isBefore(s.getHandedOffAt())){s.setSafeMessage("Tracking update needs verification.");return null;}
             if(s.getProviderUpdatedAt()!=null&&update.providerAt().isBefore(s.getProviderUpdatedAt()))return null;
             s.setProviderUpdatedAt(update.providerAt());if(update.eta()!=null)s.setEta(update.eta());
+            if(update.courierName()!=null&&!update.courierName().isBlank())s.setCourierName(DelhiveryClient.safe(update.courierName(),120));
             for(var e:update.events())event(s,e.code(),e.description(),e.providerAt());
             if(update.reverse()){s.setSafeMessage("Carrier reports a delivery exception. Contact Mercato for help.");return null;}
             if("DL".equalsIgnoreCase(update.statusType())&&"Delivered".equalsIgnoreCase(update.status())){
@@ -318,6 +368,7 @@ public class ShipmentService {
                 if(funded)deliver(o,s,TransitionTrigger.SYSTEM,"parcel:provider:"+s.getId()+":"+s.getTrackingGeneration(),"Verified forward carrier delivery",update.providerAt());
                 else s.setSafeMessage("Delivery update needs administrator verification.");
             }else if("UD".equalsIgnoreCase(update.statusType())&&"Dispatched".equalsIgnoreCase(update.status()))s.setStatus("OUT_FOR_DELIVERY");
+            else if(update.status().toLowerCase(Locale.ROOT).contains("transit")&&!s.getStatus().equals("OUT_FOR_DELIVERY"))s.setStatus("IN_TRANSIT");
             parcels.saveAndFlush(s);return null;
         });
     }

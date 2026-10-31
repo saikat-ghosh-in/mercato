@@ -2,12 +2,10 @@ import { useEffect, useRef, useState } from 'react';
 import api, { session } from '../../backend/api';
 import useWorkflowResource, { useWorkflowEpoch } from '../../hooks/useWorkflowResource';
 import { createSubmission } from '../../utils/fulfillment';
-import { formatDate } from '../../utils/formatDate';
 import ModalFrame from '../shared/ModalFrame';
-import Accordion from '../shared/Accordion';
+import PackageCard from './PackageCard';
 import InfoHint from '../shared/InfoHint';
 
-const labels={ SHIPPED:'Shipped', OUT_FOR_DELIVERY:'Out for delivery', DELIVERED:'Delivered' };
 
 export function ShipmentLineAction({ data, fulfillmentId, lineNumber, onOpen, disabled=false }) {
   const item=data?.handoffItems?.find(value=>value.fulfillmentId===fulfillmentId&&value.lineNumber===lineNumber&&value.maximum>0);
@@ -140,27 +138,14 @@ function ShipmentContent({ scope, recordId, version, onChanged, onData, lineRequ
   return <section aria-label="Packages" className="surface p-4 space-y-4 min-w-0">
     <div className="flex flex-wrap items-center justify-between gap-2">
       <h2 className="text-sm font-semibold">Packages</h2>
-      <div className="flex flex-wrap gap-2">
-        {data?.canRefresh&&<button type="button" className="button button-outline" disabled={busy||loading} onClick={()=>run(()=>api.post(`${prefix}/shipments/refresh`))}>{busy?'Checking…':'Refresh tracking'}</button>}
-      </div>
     </div>
     {error&&<p role="alert" className="text-sm text-red-700">{error} <button type="button" className="text-link" onClick={refresh}>Retry packages</button></p>}
     {message&&!draft&&<p role="alert" className="text-sm text-red-700">{message}</p>}
-    {data?.message&&<p className="text-xs text-gray-500">{data.message}</p>}
     {data&&data.shipments?.length===0&&<p className="text-sm text-gray-600">Package details will appear after handoff to the carrier.</p>}
-    {(data?.shipments||[]).map(parcel=><article key={parcel.id} className="border border-gray-200 rounded-lg p-4 space-y-3 min-w-0">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0"><h3 className="text-sm font-semibold">{labels[parcel.status]||'Tracking updates pending'}</h3><p className="text-xs text-gray-500 mt-1 break-all">Tracking {parcel.waybill}</p></div>
-        <button type="button" className="text-link text-xs" onClick={()=>{if(navigator.clipboard)navigator.clipboard.writeText(parcel.waybill).catch(()=>setMessage('Copy the tracking number shown above.'));else setMessage('Copy the tracking number shown above.');}}>Copy tracking number</button>
-      </div>
-      <ul className="space-y-1 text-sm">{parcel.items?.map(item=><li className="break-words" key={item.lineNumber}>{item.productName} <span className="text-gray-500">· Qty {item.qty}</span></li>)}</ul>
-      {parcel.deliveredAt&&<p className="text-xs text-gray-600">Delivered {formatDate(parcel.deliveredAt)}</p>}
-      {parcel.eta&&parcel.status!=='DELIVERED'&&<p className="text-xs text-gray-600">Estimated delivery {formatDate(parcel.eta)}</p>}
-      {parcel.lastCheckedAt&&<p className="text-xs text-gray-500">Last checked {formatDate(parcel.lastCheckedAt)}</p>}
-      {parcel.message&&<p className="text-xs text-gray-600">{parcel.message}</p>}
-      {parcel.history?.length>0&&<Accordion><Accordion.Item value={parcel.id}><Accordion.Trigger>Tracking updates</Accordion.Trigger><Accordion.Content><ol className="space-y-2 text-sm py-2">{parcel.history.map((event,index)=><li key={`${event.code}:${index}`} className="break-words">{event.description}{event.providerAt&&<span className="block text-xs text-gray-500">{formatDate(event.providerAt)}</span>}</li>)}</ol></Accordion.Content></Accordion.Item></Accordion>}
-      {scope==='admin'&&parcel.status!=='DELIVERED'&&<div className="flex flex-wrap gap-2"><button type="button" className="button button-outline" disabled={busy} onClick={()=>open({type:'tracking',parcelId:parcel.id,waybill:parcel.waybill,provider:parcel.provider,easyshipShipmentId:parcel.providerReference||'',reason:''})}>Correct tracking</button><button type="button" className="button button-outline" disabled={busy} onClick={()=>open({type:'delivered',parcelId:parcel.id,reason:''})}>Mark delivered</button></div>}
-    </article>)}
+    {(data?.shipments||[]).map(parcel=><PackageCard key={parcel.id} parcel={parcel} scope={scope} busy={busy} loading={loading} canRefresh={data.canRefresh}
+      onRefresh={()=>run(()=>api.post(`${prefix}/shipments/refresh`))}
+      onCorrect={()=>open({type:'tracking',parcelId:parcel.id,waybill:parcel.waybill,provider:parcel.provider,easyshipShipmentId:parcel.providerReference||'',reason:''})}
+      onDelivered={()=>open({type:'delivered',parcelId:parcel.id,reason:''})}/>) }
     {draft&&<ModalFrame title={draft.type==='handoff'?'Record carrier handoff':draft.type==='tracking'?'Correct tracking':'Record delivery'} onClose={()=>{if(!busy&&!generating)close();}}>
       <form onSubmit={submit} className="surface p-5 space-y-4 w-full min-w-0">
         <div className="flex items-center gap-2"><h2 className="text-base font-semibold">{draft.type==='handoff'?'Mark item shipped':draft.type==='tracking'?'Correct tracking':'Record delivery'}</h2><InfoHint label="Shipping and tracking">Tracking identifies the package. Confirming handoff marks only the selected units shipped. Sandbox tracking does not purchase a label or arrange a real pickup.</InfoHint></div>

@@ -38,7 +38,9 @@ public class EasyshipClient implements TrackingClient {
     public boolean enabled(){return enabled;}
     public int batchSize(){return batchSize;}
     public boolean creationEnabled(){return enabled&&sandboxCourier!=null&&!sandboxCourier.isBlank();}
-    public record Prepared(String waybill,String reference){}
+    public record Prepared(String waybill,String reference,UUID trackingId,String courierName){
+        public Prepared(String waybill,String reference){this(waybill,reference,null,null);}
+    }
     public record Destination(String name,String phone,String email,String line1,String line2,String city,String state,String pincode){
         Map<String,String> request(){
             if(java.util.stream.Stream.of(name,phone,email,line1,city,state,pincode).anyMatch(v->v==null||v.isBlank()))throw new IllegalArgumentException("Order delivery details are incomplete");
@@ -80,7 +82,30 @@ public class EasyshipClient implements TrackingClient {
         var row=request(HttpMethod.POST,java.net.URI.create("https://public-api-sandbox.easyship.com/2024-09/trackings"),body).path("tracking");
         String id=row.path("easyship_shipment_id").asText("");
         if(!validReference(id)||!waybill.equals(row.path("tracking_number").asText("")))throw new TransientJobException("Sandbox tracking result needs reconciliation");
-        return new Prepared(waybill,id);
+        return metadata(row,waybill,id);
+    }
+    private Prepared metadata(JsonNode row,String waybill,String reference){
+        UUID trackingId=null;try{trackingId=UUID.fromString(row.path("id").asText(""));}catch(IllegalArgumentException ignored){}
+        String name=DelhiveryClient.safe(row.path("courier_service").path("umbrella_name").asText(row.path("courier_service").path("name").asText("")),120);
+        return new Prepared(waybill,reference,trackingId,name.isBlank()?null:name);
+    }
+    public record MetadataPage(Prepared tracking,boolean hasMore){}
+    /** Paginated metadata recovery for older parcels. The worker persists the next page between requests. */
+    public synchronized MetadataPage trackingMetadata(String reference,String waybill,int page){
+        if(!validReference(reference)||waybill==null||!waybill.matches("[A-Za-z0-9-]{1,80}")||page<1)throw new IllegalArgumentException("Invalid sandbox metadata lookup");
+        var uri=UriComponentsBuilder.fromUriString("https://public-api-sandbox.easyship.com/2024-09/trackings").queryParam("per_page",100).queryParam("page",page).build().toUri();
+        var root=request(HttpMethod.GET,uri,null);var rows=root.path("trackings");
+        if(!rows.isArray())throw new TransientJobException("Sandbox tracking metadata unreadable");
+        Prepared found=null;
+        for(var row:rows)if(reference.equals(row.path("easyship_shipment_id").asText())&&waybill.equals(row.path("tracking_number").asText())){
+            if(found!=null)throw new ManualInterventionJobException("Ambiguous sandbox metadata");found=metadata(row,waybill,reference);
+        }
+        return new MetadataPage(found,rows.size()==100);
+    }
+    /** The only simulation endpoint is fixed to Easyship sandbox. No label, pickup or billing calls. */
+    public synchronized void simulate(UUID trackingId,String status){
+        if(trackingId==null||!Set.of("in_transit_to_customer","out_for_delivery","delivered").contains(status))throw new IllegalArgumentException("Invalid sandbox simulation");
+        request(HttpMethod.PATCH,java.net.URI.create("https://public-api-sandbox.easyship.com/2024-09/sandbox/trackings/"+trackingId),Map.of("status_slug",status));
     }
     public synchronized Prepared findPrepared(String reference,String waybill){
         validatePreparation(reference,waybill);
@@ -137,7 +162,9 @@ public class EasyshipClient implements TrackingClient {
         if(!status.equalsIgnoreCase(latestStatus))latest=null;
         String type="Delivered".equalsIgnoreCase(status)?"DL":"Out For Delivery".equalsIgnoreCase(status)?"UD":"";
         String normalized="UD".equals(type)?"Dispatched":status;
-        return new Update(waybill,normalized,type,latest,time(shipment.path("eta_date").asText("")),List.copyOf(events),reverse);
+        String courier=null;
+        if(shipment.path("trackings").size()==1){String handler=DelhiveryClient.safe(shipment.path("trackings").get(0).path("handler").asText(""),120);if(!handler.isBlank())courier=handler.replace('-',' ');}
+        return new Update(waybill,normalized,type,latest,time(shipment.path("eta_date").asText("")),List.copyOf(events),reverse,courier);
     }
     private static boolean reverse(String value){String normalized=value.toLowerCase(Locale.ROOT);return normalized.contains("return")||normalized.contains("reverse")||normalized.contains("rto");}
     private static Instant time(String value){try{return OffsetDateTime.parse(value).toInstant();}catch(Exception ignored){return null;}}

@@ -67,6 +67,23 @@ async function fixture(component='seller', setup) {
 
 async function chooseOtherReason(page,text){await page.getByRole('button',{name:'Cancellation reason',exact:true}).click();await page.getByRole('option',{name:'Other',exact:true}).click();await page.getByLabel('Reason',{exact:true}).fill(text);}
 
+test('compact packages open an in-place courier timeline and return without losing context',async()=>{
+  const {browser,page}=await fixture('shipment-customer',()=>{
+    window.fixtureGet=async()=>({data:{version:3,canRefresh:false,message:'Tracking updates arrive automatically.',shipments:[{id:'S1',status:'IN_TRANSIT',waybill:'MCT123',courierName:'SFExpress',handedOffAt:'2026-10-30T06:00:00Z',lastCheckedAt:'2026-10-31T06:01:00Z',message:'Tracking update needs verification.',items:[{lineNumber:1,productId:'P1',productName:'Ceramic cup',primaryImageUrl:window.line.product.primaryImageUrl,qty:2}],history:[{code:'HANDED_OVER',description:'Handed to carrier',providerAt:'2026-10-30T06:00:00Z'},{code:'IN_TRANSIT',description:'In transit',providerAt:'2026-10-31T06:00:00Z'}]}]}});
+  });
+  try{
+    await page.getByRole('button',{name:'See updates',exact:true}).click();
+    await page.getByRole('heading',{name:'Tracking updates',exact:true}).waitFor();
+    await page.getByText('MCT123',{exact:true}).waitFor();assert.equal(await page.getByRole('list',{name:'Tracking timeline'}).locator('li').count(),2);
+    await page.getByRole('button',{name:'Back to package',exact:true}).click();
+    assert.equal(await page.getByText('MCT123',{exact:true}).count(),0);
+    assert.equal(await page.getByText(/Last checked|needs verification/).count(),0);
+    assert.equal(await page.getByRole('button',{name:'Copy tracking number'}).count(),0);
+    assert.equal(await page.getByRole('link',{name:'View Ceramic cup'}).getAttribute('href'),'/products/P1');
+    for(const width of [320,390,1440]){await page.setViewportSize({width,height:844});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);}
+  }finally{await browser.close();}
+});
+
 test('information hints show on hover and keyboard focus, dismiss with Escape and stay within the viewport',async()=>{
   const {browser,page}=await fixture('info');
   try{
@@ -105,7 +122,7 @@ test('shipment seller handoff validates quantities, retries one identity and ret
     await page.getByRole('alert').filter({hasText:'changed'}).waitFor();assert.equal(await page.getByRole('spinbutton').inputValue(),'2');assert.equal(await page.getByLabel('Tracking number').inputValue(),'00123456789');
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth),false);
     await page.evaluate(()=>window.mode='success');await page.getByRole('button',{name:'Confirm handoff',exact:true}).click();
-    await page.getByRole('dialog').waitFor({state:'hidden'});await page.getByText('Tracking 00123456789',{exact:true}).waitFor();
+    await page.getByRole('dialog').waitFor({state:'hidden'});await page.getByRole('button',{name:'See updates',exact:true}).click();await page.getByText('00123456789',{exact:true}).waitFor();
     posts=await page.evaluate(()=>window.posts);assert.notEqual(posts[3].body.operationId,posts[2].body.operationId);assert.equal(posts[3].body.expectedVersion,8);
     await mkdir(new URL('../../backend/target/delhivery-m3-browser/',import.meta.url),{recursive:true});
     await page.screenshot({path:fileURLToPath(new URL('../../backend/target/delhivery-m3-browser/parcel-seller-320.png',import.meta.url)),fullPage:true});
@@ -163,9 +180,9 @@ test('shipment customer view stays read-only, keeps content during refresh and f
   try{
     await page.getByRole('heading',{name:'Out for delivery',exact:true}).waitFor();
     assert.equal(await page.getByRole('button',{name:/Mark shipped|Mark delivered|Correct tracking/}).count(),0);
-    await page.getByRole('button',{name:'Refresh tracking'}).click();assert.equal((await page.evaluate(()=>window.posts))[0].url,'/user/orders/O1/shipments/refresh');
+    await page.getByRole('button',{name:'See updates',exact:true}).click();await page.getByRole('button',{name:'Refresh tracking'}).click();assert.equal((await page.evaluate(()=>window.posts))[0].url,'/user/orders/O1/shipments/refresh');
     for(const width of [320,390,1440]){await page.setViewportSize({width,height:844});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth),false);}
-    await page.emulateMedia({reducedMotion:'reduce'});await page.getByRole('button',{name:'Tracking updates',exact:true}).click();await page.getByRole('region',{name:'Tracking updates',exact:true}).waitFor();
+    await page.emulateMedia({reducedMotion:'reduce'});await page.getByRole('heading',{name:'Tracking updates',exact:true}).waitFor();
     await mkdir(new URL('../../backend/target/delhivery-m3-browser/',import.meta.url),{recursive:true});await page.screenshot({path:fileURLToPath(new URL('../../backend/target/delhivery-m3-browser/parcel-customer-desktop.png',import.meta.url)),fullPage:true});
   }finally{await browser.close();}
 });
@@ -177,10 +194,10 @@ test('shipment tracking revalidates after asynchronous carrier work completes',a
     window.fixturePost=async()=>({data:{}});
   });
   try{
-    await page.getByRole('heading',{name:'Shipped',exact:true}).waitFor();await page.getByRole('button',{name:'Refresh tracking'}).click();
+    await page.getByRole('heading',{name:'Handed off to courier',exact:true}).waitFor();await page.getByRole('button',{name:'See updates',exact:true}).click();await page.getByRole('button',{name:'Refresh tracking'}).click();
     assert.equal(await page.evaluate(()=>typeof window.trackingTick),'function');
     await page.waitForFunction(()=>[...document.querySelectorAll('button')].some(button=>button.textContent==='Refresh tracking'&&!button.disabled));
-    await page.evaluate(()=>{window.parentRefreshes=0;window.updated=true;window.trackingTick();});await page.getByRole('heading',{name:'Delivered',exact:true}).waitFor();assert.equal(await page.evaluate(()=>window.parentRefreshes),1);
+    await page.evaluate(()=>{window.parentRefreshes=0;window.updated=true;window.trackingTick();});await page.getByRole('button',{name:'Back to package',exact:true}).click();await page.getByRole('heading',{name:'Delivered',exact:true}).waitFor();assert.equal(await page.evaluate(()=>window.parentRefreshes),1);
   }finally{await browser.close();}
 });
 
@@ -190,13 +207,13 @@ test('shipment admin correction and delivery require audit reasons and retain fa
     window.fixtureGet=async()=>({data:window.shipments});window.fixturePost=async(url,body)=>{window.posts.push({url,body});if(window.mode==='network')throw Error('offline');window.shipments={...window.shipments,version:5,shipments:window.shipments.shipments.map(p=>({...p,waybill:body.waybill||p.waybill,status:url.endsWith('/delivered')?'DELIVERED':p.status}))};return {data:window.shipments};};
   });
   try{
-    await page.getByRole('button',{name:'Correct tracking',exact:true}).click();
+    await page.getByRole('button',{name:'See updates',exact:true}).click();await page.getByRole('button',{name:'Correct tracking',exact:true}).click();
     assert.equal(await page.getByRole('button',{name:'Save tracking',exact:true}).isDisabled(),true);
     await page.getByLabel('Tracking number').fill('00009999');await page.getByLabel('Audit reason').fill('Corrected the carrier reference');
     await page.getByRole('button',{name:'Save tracking',exact:true}).click();await page.getByRole('alert').waitFor();assert.equal(await page.getByLabel('Audit reason').inputValue(),'Corrected the carrier reference');
     await page.evaluate(()=>window.mode='success');await page.getByRole('button',{name:'Save tracking',exact:true}).click();await page.getByRole('dialog').waitFor({state:'hidden'});
     const posts=await page.evaluate(()=>window.posts);assert.deepEqual(posts[0],posts[1]);assert.equal(posts[0].url,'/admin/shipments/P1/tracking');
-    await page.getByRole('button',{name:'Mark delivered',exact:true}).click();await page.getByLabel('Audit reason').fill('Customer receipt confirmed');await page.getByRole('button',{name:'Confirm delivered',exact:true}).click();await page.getByRole('dialog').waitFor({state:'hidden'});await page.getByRole('heading',{name:'Delivered',exact:true}).waitFor();
+    await page.getByRole('button',{name:'Mark delivered',exact:true}).click();await page.getByLabel('Audit reason').fill('Customer receipt confirmed');await page.getByRole('button',{name:'Confirm delivered',exact:true}).click();await page.getByRole('dialog').waitFor({state:'hidden'});await page.getByRole('button',{name:'Back to package',exact:true}).click();await page.getByRole('heading',{name:'Delivered',exact:true}).waitFor();
     assert.equal(await page.getByRole('button',{name:'Correct tracking',exact:true}).count(),0);
   }finally{await browser.close();}
 });
@@ -318,6 +335,7 @@ test('admin ships and delivers only supported quantities with stable retry and m
     await page.getByRole('alert').waitFor();
     await page.evaluate(()=>window.mode='success');
     await page.getByRole('button',{name:'Confirm handoff',exact:true}).click();
+    await page.getByRole('button',{name:'See updates',exact:true}).click();
     await page.getByRole('button',{name:'Mark delivered',exact:true}).waitFor();
     assert.deepEqual(...await page.evaluate(()=>window.posts.slice(0,2)));
     await page.getByRole('button',{name:'Mark delivered',exact:true}).click();
