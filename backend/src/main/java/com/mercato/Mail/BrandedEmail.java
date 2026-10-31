@@ -23,7 +23,7 @@ public final class BrandedEmail {
         if(key.startsWith("verify-email:"))return new Action("Verify email","/verify-email?token="+encode(key.substring("verify-email:".length())));
         if(key.startsWith("password-reset:"))return new Action("Reset password","/reset-password?token="+encode(key.substring("password-reset:".length())));
         if(key.startsWith("step-up:"))return new Action("Continue sign in","/auth/mfa");
-        if("SHIPMENT_EMAIL".equals(job.type()))return new Action("View your orders","/orders");
+        if("SHIPMENT_EMAIL".equals(job.type()))return new Action("View my orders","/orders");
         return new Action("Open Mercato","/");
     }
     public Content render(String subject,String text,Action action){

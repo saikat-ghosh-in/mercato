@@ -9,9 +9,8 @@ import api, { session } from "../../backend/api";
 import { logOutUser } from "../../reduxStore/actions/authActions";
 import { formatDate } from "../../utils/formatDate";
 import ModalFrame from "../shared/ModalFrame";
-import UserAvatar from "../shared/UserAvatar";
 
-const destinations = [["Your orders", "Track deliveries and view past orders.", "/orders", FiPackage], ["Saved items", "The things you’re keeping an eye on.", "/wishlist", FiBookmark], ["Your bag", "Pick up where you left off.", "/cart", FiShoppingBag], ["Addresses", "Manage delivery details and your default.", "/addresses", FiMapPin]];
+const destinations = [["My orders", "Track deliveries and view past orders.", "/orders", FiPackage], ["Saved items", "The things you’re keeping an eye on.", "/wishlist", FiBookmark], ["Your bag", "Pick up where you left off.", "/cart", FiShoppingBag], ["Addresses", "Manage delivery details and your default.", "/addresses", FiMapPin]];
 
 export default function Profile() {
   const user = useSelector(s => s.auth.userDetails);
@@ -32,7 +31,7 @@ export default function Profile() {
     finally { setPending(false); }
   };
   return <div className="site-container account-hub">
-    <header className="account-hero"><div className="account-profile-title"><UserAvatar className="account-profile-photo" name={name} imageUrl={user.profileImageUrl}/><div><h1>Your account</h1><p>{name}</p></div></div><Link to="/edit-profile" className="button button-outline">Edit profile <ActionArrow /></Link></header>
+    <header className="account-hero"><div><h1>Your account</h1><p>{name}</p></div><Link to="/edit-profile" className="button button-outline">Edit profile <ActionArrow /></Link></header>
     <nav className="account-destinations" aria-label="Your account shortcuts">{destinations.map(([title, description, href, Icon]) => <Link key={href} to={href}><Icon aria-hidden="true" /><h2>{title}</h2><p>{description}</p><ActionArrow className="account-card-arrow" aria-hidden="true" /></Link>)}</nav>
     <div className="account-details-grid"><section className="account-section"><div className="account-section-title"><h2>Account details</h2><span className="status-tag">{user.emailVerified ? "Email verified" : "Email unverified"}</span></div><dl className="account-facts">{[["Name", name], ["Username", user.username], ["Email", user.email], ["Phone", user.phoneNumber || "Not provided"], ["Member since", formatDate(user.createdAt)]].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl></section>
     <section className="account-section"><div className="account-section-title"><h2>Security & support</h2><FiShield aria-hidden="true" /></div><p>Manage your password and find help with an order.</p><div className="account-settings-links"><Link to="/forgot-password">Reset your password <ActionArrow /></Link>{admin && <Link to="/auth/mfa?replace=1">Replace authenticator <ActionArrow /></Link>}<Link to="/help">Visit marketplace Help <ActionArrow /></Link><button onClick={() => dispatch(logOutUser(navigate))}>Sign out <ActionArrow /></button></div></section></div>

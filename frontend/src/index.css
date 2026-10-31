@@ -1002,14 +1002,12 @@ html[data-input=keyboard] .report-timeframe-panel,html[data-input=keyboard] .fie
 @media (prefers-reduced-motion:reduce) { .accordion-content,.accordion-chevron,.accordion-trigger { transition:none; } }
 :root[data-input=keyboard] .accordion-chevron { transition:none; }
 /* Linked product thumbnails retain the same reserved dimensions as their cards. */
-.user-avatar{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;background:#171717;color:white;font-weight:600;border-radius:inherit;width:100%;height:100%}.user-avatar img{width:100%;height:100%;object-fit:cover}
-.profile-photo-section{display:flex;gap:22px;align-items:center;padding:24px}.profile-photo-preview{width:80px;height:80px;border-radius:12px;font-size:28px}.profile-photo-section h2{font-size:15px;font-weight:600}.profile-photo-section p{font-size:12px;color:#667085;margin-top:5px}.profile-photo-actions{display:flex;align-items:center;flex-wrap:wrap;gap:14px;margin-top:13px}.profile-photo-actions .button{gap:7px}.profile-photo-section .profile-photo-note{font-size:11px;margin-top:12px}.account-profile-title{display:flex;align-items:center;gap:20px}.account-profile-photo{width:64px;height:64px;border-radius:10px;font-size:24px}
-@media(max-width:639px){.profile-photo-section{padding:18px;gap:16px;align-items:flex-start}.profile-photo-preview{width:64px;height:64px;font-size:24px}.account-profile-photo{width:48px;height:48px;font-size:20px}.account-profile-title{gap:12px}}
-.site-header .header-account .account-avatar{display:inline-flex;position:relative;align-items:center;justify-content:center;flex-shrink:0;width:24px;height:24px;border-radius:6px;background:#171717;color:white;font-size:12px;font-weight:650;line-height:1}
-.account-signed-check{position:absolute;right:-3px;bottom:-3px;width:11px;height:11px;padding:1px;background:white;border:1px solid #fff;border-radius:50%;color:#171717;stroke-width:3}
-.header-account .account-label{display:block;max-width:132px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.header-auth-links{display:flex;align-items:center;gap:4px;white-space:nowrap;font-size:13px}
+.header-auth-links a{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding-inline:8px;border-radius:var(--radius-control)}
+@media(hover:hover) and (pointer:fine){.header-auth-links a:hover{background:#f3f3f3}}
+@media(max-width:639px){.header-auth-links{font-size:11px;gap:0}.header-auth-links a{padding-inline:5px}}
+@media(max-width:359px){.site-header .header-actions-guest .icon-button,.site-header .header-actions-guest .header-help{min-width:36px}.header-actions-guest .header-catalog>span{font-size:11px}.header-actions-guest .header-auth-links a{padding-inline:4px}}
 .account-signed-label{display:block;font-size:11px;color:#667085;margin-bottom:3px}.account-name strong{display:block;font-weight:600;overflow-wrap:anywhere}
-@media(max-width:767px){.site-header .header-account .account-label{display:none}}
 .package-card{border:1px solid #e5e7eb;border-radius:8px;padding:20px;min-width:0}
 .package-status-row{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
 .package-status,.package-details h3{font-size:15px;font-weight:650;line-height:1.5}

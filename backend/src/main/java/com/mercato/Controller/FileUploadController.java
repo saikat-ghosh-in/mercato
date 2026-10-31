@@ -8,13 +8,13 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/api/seller")
 @RequiredArgsConstructor
 public class FileUploadController {
 
     private final FileService fileService;
 
-    @PostMapping("/seller/upload-image")
+    @PostMapping("/upload-image")
     public ResponseEntity<?> uploadProductImage(@RequestParam("file") MultipartFile file) {
         String imageUrl = fileService.uploadImage(file);
         return ResponseEntity.ok(new ImageUploadResponse(
@@ -23,8 +23,4 @@ public class FileUploadController {
         ));
     }
 
-    @PostMapping("/user/profile-image")
-    public ResponseEntity<ImageUploadResponse> uploadProfileImage(@RequestParam("file") MultipartFile file) {
-        return ResponseEntity.ok(new ImageUploadResponse(fileService.uploadImage(file), "Profile photo uploaded"));
-    }
 }

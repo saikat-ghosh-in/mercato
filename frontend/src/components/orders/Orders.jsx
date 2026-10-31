@@ -133,7 +133,7 @@ const Orders = () => {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
 
         {/* Header */}
-        <PageHeading title="Your orders" description={!loading && !error ? `${orders.length} ${orders.length === 1 ? "order" : "orders"} placed` : "Track deliveries and view previous orders."}><button type="button" className="button button-outline" onClick={() => navigate("/products")}>Continue shopping <ActionArrow /></button></PageHeading>
+        <PageHeading title="My orders" description={!loading && !error ? `${orders.length} ${orders.length === 1 ? "order" : "orders"} placed` : "Track deliveries and view previous orders."}><button type="button" className="button button-outline" onClick={() => navigate("/products")}>Continue shopping <ActionArrow /></button></PageHeading>
 
         {/* Content */}
         {error && orders.length > 0 && <p role="alert" className="text-sm text-red-700 mb-4">{error}. Your last loaded orders are retained. <button className="text-link" onClick={fetchOrders}>Retry refresh</button></p>}

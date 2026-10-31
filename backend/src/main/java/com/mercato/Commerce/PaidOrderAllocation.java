@@ -39,6 +39,6 @@ public class PaidOrderAllocation {
         order.confirmOrder();order.setAllocationCompletedAt(now());order.establishConfirmation(now());order.workflowChanged();order.setInventoryFinalizationFailed(false);deadlines.schedule(order);
         for(var line:order.getOrderLines())line.addStateTransition(StateTransition.builder().orderLine(line).fromStatus(OrderLineStatus.CREATED).toStatus(OrderLineStatus.CONFIRMED).action(OrderLineAction.CONFIRM).triggeredBy(TransitionTrigger.SYSTEM).reason("Verified payment allocated").occurredAt(now()).build());
         if(cart!=null&&!cart.isEmpty())carts.removePurchasedItems(cart,order);
-        jobs.enqueue("AUTH_EMAIL","order-confirmed:"+orderId,Map.of("to",order.getCustomerEmail(),"subject","Your Mercato order is confirmed","text","Order "+orderId+" is confirmed. Total paid: ₹"+order.getPayment().getCapturedAmount()+". Follow progress in Your orders."));
+        jobs.enqueue("AUTH_EMAIL","order-confirmed:"+orderId,Map.of("to",order.getCustomerEmail(),"subject","Your Mercato order is confirmed","text","Order "+orderId+" is confirmed. Total paid: ₹"+order.getPayment().getCapturedAmount()+". Follow progress in My orders."));
     }
 }
