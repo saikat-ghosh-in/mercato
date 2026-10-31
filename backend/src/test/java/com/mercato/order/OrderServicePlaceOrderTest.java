@@ -36,6 +36,7 @@ class OrderServicePlaceOrderTest {
     private OrderCaptureRequestDTO request(){var r=new OrderCaptureRequestDTO();r.setOperationId(java.util.UUID.randomUUID().toString());r.setExpectedCartVersion(0L);return r;}
 
     @Mock private FulfillmentWorkflow workflow;
+    @Mock private OrderProductImages images;
     @Mock private OrderRepository orderRepository;
     @Mock private CartService cartService;
     @Mock private CashfreeService cashfreeService;
