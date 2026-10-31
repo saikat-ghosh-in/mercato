@@ -36,7 +36,7 @@ Set `EASYSHIP_ENABLED=false` for manual-only operation. Historical Delhivery par
 1. On a funded, packed Mercato beta fulfillment, select **Mark shipped** beside the item. Its maximum eligible quantity is selected initially.
 2. Select **Generate sandbox tracking** to fill both references automatically. This uses the recipient name, phone, email and delivery address saved with the order. After a timeout, Mercato automatically reconciles the same saved request. A **Retry tracking** action appears only if automatic recovery cannot complete. Successful generation shows **Tracking ready**, with no extra check button. Alternatively enter existing sandbox references. Confirm the test handoff separately; generation alone does not ship an item or change stock.
 3. With webhooks configured, updates arrive automatically. **Refresh tracking** remains available. The backend matches both identifiers and requires a dated forward checkpoint to confirm delivery.
-4. After handoff, use Easyship's sandbox-only status simulation endpoint to generate a new dated event. A checkpoint earlier than Mercato's recorded handoff is intentionally rejected. The application does not expose the simulation endpoint to customers or automatically advance sandbox statuses.
+4. With `EASYSHIP_SANDBOX_SIMULATION_ENABLED=true`, beta schedules normal sandbox progress from actual handoff: **In transit after 1 day**, **Out for delivery after 3 days**, **Delivered after 3 days and 8 hours**. Jobs survive restarts; delayed recovery advances to the latest due stage rather than inventing earlier scans. Each stage calls Easyship's sandbox simulation API, then canonical tracking reads/webhooks verify the result. There are no accelerated minute/second stages or real carrier bookings. Keep this flag off outside the intended sandbox beta.
 5. A dated, matching forward **Delivered** status completes only that parcel's shipped quantities once. Return/reverse evidence, conflicting identities, ambiguous multiple tracking numbers and invalid/future timestamps require manual verification. Delivery does not deduct stock again.
 
 The official simulation page still shows the older hostname. During 30 October verification, that URL returned 404; the same documented path worked on the current sandbox hostname:
@@ -50,6 +50,14 @@ Content-Type: application/json
 ```
 
 Use `delivered` for the final simulated event. `tracking_id` is the UUID returned by creating a tracking record, not the readable Easyship shipment ID or courier tracking number. Use the sandbox token only; no production URL is needed.
+
+### Parcel view and administrator updates
+
+The package card shows its items, primary images/PDP links, shipped quantities, courier and current status. **See updates** replaces that card with its dated timeline, tracking reference and **Refresh tracking**; **Back to package** restores the compact view. Refresh may be disabled during the provider cooldown, after delivery or after a manual administrator override. Browser revalidation reads Mercato, not Easyship.
+
+Administrators can record In transit, Out for delivery, Delivery attempted, Delivery exception, Lost in transit, Returned to sender or Delivered in the timeline's **Update tracking status** dialog. A reason is mandatory. Any manual status pauses automatic progress for that parcel and prevents later provider jobs overwriting it. Temporary delays do not refund. **Lost in transit** and **Returned to sender** persist a refund obligation for that parcel's exact financial units, including allocated buyer charges, before the existing refund worker contacts Cashfree sandbox. Other parcels remain funded and can still be delivered. Duplicate commands do not duplicate refunds. Older ambiguous parcel/unit mappings require review rather than guessing an amount. Refunds do not automatically restock inventory.
+
+V18 adds courier/simulation metadata; V19 adds exact shipped financial identities, the expanded status constraint and compatibility backfill for scheduled job generations. Neither migration invents historical shipping or delivery dates.
 
 ## Webhook setup
 

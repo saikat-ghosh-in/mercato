@@ -9,7 +9,7 @@ public class EasyshipSimulationJob implements JobHandler {
     private final ShipmentService shipments;
     public String type(){return "EASYSHIP_SIMULATE";}
     public void handle(JobRecord job){
-        try{shipments.simulate(UUID.fromString(String.valueOf(job.payload().get("id"))),Integer.parseInt(String.valueOf(job.payload().get("stage"))));}
+        try{shipments.simulate(UUID.fromString(String.valueOf(job.payload().get("id"))),Integer.parseInt(String.valueOf(job.payload().get("stage"))),Long.parseLong(String.valueOf(job.payload().get("generation"))));}
         catch(IllegalArgumentException invalid){throw new PoisonJobException("Invalid sandbox simulation work");}
     }
 }

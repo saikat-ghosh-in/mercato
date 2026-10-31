@@ -75,12 +75,29 @@ test('compact packages open an in-place courier timeline and return without losi
     await page.getByRole('button',{name:'See updates',exact:true}).click();
     await page.getByRole('heading',{name:'Tracking updates',exact:true}).waitFor();
     await page.getByText('MCT123',{exact:true}).waitFor();assert.equal(await page.getByRole('list',{name:'Tracking timeline'}).locator('li').count(),2);
+    await mkdir(new URL('../../backend/target/tracking-experience/',import.meta.url),{recursive:true});
+    await page.screenshot({path:fileURLToPath(new URL('../../backend/target/tracking-experience/timeline-mobile.png',import.meta.url)),fullPage:true});
     await page.getByRole('button',{name:'Back to package',exact:true}).click();
     assert.equal(await page.getByText('MCT123',{exact:true}).count(),0);
     assert.equal(await page.getByText(/Last checked|needs verification/).count(),0);
     assert.equal(await page.getByRole('button',{name:'Copy tracking number'}).count(),0);
     assert.equal(await page.getByRole('link',{name:'View Ceramic cup'}).getAttribute('href'),'/products/P1');
+    await page.screenshot({path:fileURLToPath(new URL('../../backend/target/tracking-experience/package-mobile.png',import.meta.url)),fullPage:true});
     for(const width of [320,390,1440]){await page.setViewportSize({width,height:844});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);}
+  }finally{await browser.close();}
+});
+test('admin courier status changes require a reason and disclose loss refunds',async()=>{
+  const {browser,page}=await fixture('shipment-admin',()=>{
+    window.shipments={version:5,shipments:[{id:'S1',status:'SHIPPED',waybill:'MCT123',courierName:'SFExpress',items:[{lineNumber:1,productName:'Cup',qty:1}],history:[]}]};
+    window.fixtureGet=async()=>({data:window.shipments});window.fixturePost=async(url,body)=>{window.posts.push({url,body});window.shipments={...window.shipments,version:6,shipments:[{...window.shipments.shipments[0],status:body.status,manualTracking:true}]};return {data:window.shipments};};
+  });
+  try{
+    await page.getByRole('button',{name:'See updates',exact:true}).click();await page.getByRole('button',{name:'Update tracking status',exact:true}).click();
+    await page.getByRole('button',{name:'Tracking status',exact:true}).click();await page.getByRole('option',{name:'Lost in transit',exact:true}).click();
+    assert.equal(await page.getByRole('button',{name:'Save status',exact:true}).isDisabled(),true);
+    await page.getByText(/refund.*affected.*charges/i).waitFor();await page.getByLabel('Audit reason',{exact:true}).fill('Courier confirmed loss');await page.getByRole('button',{name:'Save status',exact:true}).click();
+    await page.getByRole('dialog').waitFor({state:'hidden'});const posts=await page.evaluate(()=>window.posts);assert.equal(posts[0].url,'/admin/shipments/S1/status');assert.equal(posts[0].body.status,'LOST_IN_TRANSIT');assert.equal(posts[0].body.expectedVersion,5);
+    await page.getByRole('button',{name:'Back to package',exact:true}).click();await page.getByRole('heading',{name:'Lost in transit',exact:true}).waitFor();
   }finally{await browser.close();}
 });
 

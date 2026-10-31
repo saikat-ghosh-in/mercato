@@ -43,8 +43,10 @@ class PostgresPracticalFinanceTest {
     }
     @Configuration @EnableAutoConfiguration @EntityScan(basePackages={"com.mercato.Entity","com.mercato.Commerce","com.mercato.Jobs"})
     @EnableJpaRepositories(basePackages={"com.mercato.Repository","com.mercato.Commerce"})
-    @Import({FulfillmentNoticeGuard.class,SellerOrderVisibility.class,DashboardServiceImpl.class,OrderLineUpdateServiceImpl.class,FulfillmentWorkflow.class,FulfillmentFunding.class,WorkflowCommands.class,OrderReservationServiceImpl.class,RefundServiceImpl.class,RefundObligations.class,FinancialUnitHooks.class,MarketplaceFinanceService.class,PaymentSessionRecovery.class,RefundExecution.class,DurableJobs.class,JobStore.class})
+    @Import({ShipmentService.class,FulfillmentNoticeGuard.class,SellerOrderVisibility.class,DashboardServiceImpl.class,OrderLineUpdateServiceImpl.class,FulfillmentWorkflow.class,FulfillmentFunding.class,WorkflowCommands.class,OrderReservationServiceImpl.class,RefundServiceImpl.class,RefundObligations.class,FinancialUnitHooks.class,MarketplaceFinanceService.class,PaymentSessionRecovery.class,RefundExecution.class,DurableJobs.class,JobStore.class})
     static class Config {
+        @Bean EasyshipClient easyship(){return mock(EasyshipClient.class);}
+        @Bean DelhiveryClient carrier(){return mock(DelhiveryClient.class);}
         @Bean(name={"clock","durableJobClock"}) MutableClock clock(){return new MutableClock();}
         @Bean AuthUtil auth(){var auth=mock(AuthUtil.class);when(auth.getLoggedInUser()).thenAnswer(c->ACTOR.get());return auth;}
         @Bean CashfreeGateway gateway(){return mock(CashfreeGateway.class);}
@@ -59,6 +61,7 @@ class PostgresPracticalFinanceTest {
     @Autowired OrderRepository orders;@Autowired ProductRepository products;@Autowired CategoryRepository categories;@Autowired OrderReservationRepository reservations;@Autowired UserRepository users;@Autowired RoleRepository roles;
     @Autowired OrderLineUpdateService updates;@Autowired FinancialUnitHooks hooks;@Autowired MarketplaceFinanceService finance;@Autowired PaymentSessionRecovery recovery;@Autowired PlatformTransactionManager transactions;@Autowired JdbcTemplate jdbc;
     TransactionTemplate tx;String id,fulfillment;EcommUser seller,buyer,admin;
+    @Autowired ShipmentService shipmentService;
     EcommUser actor(String email,String userId,AppRole role){var u=new EcommUser();u.setEmail(email);u.setUserId(userId);u.setRoles(new HashSet<>(Set.of(new Role(role))));return u;}
     @BeforeEach void fixture(TestInfo test){
         clock.value=NOW;
@@ -78,6 +81,36 @@ class PostgresPracticalFinanceTest {
     }
     long version(){return jdbc.queryForObject("select workflow_revision from order_snapshot where order_id=?",Long.class,id);}
     OrderLineUpdateRequestDTO request(OrderLineAction action,int qty,String operation){var r=new OrderLineUpdateRequestDTO();r.setFulfillmentId(fulfillment);r.setOrderLineNumber(1);r.setAction(action);r.setQty(qty);r.setOperationId(operation);r.setExpectedVersion(version());r.setReason("Synthetic financial test");return r;}
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings={"LOST_IN_TRANSIT","RETURNED_TO_SENDER"})
+    void adminLostParcelRefundsOnlyItsUnitsAndChargesOnceWithoutRestocking(String status) throws Exception {
+        updates.updateOrderLine(request(OrderLineAction.ACCEPT,3,"accept-parcels"),TransitionTrigger.SELLER);
+        var first=shipmentService.create(fulfillment,TransitionTrigger.SELLER,new ShipmentService.Handoff("first-parcel",version(),"FIRST"+id,true,List.of(new ShipmentService.Item(1,1)))).shipments().get(0);
+        var second=shipmentService.create(fulfillment,TransitionTrigger.SELLER,new ShipmentService.Handoff("second-parcel",version(),"SECOND"+id,true,List.of(new ShipmentService.Item(1,1)))).shipments().stream().filter(p->!p.id().equals(first.id())).findFirst().orElseThrow();
+        ACTOR.set(admin);long before=version();
+        var mvc=org.springframework.test.web.servlet.setup.MockMvcBuilders.standaloneSetup(new com.mercato.Controller.ShipmentController(shipmentService)).build();
+        String body=json.writeValueAsString(Map.of("operationId","lost-parcel","expectedVersion",before,"status",status,"reason","Courier confirmed this package cannot be delivered"));
+        for(int attempt=0;attempt<2;attempt++)mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/admin/shipments/"+first.id()+"/status").contentType("application/json").content(body)).andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isOk());
+        assertEquals(1,jdbc.queryForObject("select count(*) from refunds where payment_fk=(select payment_fk from order_snapshot where order_id=?)",Integer.class,id));
+        assertEquals(0,new BigDecimal("121.00").compareTo(jdbc.queryForObject("select sum(amount) from refunds where payment_fk=(select payment_fk from order_snapshot where order_id=?)",BigDecimal.class,id)));
+        assertEquals(8,products.findByProductId(id+"P").orElseThrow().getPhysicalQty());
+        assertEquals("SHIPPED",shipmentService.read(id,TransitionTrigger.ADMIN,false).shipments().stream().filter(p->p.id().equals(second.id())).findFirst().orElseThrow().status());
+        ACTOR.set(seller);
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/admin/shipments/"+second.id()+"/status").contentType("application/json").content(json.writeValueAsString(Map.of("operationId","seller-spoof","expectedVersion",version(),"status","DELIVERED","reason","Not permitted")))).andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isForbidden());
+        ACTOR.set(admin);shipmentService.updateStatus(second.id(),new ShipmentService.StatusChange("remaining-delivery",version(),"DELIVERED","Customer received the other package"));
+        assertEquals(1,jdbc.queryForObject("select delivered_qty from order_lines_snapshot where fulfillment_id=?",Integer.class,fulfillment));
+        assertEquals(8,products.findByProductId(id+"P").orElseThrow().getPhysicalQty());
+    }
+    @Test void temporaryAdminTrackingDoesNotRefundAndStaleOrInvalidUpdatesFail(){
+        updates.updateOrderLine(request(OrderLineAction.ACCEPT,3,"accept-status"),TransitionTrigger.SELLER);
+        var view=shipmentService.create(fulfillment,TransitionTrigger.SELLER,new ShipmentService.Handoff("status-parcel",version(),"TEMP"+id,true,List.of(new ShipmentService.Item(1,1))));var parcel=view.shipments().get(0);ACTOR.set(admin);
+        var changed=shipmentService.updateStatus(parcel.id(),new ShipmentService.StatusChange("temporary-delay",view.version(),"DELIVERY_ATTEMPTED","Customer unavailable; another attempt will follow"));
+        assertEquals("DELIVERY_ATTEMPTED",changed.shipments().get(0).status());assertTrue(changed.shipments().get(0).manualTracking());
+        assertEquals(0,jdbc.queryForObject("select count(*) from refunds where payment_fk=(select payment_fk from order_snapshot where order_id=?)",Integer.class,id));
+        var stale=assertThrows(org.springframework.web.server.ResponseStatusException.class,()->shipmentService.updateStatus(parcel.id(),new ShipmentService.StatusChange("stale-status",view.version(),"DELIVERED","Customer received it")));assertEquals(409,stale.getStatusCode().value());
+        var invalid=assertThrows(org.springframework.web.server.ResponseStatusException.class,()->shipmentService.updateStatus(parcel.id(),new ShipmentService.StatusChange("invalid-status",version(),null,"Invalid")));assertEquals(400,invalid.getStatusCode().value());
+        assertThrows(org.springframework.web.server.ResponseStatusException.class,()->shipmentService.updateStatus(parcel.id(),new ShipmentService.StatusChange("missing-reason",version(),"DELIVERED"," ")));
+    }
     @Test void heldOrdersContributeNothingToSellerDashboardFinanceOrMonthlyReport() {
         updates.updateOrderLine(request(OrderLineAction.ACCEPT,3,"early-admin-accept"),TransitionTrigger.ADMIN);
         updates.updateOrderLine(request(OrderLineAction.START_PREPARING,3,"early-admin-prepare"),TransitionTrigger.ADMIN);

@@ -108,7 +108,6 @@ const InfoRow = ({ label, value, mono, copyable, color, last }) => {
 };
 
 const OrderLineItem = ({ line, version, onLineUpdate, refreshing }) => {
-  const navigate = useNavigate();
   const sellerName = line.seller?.name ?? "Unknown Seller";
 
   return (
@@ -123,7 +122,7 @@ const OrderLineItem = ({ line, version, onLineUpdate, refreshing }) => {
         </Link>
 
         <div className="customer-order-item-content min-w-0">
-          <button className="text-sm font-semibold text-gray-900 text-left hover:text-blue-600" onClick={() => navigate(`/products/${line.product.productId}`)}>{line.product?.productName ?? "Product"}</button>
+          <Link className="text-sm font-semibold text-gray-900 text-left hover:text-blue-600" to={`/products/${line.product?.productId}`}>{line.product?.productName ?? "Product"}</Link>
           {/* Seller and unit price */}
           <p className="text-xs text-gray-400 mt-0.5">
             by {sellerName}&nbsp;·&nbsp;{formatCurrency(line.product?.unitPrice)} / unit

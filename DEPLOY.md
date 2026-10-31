@@ -416,7 +416,16 @@ The beta Netlify project deploys its `beta` frontend separately; verify frontend
 
 For the Easyship switch, keep `DELHIVERY_ENABLED=false`. Configure `EASYSHIP_SANDBOX_TOKEN`, `EASYSHIP_ENABLED=true` and `EASYSHIP_TRACKING_BATCH_SIZE=50` only in the beta backend environment after installing the compatible release. Follow [Easyship sandbox setup](docs/EASYSHIP_SANDBOX_SETUP.md), including token rotation and test delivery simulation. Leave Easyship disabled for manual-only operation. V17 additionally persists sandbox tracking generation identities across retries. Configure the sandbox courier and webhook secret using that guide; webhook mode replaces periodic Easyship polling. V16 adds explicit provider/reference fields; it preserves existing parcels and does not convert their provider. No production token, MCP action, label purchase or pickup is needed. The older [Delhivery setup](docs/DELHIVERY_SETUP.md) remains historical reference only for this beta.
 
-The [beta.9 release](https://github.com/saikat-ghosh-in/mercato/releases/tag/v0.1.0-beta.9) uses the order's saved recipient/delivery details for sandbox tracking. Generation recovers uncertain requests automatically; a successful result has no extra “check again” action. Information icons reveal their help on hover or keyboard focus. V17 remains the latest database migration. After deployment, verify sign-in/MFA, item quantities, tracking generation and the existing sandbox webhook subscription. Keep `main`, production and all existing secrets unchanged.
+The beta.10 follow-up adds product images/PDP links and newest-first orders, shipping directly after acceptance, compact package timelines and administrator courier statuses with parcel-specific loss/RTO refunds. Preparation and packing updates remain optional; capture, ownership and stock checks remain enforced. V18/V19 migrate tracking metadata, status constraints and exact shipped financial identities automatically. Back up beta's database before installation; retain the existing database, secrets and administrator/MFA account.
+
+```bash
+bash ~/redeploy-beta.sh v0.1.0-beta.10
+sudoedit /opt/mercato-beta/.env
+# Set EASYSHIP_SANDBOX_SIMULATION_ENABLED=true only for this sandbox beta.
+sudo systemctl restart mercato-beta
+```
+
+Use the published beta.10 tag after its release checks/assets finish. Keep `EASYSHIP_ENABLED=true`, the existing `sand_` token, courier and webhook secret. Install the backend first, then publish the matching `beta` frontend to `mercato-in-beta`. Automatic tracking uses actual days: handoff +1 day In transit; +3 days Out for delivery; +3 days 8 hours Delivered. Admin manual statuses pause that parcel's automatic path. Lost/Returned-to-sender updates initiate scoped refunds without automatic restocking. Follow [Easyship sandbox setup](docs/EASYSHIP_SANDBOX_SETUP.md) for details. Keep `main`, production and all existing secrets unchanged.
 
 ## 12. Delete obsolete beta data and artifacts after acceptance
 

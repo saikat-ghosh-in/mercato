@@ -35,12 +35,16 @@ public class ShipmentService {
     private final ObjectMapper json;
     private final PlatformTransactionManager transactions;
     private final org.springframework.jdbc.core.JdbcTemplate jdbc;
+    private final com.mercato.Commerce.RefundObligations refundObligations;
     @org.springframework.beans.factory.annotation.Value("${EASYSHIP_WEBHOOK_ENABLED:false}")
     private boolean webhookEnabled;
     @org.springframework.beans.factory.annotation.Value("${EASYSHIP_SANDBOX_SIMULATION_ENABLED:false}")
     private boolean simulationEnabled;
 
     public record Item(int lineNumber,int qty) {}
+    public record StatusChange(String operationId,Long expectedVersion,String status,String reason){}
+    private static final Set<String> TRACKING_STATUSES=Set.of("IN_TRANSIT","OUT_FOR_DELIVERY","DELIVERY_ATTEMPTED","EXCEPTION","LOST_IN_TRANSIT","RETURNED_TO_SENDER","DELIVERED");
+    private boolean terminal(Shipment s){return Set.of("DELIVERED","LOST_IN_TRANSIT","RETURNED_TO_SENDER").contains(s.getStatus());}
     @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
     public record Handoff(String operationId,Long expectedVersion,String waybill,boolean actualHandoff,List<Item> items,String easyshipShipmentId) {
         public Handoff(String operationId,Long expectedVersion,String waybill,boolean actualHandoff,List<Item> items){this(operationId,expectedVersion,waybill,actualHandoff,items,null);}
@@ -96,7 +100,7 @@ public class ShipmentService {
         if(scope==TransitionTrigger.ADMIN)parcels.undeliveredForOrder(o.getId()).forEach(row->tracked.put((Long)row[0],(Long)row[1]));
         var legacy=scope==TransitionTrigger.ADMIN?o.getOrderLines().stream().map(l->new Eligible(l.getFulfillmentId(),l.getOrderLineNumber(),l.getProductName(),
             Math.max(0,workflow.maximum(l,TransitionTrigger.ADMIN,OrderLineAction.DELIVER)-Math.toIntExact(tracked.getOrDefault(l.getId(),0L))))).filter(e->e.maximum()>0).toList():List.<Eligible>of();
-        boolean refresh=ps.stream().anyMatch(s->client(s.getProvider()).enabled()&&!s.getStatus().equals("DELIVERED")&&trackingReady(s)&&
+        boolean refresh=ps.stream().anyMatch(s->!s.isManualTracking()&&client(s.getProvider()).enabled()&&!terminal(s)&&trackingReady(s)&&
             (s.getLastRequestedAt()==null||!s.getLastRequestedAt().isAfter(workflow.now().minusSeconds(60))));
         String provider=easyship.enabled()?"EASYSHIP":carrier.enabled()?"DELHIVERY":"MANUAL";
         var imageMap=new HashMap<String,String>();
@@ -187,7 +191,10 @@ public class ShipmentService {
             // Multi-item handoffs lock products in the same stable order across orders.
             s.getItems().stream().map(i->i.getLine().getProductId()).distinct().sorted().forEach(id->products.findByProductIdForUpdate(id).orElseThrow(()->missing(id)));
             parcels.saveAndFlush(s);
-            for(var item:s.getItems())apply(o,item,OrderLineAction.SHIP,scope,operation,"Actual carrier handoff confirmed");
+            for(var item:s.getItems()){
+                apply(o,item,OrderLineAction.SHIP,scope,operation,"Actual carrier handoff confirmed");
+                item.setUnitIds(commands.encode(item.getLine().getMoneyUnits().stream().filter(u->u.getState()!=null&&(operation+":"+item.getLine().getId()).equals(u.getState().getOperationId())&&"SHIPPED".equals(u.getState().getStage())).map(OrderMoneyUnit::getUnitId).toList()));
+            }
             event(s,"HANDED_OVER","Handed to carrier",workflow.now());parcels.saveAndFlush(s);notice(s,"shipped");
             scheduleSimulation(s);
             if(webhookEnabled&&"EASYSHIP".equals(s.getProvider()))enqueue(List.of(s),0);
@@ -206,15 +213,15 @@ public class ShipmentService {
             String orderId=parcels.orderId(id).orElseThrow(()->missing(id.toString()));var o=orders.lockByOrderId(orderId).orElseThrow(()->missing(id.toString()));
             var s=parcels.findById(id).orElseThrow(()->missing(id.toString()));String body=commands.encode(List.of(id,deliver,r));
             String stored=commands.stored(o,operation,r.expectedVersion(),body);if(stored!=null)return commands.decode(stored,View.class);
-            if(s.getStatus().equals("DELIVERED"))throw bad("Delivered parcels cannot be changed.");
-            if(deliver)deliver(o,s,TransitionTrigger.ADMIN,operation,r.reason(),workflow.now());
+            if(terminal(s))throw bad("Resolved parcels cannot be changed.");
+            if(deliver){s.setManualTracking(true);deliver(o,s,TransitionTrigger.ADMIN,operation,r.reason(),workflow.now());}
             else {
                 if(!s.getWaybill().equals(r.waybill())&&parcels.existsByWaybill(r.waybill()))throw bad("This waybill is already assigned.");
                 if(r.easyshipShipmentId()!=null){
                     if(!r.easyshipShipmentId().equals(s.getProviderReference())&&parcels.existsByProviderAndProviderReference("EASYSHIP",r.easyshipShipmentId()))throw bad("This Easyship shipment is already assigned.");
                     s.setProvider("EASYSHIP");s.setProviderReference(r.easyshipShipmentId());
                 }
-                s.setWaybill(r.waybill());s.setTrackingGeneration(s.getTrackingGeneration()+1);s.setProviderUpdatedAt(null);s.setStatus("SHIPPED");s.setEta(null);s.setSafeMessage(null);s.setLastRequestedAt(null);s.setNextTrackingAt(null);o.workflowChanged();event(s,"TRACKING_CORRECTED","Tracking details corrected",workflow.now());
+                s.setWaybill(r.waybill());s.setTrackingGeneration(s.getTrackingGeneration()+1);s.setTrackingId(null);s.setCourierName(null);s.setSimulationStage(0);s.setTrackingLookupPage(1);s.setProviderUpdatedAt(null);s.setStatus("SHIPPED");s.setEta(null);s.setSafeMessage(null);s.setLastRequestedAt(null);s.setNextTrackingAt(null);o.workflowChanged();event(s,"TRACKING_CORRECTED","Tracking details corrected",workflow.now());scheduleSimulation(s);
             }
             parcels.saveAndFlush(s);var result=view(o,TransitionTrigger.ADMIN,null);
             commands.recordAggregate(o,operation,body,TransitionTrigger.ADMIN,actor(TransitionTrigger.ADMIN),r.reason(),deliver?"PARCEL_DELIVERED":"TRACKING_CORRECTED",0,commands.encode(result));return result;
@@ -224,6 +231,40 @@ public class ShipmentService {
         for(var item:s.getItems())apply(o,item,OrderLineAction.DELIVER,scope,operation,reason);
         s.setStatus("DELIVERED");s.setDeliveredAt(at);event(s,"DELIVERED","Delivered",at);notice(s,"delivered");
     }
+    public View updateStatus(UUID id,StatusChange r){
+        if(!auth.getLoggedInUser().isAdmin())throw new ResponseStatusException(HttpStatus.FORBIDDEN,"Administrator access required");
+        if(r==null||r.status()==null||!TRACKING_STATUSES.contains(r.status())||r.reason()==null||r.reason().isBlank()||r.reason().length()>500)throw bad("Choose a tracking status and customer-visible reason.");
+        String operation=op("status",r.operationId());
+        return tx(()->{
+            var o=orders.lockByOrderId(parcels.orderId(id).orElseThrow(()->missing(id.toString()))).orElseThrow();
+            var s=parcels.findById(id).orElseThrow();String body=commands.encode(List.of(id,r));
+            String stored=commands.stored(o,operation,r.expectedVersion(),body);if(stored!=null)return commands.decode(stored,View.class);
+            if(terminal(s))throw bad("This package is already resolved. Its completed delivery or refund cannot be overwritten.");
+            boolean refund=Set.of("LOST_IN_TRANSIT","RETURNED_TO_SENDER").contains(r.status());
+            if(refund){
+                for(var item:s.getItems()){
+                    var l=item.getLine();com.mercato.Commerce.UnitFinancials.requireAttributed(l);
+                    List<String> ids;
+                    try{ids=json.readValue(item.getUnitIds(),new TypeReference<List<String>>(){});}catch(Exception invalid){throw bad("Parcel financial identities need review.");}
+                    // Legacy identity is safe only when this parcel accounts for every still-shipped unit on its line.
+                    if(ids.isEmpty()&&l.getDeliveredQty()==0){var shipped=com.mercato.Commerce.UnitFinancials.stage(l,"SHIPPED");if(shipped.size()==item.getQty())ids=shipped.stream().map(OrderMoneyUnit::getUnitId).toList();}
+                    final var unitIds=ids;
+                    if(unitIds.size()!=item.getQty()||new HashSet<>(unitIds).size()!=item.getQty())throw bad("This older parcel needs financial unit review before refunding.");
+                    var units=l.getMoneyUnits().stream().filter(u->unitIds.contains(u.getUnitId())).toList();
+                    if(units.size()!=item.getQty()||units.stream().anyMatch(u->!Set.of("SHIPPED","RETURNED").contains(u.getState().getStage())))throw bad("Parcel financial identities do not match shipped items.");
+                    for(var unit:units){var state=unit.getState();state.setStage("RETURNED");state.setCause(r.status().equals("LOST_IN_TRANSIT")?"PARCEL_LOST":"RETURN_TO_SENDER");state.setReturnApprovedAt(workflow.now());state.setOperationId(operation);}
+                    item.setUnitIds(commands.encode(unitIds));
+                }
+            }
+            s.setManualTracking(true);s.setTrackingGeneration(s.getTrackingGeneration()+1);s.setSafeMessage(null);s.setEta(null);
+            if(r.status().equals("DELIVERED"))deliver(o,s,TransitionTrigger.ADMIN,operation,r.reason(),workflow.now());
+            else{s.setStatus(r.status());event(s,r.status(),trackingDescription(r.status())+" · "+r.reason().trim(),workflow.now());o.workflowChanged();}
+            if(refund)refundObligations.parcelNotDelivered(o,r.status().equals("LOST_IN_TRANSIT")?"Package confirmed lost in transit":"Package returned to sender");
+            parcels.saveAndFlush(s);var result=view(o,TransitionTrigger.ADMIN,null);
+            commands.recordAggregate(o,operation,body,TransitionTrigger.ADMIN,auth.getLoggedInUser().getEmail(),r.reason(),"PARCEL_STATUS",s.getItems().stream().mapToInt(ShipmentItem::getQty).sum(),commands.encode(result));return result;
+        });
+    }
+    private String trackingDescription(String status){return switch(status){case "IN_TRANSIT"->"In transit";case "OUT_FOR_DELIVERY"->"Out for delivery";case "DELIVERY_ATTEMPTED"->"Delivery attempted";case "EXCEPTION"->"Delivery exception";case "LOST_IN_TRANSIT"->"Package lost in transit; refund requested";case "RETURNED_TO_SENDER"->"Returned to sender; refund requested";default->"Delivered";};}
     private void notice(Shipment s,String stage) {
         String items=s.getItems().stream().map(i->i.getQty()+" × "+DelhiveryClient.safe(i.getLine().getProductName(),180)).collect(java.util.stream.Collectors.joining("\n"));
         jobs.enqueue("AUTH_EMAIL","parcel-mail:"+s.getId()+":"+stage,Map.of("to",s.getOrder().getCustomerEmail(),"subject","Your Mercato package is "+stage,"text","Your package for order "+s.getOrder().getOrderId()+" is "+stage+".\n\n"+items+"\n\nTracking: "+s.getWaybill()));
@@ -237,7 +278,7 @@ public class ShipmentService {
     }
     private void enqueue(List<Shipment> source,long interval) {
         var groups=new LinkedHashMap<String,List<String>>();var now=workflow.now();
-        for(var s:source)if(client(s.getProvider()).enabled()&&!s.getStatus().equals("DELIVERED")&&trackingReady(s)&&(s.getLastRequestedAt()==null||!s.getLastRequestedAt().isAfter(now.minusSeconds(interval)))){
+        for(var s:source)if(!s.isManualTracking()&&client(s.getProvider()).enabled()&&!terminal(s)&&trackingReady(s)&&(s.getLastRequestedAt()==null||!s.getLastRequestedAt().isAfter(now.minusSeconds(interval)))){
             s.setLastRequestedAt(now);groups.computeIfAbsent(s.getProvider(),key->new ArrayList<>()).add(s.getId().toString());
         }
         for(var group:groups.entrySet()){
@@ -253,15 +294,19 @@ public class ShipmentService {
     });}
     private void scheduleSimulation(Shipment s){
         if(!simulationEnabled||!easyship.enabled()||!"EASYSHIP".equals(s.getProvider())||s.isManualTracking()||s.getStatus().equals("DELIVERED"))return;
-        for(int stage=1;stage<=3;stage++)jobs.enqueueAt("EASYSHIP_SIMULATE","sandbox-sim:"+s.getId()+":"+s.getTrackingGeneration()+":"+stage,Map.of("id",s.getId().toString(),"stage",stage),s.getHandedOffAt().plus(SandboxTrackingSchedule.OFFSETS.get(stage-1)));
+        for(int stage=1;stage<=3;stage++)jobs.enqueueAt("EASYSHIP_SIMULATE","sandbox-sim:"+s.getId()+":"+s.getTrackingGeneration()+":"+stage,Map.of("id",s.getId().toString(),"stage",stage,"generation",s.getTrackingGeneration()),s.getHandedOffAt().plus(SandboxTrackingSchedule.OFFSETS.get(stage-1)));
     }
     private record Simulation(UUID id,String reference,String waybill,long generation,UUID trackingId,int page){}
     public void simulate(UUID id,int stage){
+        simulate(id,stage,-1);
+    }
+    public void simulate(UUID id,int stage,long expectedGeneration){
         if(stage<1||stage>3)throw new IllegalArgumentException("Invalid simulation stage");
         if(!simulationEnabled||!easyship.enabled())return;
         var target=tx(()->{
             var orderId=parcels.orderId(id).orElse(null);if(orderId==null)return null;
             orders.lockByOrderId(orderId).orElseThrow();var s=parcels.findById(id).orElseThrow();
+            if(expectedGeneration>=0&&s.getTrackingGeneration()!=expectedGeneration)return null;
             if(!"EASYSHIP".equals(s.getProvider())||s.isManualTracking()||s.getStatus().equals("DELIVERED")||s.getSimulationStage()>=stage)return null;
             int due=SandboxTrackingSchedule.dueStage(s.getHandedOffAt(),workflow.now());
             if(stage<due)return null; // Catch up to the latest due stage, never regress after downtime.
@@ -307,7 +352,7 @@ public class ShipmentService {
         try{key="easyship-event:"+java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest(raw));}catch(Exception impossible){throw new IllegalStateException(impossible);}
         final String businessKey=key;
         tx(()->{
-            var ids=jdbc.queryForList("SELECT id FROM shipments WHERE provider='EASYSHIP' AND provider_reference=? AND status<>'DELIVERED'",UUID.class,reference);
+            var ids=jdbc.queryForList("SELECT id FROM shipments WHERE provider='EASYSHIP' AND provider_reference=? AND status<>'DELIVERED' AND manual_tracking=false",UUID.class,reference);
             if(!ids.isEmpty())jobs.enqueue("EASYSHIP_TRACK",businessKey,Map.of("ids",ids.stream().map(UUID::toString).toList(),"event",true));
             return null;
         });
@@ -322,7 +367,7 @@ public class ShipmentService {
     }
     private void process(List<UUID> ids,boolean event) {
         var targets=tx(()->{
-            var source=ids.stream().distinct().map(parcels::findById).flatMap(Optional::stream).filter(s->client(s.getProvider()).enabled()&&!s.getStatus().equals("DELIVERED")).toList();
+            var source=ids.stream().distinct().map(parcels::findById).flatMap(Optional::stream).filter(s->!s.isManualTracking()&&client(s.getProvider()).enabled()&&!terminal(s)).toList();
             if(event){
                 Instant next=source.stream().filter(s->!trackingReady(s)).map(Shipment::getNextTrackingAt).max(Comparator.naturalOrder()).orElse(null);
                 if(next!=null)throw new WaitingJobException("Waiting for tracking refresh window",Duration.between(workflow.now(),next).plusSeconds(1));

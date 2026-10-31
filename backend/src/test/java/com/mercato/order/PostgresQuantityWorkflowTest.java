@@ -58,7 +58,7 @@ class PostgresQuantityWorkflowTest {
         @Bean com.mercato.Commerce.RefundObligations refundObligations(){return mock(com.mercato.Commerce.RefundObligations.class);}
         @Bean AuditEvents auditEvents(){return new AuditEvents();}
         @Bean(name={"clock","durableJobClock"}) MutableClock clock(){return new MutableClock();}
-        @Bean AuthUtil auth(){var a=mock(AuthUtil.class);when(a.getLoggedInUser()).thenAnswer(c->{var user=new EcommUser();user.setEmail(IDENTITY.get());user.setUserId(CUSTOMER_ID.get());return user;});return a;}
+        @Bean AuthUtil auth(){var a=mock(AuthUtil.class);when(a.getLoggedInUser()).thenAnswer(c->{var user=new EcommUser();user.setEmail(IDENTITY.get());user.setUserId(CUSTOMER_ID.get());if("admin@test.invalid".equals(IDENTITY.get()))user.setRoles(new HashSet<>(Set.of(new com.mercato.Entity.Role(AppRole.ROLE_ADMIN))));return user;});return a;}
         @Bean RefundService refunds(){return mock(RefundService.class);}
         @Bean ShipmentNotificationService mail(){return mock(ShipmentNotificationService.class);}
         @Bean TestMailbox smtpMailbox(){return new TestMailbox();}
@@ -88,6 +88,7 @@ class PostgresQuantityWorkflowTest {
     @Autowired FulfillmentDeadlines deadlines;@Autowired FulfillmentCancellation cancellation;@Autowired JobStore jobs;@Autowired DurableJobs queue;
     @Autowired JdbcTemplate jdbc;@Autowired PlatformTransactionManager transactions;@Autowired MutableClock clock;
     @Autowired RefundService refundService;
+    @Autowired com.mercato.Commerce.RefundObligations refundObligations;
     @Autowired TestMailbox smtpMailbox;@Autowired com.mercato.Auth.AuthEmailJobHandler authEmailHandler;
     String orderId,fulfillment;TransactionTemplate tx;
     @BeforeEach void fixture(TestInfo test){
@@ -241,6 +242,23 @@ class PostgresQuantityWorkflowTest {
         verify(easyship).simulate(trackingId,"delivered");assertEquals(0,snapshot().getDeliveredQty());
         when(easyship.fetch(anyCollection())).thenReturn(new TrackingClient.Result(Map.of("ESIN10000092",new TrackingClient.Update(parcel.waybill(),"Delivered","DL",clock.instant(),null,List.of(new TrackingClient.Event("DL","Delivered",clock.instant())),false)),false));
         shipmentService.process(List.of(parcel.id()));shipmentService.process(List.of(parcel.id()));assertEquals(10,snapshot().getDeliveredQty());assertEquals(10,products.findByProductId(orderId+"-P").orElseThrow().getPhysicalQty());
+    }
+    @Test void trackingCorrectionResetsSimulatorIdentityAndRejectsOldGenerationJobs(){
+        packAll();currentCaptureProof();when(easyship.enabled()).thenReturn(true);when(easyship.batchSize()).thenReturn(50);
+        var view=shipmentService.create(fulfillment,TransitionTrigger.SELLER,easyshipHandoff("correction-sim",3,"ESIN10000093","OLD"+orderId));var p=view.shipments().get(0);
+        var old=UUID.randomUUID();tx.executeWithoutResult(t->{var s=parcels.findById(p.id()).orElseThrow();s.setTrackingId(old);s.setSimulationStage(2);s.setTrackingLookupPage(5);});
+        shipmentService.change(p.id(),new ShipmentService.Change("correct-sim",view.version(),"Corrected carrier reference","NEW"+orderId,"ESIN10000094"),false);
+        var updated=parcels.findById(p.id()).orElseThrow();assertNull(updated.getTrackingId());assertEquals(0,updated.getSimulationStage());assertEquals(1,updated.getTrackingLookupPage());
+        clock.value.set(p.handedOffAt().plusSeconds(288001));shipmentService.simulate(p.id(),3,0);
+        verify(easyship,never()).simulate(any(),anyString());verify(easyship,never()).trackingMetadata(anyString(),anyString(),anyInt());
+    }
+    @Test void manualAdminExceptionPausesBothSimulationAndProviderUpdates(){
+        packAll();currentCaptureProof();when(easyship.enabled()).thenReturn(true);when(easyship.batchSize()).thenReturn(50);
+        var view=shipmentService.create(fulfillment,TransitionTrigger.SELLER,easyshipHandoff("manual-pause",3,"ESIN10000095","PAUSE"+orderId));var parcel=view.shipments().get(0);
+        IDENTITY.set("admin@test.invalid");var result=shipmentService.updateStatus(parcel.id(),new ShipmentService.StatusChange("manual-delay",view.version(),"EXCEPTION","Carrier reported a temporary delay"));
+        assertTrue(result.shipments().get(0).manualTracking());assertEquals("EXCEPTION",result.shipments().get(0).status());
+        clock.value.set(parcel.handedOffAt().plusSeconds(288001));shipmentService.simulate(parcel.id(),3);shipmentService.process(List.of(parcel.id()));
+        verify(easyship,never()).simulate(any(),anyString());verify(easyship,never()).fetch(anyCollection());assertEquals(0,snapshot().getDeliveredQty());verify(refundObligations,never()).parcelNotDelivered(any(),anyString());
     }
     @Test void uncertainGenerationReconcilesInsteadOfRepeatingCreation() {
         packAll();currentCaptureProof();when(easyship.creationEnabled()).thenReturn(true);

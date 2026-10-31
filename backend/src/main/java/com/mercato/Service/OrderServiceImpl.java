@@ -201,19 +201,14 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional(readOnly = true)
     public List<OrderResponseDTO> getAllOrders() {
-        return orderRepository.findAll(org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC,"createdAt","id")).stream()
-                .map(o->detail(o,TransitionTrigger.ADMIN))
-                .toList();
+        return details(orderRepository.findAll(org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC,"createdAt","id")),TransitionTrigger.ADMIN);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<OrderResponseDTO> getCurrentUserOrders() {
         EcommUser currentUser = authUtil.getLoggedInUser();
-        return orderRepository.findByCustomerEmailOrderByCreatedAtDescIdDesc(currentUser.getEmail())
-                .stream()
-                .map(o->detail(o,TransitionTrigger.CUSTOMER))
-                .toList();
+        return details(orderRepository.findByCustomerEmailOrderByCreatedAtDescIdDesc(currentUser.getEmail()),TransitionTrigger.CUSTOMER);
     }
 
     @Override
@@ -317,6 +312,10 @@ public class OrderServiceImpl implements OrderService {
 
     private OrderResponseDTO detail(Order order,TransitionTrigger actor) {
         var dto=OrderMapper.toDTO(order,workflow,actor);images.enrich(dto.getOrderLines());return dto;
+    }
+    private List<OrderResponseDTO> details(List<Order> orders,TransitionTrigger actor){
+        var result=orders.stream().map(o->OrderMapper.toDTO(o,workflow,actor)).toList();
+        images.enrich(result.stream().flatMap(o->o.getOrderLines().stream()).toList());return result;
     }
 
     private String generateOrderId() {

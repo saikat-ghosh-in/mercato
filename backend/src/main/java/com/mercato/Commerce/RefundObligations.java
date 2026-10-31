@@ -30,6 +30,8 @@ public class RefundObligations {
     }
     /** Caller established physical receipt/approval and recorded its guarded command in this transaction. */
     @Transactional public void approvedReturn(Order order){request(order,UnitFinancials.closed(order),"Approved received return");}
+    /** Audited carrier loss/RTO: affected unit identities were established by the parcel workflow. */
+    @Transactional public void parcelNotDelivered(Order order,String reason){request(order,UnitFinancials.closed(order),reason);}
     private void attention(Order order,String reason){jobs.enqueue("CAPTURE_ATTENTION","refund-attribution:"+order.getOrderId()+":"+order.getWorkflowRevision()+":"+UUID.nameUUIDFromBytes(reason.getBytes(StandardCharsets.UTF_8)),Map.of("orderId",order.getOrderId(),"reason",reason));}
     private void request(Order order,boolean full,String reason){
         var payment=order.getPayment();

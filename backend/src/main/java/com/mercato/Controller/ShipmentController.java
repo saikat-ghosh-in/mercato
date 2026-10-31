@@ -21,4 +21,5 @@ public class ShipmentController {
     @PostMapping("/admin/fulfillment-orders/{id}/shipments") public Object adminCreate(@PathVariable String id,@RequestBody ShipmentService.Handoff r){return shipments.create(id,TransitionTrigger.ADMIN,r);}
     @PatchMapping("/admin/shipments/{id}/tracking") public Object correct(@PathVariable UUID id,@RequestBody ShipmentService.Change r){return shipments.change(id,r,false);}
     @PostMapping("/admin/shipments/{id}/delivered") public Object delivered(@PathVariable UUID id,@RequestBody ShipmentService.Change r){return shipments.change(id,r,true);}
+    @PostMapping("/admin/shipments/{id}/status") public Object status(@PathVariable UUID id,@RequestBody ShipmentService.StatusChange r){return shipments.updateStatus(id,r);}
 }
