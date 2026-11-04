@@ -8,9 +8,47 @@ import { FiRefreshCw, FiPackage } from "react-icons/fi";
 import api from "../../backend/api";
 import ProductCard, { CardSkeleton } from "../product/ProductCard";
 
-const images = { Fashion: "photo-1441986300917-64674bd600d8", "Home & Living": "photo-1600210492486-724fe5c67fb0", Electronics: "photo-1498049794561-7780e7231661", "Beauty & Care": "photo-1541643600914-78b084683601" };
+const images = {
+  Clothing: "photo-1441986300917-64674bd600d8",
+  Fashion: "photo-1441986300917-64674bd600d8",
+  "Home & Living": "photo-1600210492486-724fe5c67fb0",
+  Electronics: "photo-1498049794561-7780e7231661",
+  "Beauty & Care": "photo-1541643600914-78b084683601",
+};
 const photo = id => "https://images.unsplash.com/" + id + "?auto=format&fit=crop&w=1000&q=85";
 const tabs = [{ label: "Just landed", sort: "createdAt" }, { label: "The good finds", sort: "discountPercent" }];
+
+function CollectionCard({ category }) {
+  const name = category.categoryName;
+  const editorialPhoto = Object.hasOwn(images, name) ? photo(images[name]) : null;
+  const [productPhoto, setProductPhoto] = useState(null);
+  const [failedPhoto, setFailedPhoto] = useState(null);
+  useEffect(() => {
+    if (editorialPhoto) return;
+    const controller = new AbortController();
+    api.get("/public/products", {
+      params: { category: name, pageSize: 1, sortBy: "createdAt", sortingOrder: "desc" },
+      signal: controller.signal,
+    }).then(({ data }) => {
+      const product = data?.content?.[0];
+      if (!controller.signal.aborted && product?.categoryName === name) {
+        setProductPhoto(product.secondaryImageUrls?.[0] || product.primaryImageUrl);
+      }
+    }).catch(() => { /* The category remains browsable without a photo. */ });
+    return () => controller.abort();
+  }, [name, editorialPhoto]);
+
+  const image = editorialPhoto || productPhoto;
+  const hasImage = Boolean(image && image !== failedPhoto);
+  return (
+    <Link className={"collection-card" + (hasImage ? "" : " collection-card-plain")}
+      to={"/products?category=" + encodeURIComponent(name)} aria-label={"Explore " + name}>
+      {hasImage && <img src={image} onError={() => setFailedPhoto(image)} alt="" loading="lazy" width="900" height="1000" />}
+      <div><h3>{name}</h3><span className="button button-white">Explore</span></div>
+    </Link>
+  );
+}
+
 function RevealSection({ children, className, id }) {
   const section = useRef(null);
   useEffect(() => {
@@ -45,7 +83,7 @@ export default function HomePage() {
   }, [tab, attempt]);
   return <div className="home-page">
     <section className="marketplace-hero"><div className="marketplace-hero-copy"><h1>GOOD FINDS.<br />EVERY DAY.</h1><p>Shop tech, clothing and home essentials from independent sellers, together in one marketplace.</p><div className="marketplace-hero-actions"><Link className="button button-dark button-prominent" to="/products">Explore the marketplace <ActionArrow /></Link>{categories.length > 0 && <a className="text-link" href="#collections">Shop by category</a>}</div></div><div className="marketplace-hero-image"><img src={campaignImage} alt="A camera, headphones, sneaker, cotton shirt, ceramic vase, lamp and skincare arranged on pale blue and cream platforms" width="1448" height="1086" fetchPriority="high" /></div></section>
-    {categories.length > 0 && <RevealSection id="collections" className="site-container home-section"><div className="section-heading"><h2>A little of everything.</h2><Link className="text-link" to="/products">Shop all <ActionArrow /></Link></div><div className="collection-grid">{categories.slice(0, 4).map(cat => <Link className="collection-card" key={cat.categoryId} to={"/products?category=" + encodeURIComponent(cat.categoryName)}><img src={photo(images[cat.categoryName] || "photo-1441986300917-64674bd600d8")} alt="" loading="lazy" width="900" height="1000" /><div><h3>{cat.categoryName}</h3><span className="button button-white">Explore</span></div></Link>)}</div></RevealSection>}
+    {categories.length > 0 && <RevealSection id="collections" className="site-container home-section"><div className="section-heading"><h2>A little of everything.</h2><Link className="text-link" to="/products">Shop all <ActionArrow /></Link></div><div className="collection-grid">{categories.map(cat => <CollectionCard key={cat.categoryId + ":" + cat.categoryName} category={cat} />)}</div></RevealSection>}
     <div className="site-container"><SponsoredShelf placement="home" /></div>
     <RevealSection id="new-featured" className="site-container home-section"><div className="section-heading"><h2>Find your next favourite.</h2><Link className="text-link" to={"/products?sortBy=" + tab + "&sortingOrder=desc"}>View the collection <ActionArrow /></Link></div><div className="product-tabs" role="group" aria-label="Featured collection">{tabs.map(t => <button key={t.sort} aria-pressed={tab === t.sort} onClick={() => { setCatalog(s => ({ ...s, loading: true, error: false })); setTab(t.sort); }} disabled={tab === t.sort}>{t.label}</button>)}<span role="status">{catalog.loading && catalog.products.length > 0 ? "Updating collection…" : ""}</span></div>
       {catalog.error && <div className="inline-error" role="alert">We couldn’t refresh the collection. <button onClick={() => { setCatalog(s => ({ ...s, loading: true, error: false })); setAttempt(a => a + 1); }}><FiRefreshCw /> Try again</button></div>}
