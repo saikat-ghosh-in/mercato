@@ -6,10 +6,29 @@ import { useSelector, useDispatch } from "react-redux";
 import { logOutUser } from "../reduxStore/actions/authActions";
 import { selectCartQty } from "../reduxStore/selectors/cartSelectors";
 import Brand from "./Brand";
-import ExplorePanel from "./ExplorePanel";
 import { useMeasuredHeight } from "../hooks/useMeasuredHeight";
 import { useInputModality } from "../hooks/useInputModality";
 import { isSellerAccount } from "../utils/accountRouting";
+
+function HeaderSearch({ initialKeyword }) {
+  const [keyword, setKeyword] = useState(initialKeyword);
+  const navigate = useNavigate();
+  const submit = event => {
+    event.preventDefault();
+    const query = keyword.trim();
+    const params = new URLSearchParams();
+    if (query) params.set("keyword", query);
+    navigate(query ? "/products?" + params.toString() : "/products");
+    window.scrollTo(0, 0);
+  };
+  return (
+    <form className="header-search" role="search" aria-label="Marketplace" action="/products" onSubmit={submit}>
+      <input aria-label="Search products" placeholder="Search products" name="keyword" value={keyword}
+        onChange={event => setKeyword(event.target.value)} maxLength={150} type="search" enterKeyHint="search" />
+      <button type="submit" aria-label="Search"><FiSearch aria-hidden="true" /></button>
+    </form>
+  );
+}
 
 export default function Header() {
   useInputModality();
@@ -20,35 +39,25 @@ export default function Header() {
   const user = useSelector(s => s.auth?.user);
   const details = useSelector(s => s.auth?.userDetails);
   const sessionStatus = useSelector(s => s.auth?.sessionStatus);
-  const categories = useSelector(s => s.categories.categories) ?? [];
   const count = useSelector(selectCartQty);
   const signedIn = Boolean(user);
   const displayName=details?.firstName?.trim() || user?.firstName?.trim() || user?.username || details?.username || "Your account";
   const initializing=!signedIn && ["idle","loading"].includes(sessionStatus);
   const accountDescription=signedIn?`Signed in as ${displayName}`:initializing?"Checking your account":"Sign in or create an account";
-  const [discoveryOpen, setDiscoveryOpen] = useState(false);
-  const [keyword, setKeyword] = useState("");
   const checkout = location.pathname.startsWith("/checkout");
+  const keyword = location.pathname === "/products" ? new URLSearchParams(location.search).get("keyword") ?? "" : "";
   const links = [["My account", "/profile"], ["My orders", "/orders"], ["Saved items", "/wishlist"],
     ...(details?.roles?.includes("ROLE_ADMIN") ? [["Admin dashboard", "/admin/dashboard"]] : []),
     ...(isSellerAccount(details) || details?.roles?.includes("ROLE_ADMIN") ? [["Seller dashboard", "/seller/dashboard"]] : [])];
-  const search = event => {
-    event.preventDefault();
-    navigate("/products" + (keyword.trim() ? "?keyword=" + encodeURIComponent(keyword.trim()) : ""));
-    setDiscoveryOpen(false);
-  };
   return <>
     <a className="skip-link" href="#main-content">Skip to content</a>
     <header ref={headerRef} className="site-header">
       <div className="site-container header-main">
         <Brand />
-        {checkout && <p className="checkout-lock" aria-label="Secure checkout"><FiLock /><span>Secure checkout</span></p>}
+        <HeaderSearch key={location.pathname + ":" + keyword} initialKeyword={keyword} />
         <div className={"header-actions" + (!signedIn ? " header-actions-guest" : "")}>
+          {checkout && <p className="checkout-lock" aria-label="Secure checkout"><FiLock aria-hidden="true" /><span>Secure checkout</span></p>}
           <Link to="/products" className="header-catalog" aria-label="All products" title="All products"><span>All products</span></Link>
-          <button className="icon-button" aria-label="Open search" title="Search and discover" aria-expanded={discoveryOpen} aria-haspopup="dialog" onClick={() => {
-            setKeyword(new URLSearchParams(location.search).get("keyword") ?? "");
-            setDiscoveryOpen(true);
-          }}><FiSearch /></button>
           <Link to="/help" className="header-help" aria-label="Help"><FiHelpCircle /><span>Help</span></Link>
           {signedIn ? <Menu>
             <MenuButton className="icon-button header-account" aria-label="Account menu" aria-description={accountDescription} title={accountDescription}>
@@ -64,6 +73,5 @@ export default function Header() {
         </div>
       </div>
     </header>
-    <ExplorePanel open={discoveryOpen} onClose={() => setDiscoveryOpen(false)} categories={categories} keyword={keyword} onKeywordChange={setKeyword} onSearch={search} />
   </>;
 }

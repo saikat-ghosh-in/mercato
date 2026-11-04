@@ -23,6 +23,9 @@ import com.mercato.Repository.CategoryRepository;
 import com.mercato.Repository.OrderReservationRepository;
 import com.mercato.Repository.ProductRepository;
 import com.mercato.Utils.AuthUtil;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.Expression;
+import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -38,11 +41,19 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
+import java.util.regex.Pattern;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class ProductServiceImpl implements ProductService {
+
+    private static final Pattern T_SHIRT_VARIANTS =
+            Pattern.compile("\\bt[\\s\\p{Pd}]*shirts?\\b", Pattern.UNICODE_CHARACTER_CLASS);
+    private static final Pattern SEARCH_WHITESPACE = Pattern.compile("\\s+", Pattern.UNICODE_CHARACTER_CLASS);
+    private static final Pattern NON_SEARCH_CHARACTERS = Pattern.compile("[^\\p{L}\\p{M}\\p{N}]");
+    private static final String FIELD_SEPARATORS = "[-\\s\u00a0\u202f‐‑‒–—_./’'&+%,:()]+";
 
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
@@ -385,14 +396,8 @@ public class ProductServiceImpl implements ProductService {
                     root.get("seller").get("sellerDisplayName").in(sellerList));
         }
 
-        if (StringUtils.isNotEmpty(keyword)) {
-            spec = spec.and((root, query, cb) -> {
-                String pattern = "%" + keyword.toLowerCase() + "%";
-                return cb.or(
-                        cb.like(cb.lower(root.get("productName")), pattern),
-                        cb.like(cb.lower(root.get("description")), pattern)
-                );
-            });
+        if (StringUtils.isNotBlank(keyword)) {
+            spec = spec.and(keywordMatches(keyword));
         }
 
         if (minPrice != null) {
@@ -411,6 +416,39 @@ public class ProductServiceImpl implements ProductService {
         }
 
         return spec;
+    }
+
+    private Specification<Product> keywordMatches(String keyword) {
+        String normalized = T_SHIRT_VARIANTS.matcher(keyword.toLowerCase(Locale.ROOT)).replaceAll("tshirt");
+        List<String> terms = SEARCH_WHITESPACE.splitAsStream(normalized)
+                .map(word -> NON_SEARCH_CHARACTERS.matcher(word).replaceAll(""))
+                .filter(word -> !word.isEmpty())
+                .distinct()
+                .toList();
+
+        return (root, query, cb) -> {
+            if (terms.isEmpty()) return cb.disjunction();
+            List<Expression<String>> fields = List.of(
+                    normalizedSearchField(cb, root.get("productName")),
+                    normalizedSearchField(cb, root.get("brand")),
+                    normalizedSearchField(cb, root.get("productCode")),
+                    normalizedSearchField(cb, root.get("category").get("categoryName")),
+                    normalizedSearchField(cb, root.get("description"))
+            );
+
+            // Each term must match, but different terms may match different catalog fields.
+            List<Predicate> matches = new ArrayList<>(terms.size());
+            for (String term : terms) {
+                String pattern = "%" + term + "%";
+                matches.add(cb.or(fields.stream().map(field -> cb.like(field, pattern)).toArray(Predicate[]::new)));
+            }
+            return cb.and(matches.toArray(Predicate[]::new));
+        };
+    }
+
+    private Expression<String> normalizedSearchField(CriteriaBuilder cb, Expression<String> field) {
+        return cb.function("regexp_replace", String.class, cb.lower(field),
+                cb.literal(FIELD_SEPARATORS), cb.literal(""), cb.literal("g"));
     }
 
     private boolean isSortByAllowed(String sortBy) {
