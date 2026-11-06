@@ -1,6 +1,7 @@
 import { Spinner } from "../shared/Spinner";
 import { LoadingLayout } from "../shared/LoadingStates";
 import PageHeading from "../shared/PageHeading";
+import Accordion from "../shared/Accordion";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
@@ -308,27 +309,32 @@ const OrderDetails = ({ orderId }) => {
               )}
             </SectionCard>
 
+            <Accordion className="surface px-5 py-2">
+              <Accordion.Item value="payment">
+                <Accordion.Trigger>Payment Information</Accordion.Trigger>
+                <Accordion.Content className="pb-3">
+                  <p className="text-sm text-gray-600 mb-3">{paymentPolicy}</p>
+                  <InfoRow label="Method" value={order.paymentSummary?.paymentMethod} />
+                  <InfoRow label="Status" value={order.paymentSummary?.status} color={paymentStyle.text} />
+                  {order.paymentSummary?.gatewayName && (
+                    <InfoRow label="Gateway" value={order.paymentSummary.gatewayName} />
+                  )}
+                  {order.paymentSummary?.gatewayReference && (
+                    <InfoRow label="Transaction ID" value={order.paymentSummary.gatewayReference} mono copyable />
+                  )}
+                  {order.paymentSummary?.completedAt && (
+                    <InfoRow label="Paid On" value={formatDate(order.paymentSummary.completedAt)} />
+                  )}
+                  {order.paymentSummary?.gatewayResponseMessage && (
+                    <InfoRow label="Message" value={order.paymentSummary.gatewayResponseMessage} last />
+                  )}
+                </Accordion.Content>
+              </Accordion.Item>
+            </Accordion>
+
             <div className="surface px-5 py-2">
               <CancellationPolicy />
             </div>
-
-            <SectionCard title="Payment Information" icon={MdPayment}>
-              <p className="text-sm text-gray-600 mb-3">{paymentPolicy}</p>
-              <InfoRow label="Method" value={order.paymentSummary?.paymentMethod} />
-              <InfoRow label="Status" value={order.paymentSummary?.status} color={paymentStyle.text} />
-              {order.paymentSummary?.gatewayName && (
-                <InfoRow label="Gateway" value={order.paymentSummary.gatewayName} />
-              )}
-              {order.paymentSummary?.gatewayReference && (
-                <InfoRow label="Transaction ID" value={order.paymentSummary.gatewayReference} mono copyable />
-              )}
-              {order.paymentSummary?.completedAt && (
-                <InfoRow label="Paid On" value={formatDate(order.paymentSummary.completedAt)} />
-              )}
-              {order.paymentSummary?.gatewayResponseMessage && (
-                <InfoRow label="Message" value={order.paymentSummary.gatewayResponseMessage} last />
-              )}
-            </SectionCard>
 
             {order.refundSummary && (
               <SectionCard title="Refund Information" icon={MdAutorenew}>
