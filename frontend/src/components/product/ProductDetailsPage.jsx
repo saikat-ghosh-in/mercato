@@ -11,6 +11,9 @@ import AddToCartControl from "../shared/AddToCartControl";
 import WishlistToggle from "../shared/WishlistToggle";
 import api from "../../backend/api";
 import ImageGallery from "./ImageGallery";
+import ProductReviews from "./ProductReviews";
+import useProductReviews from "../../hooks/useProductReviews";
+import { FiStar } from "react-icons/fi";
 
 function ProductContent({ productId }) {
   const dispatch = useDispatch();
@@ -19,6 +22,8 @@ function ProductContent({ productId }) {
   const [error, setError] = useState("");
   const [attempt, setAttempt] = useState(0);
   const [related, setRelated] = useState([]);
+  const reviewResource = useProductReviews(product ? productId : null);
+  const rating = reviewResource.result;
   useEffect(() => {
     const controller = new AbortController();
     dispatch(setProductToDisplay(productId, controller.signal)).catch(err => { if (!controller.signal.aborted) setError(err?.response?.status === 404 ? "This product is no longer available." : "We couldn’t refresh this product. Please try again."); });
@@ -42,6 +47,10 @@ function ProductContent({ productId }) {
       <section className="pdp-info" aria-label="Product information">
         {product.brand && <p className="product-brand">{product.brand}</p>}
         <h1>{product.productName}</h1><Link className="pdp-subtitle" to={"/products?category=" + encodeURIComponent(product.categoryName)}>{product.categoryName}</Link>
+        {rating?.count > 0 && <a className="text-link pdp-rating-link" href="#product-reviews">
+          <FiStar className="review-star-selected" aria-hidden="true" />
+          <span>{rating.average.toFixed(1)} out of 5 · {rating.count} {rating.count === 1 ? "rating" : "ratings"}</span>
+        </a>}
         <p className="product-price"><strong>{formatCurrency(product.sellingPrice)}</strong>{product.discountPercent > 0 && <><del>{formatCurrency(product.retailPrice)}</del><span>{product.discountPercent}% off</span></>}</p><p className="tax-note">Inclusive of applicable taxes</p>
         <p className="pdp-availability">{inStock ? "In stock" : "Currently sold out"}</p>
         {product.sellerPaysShipping && <p className="pdp-delivery-offer">Free standard delivery for this item.</p>}
@@ -55,6 +64,7 @@ function ProductContent({ productId }) {
         {!product.deliveryReturns && <p className="tax-note mt-6">Delivery charges are shown in your bag. <Link to="/help" className="text-link">Shopping help</Link></p>}
       </section>
     </div>
+    <ProductReviews resource={reviewResource} />
     {related.length > 0 && <section className="pdp-related"><div className="section-heading"><h2>You might also like</h2><Link className="text-link" to={"/products?category=" + encodeURIComponent(product.categoryName)}>See all <ActionArrow /></Link></div><div className="product-grid">{related.map(p => <ProductCard product={p} key={p.productId} />)}</div></section>}
   </div>;
 }

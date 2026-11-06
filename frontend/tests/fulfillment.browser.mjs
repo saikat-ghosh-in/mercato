@@ -10,6 +10,7 @@ async function fixture(component='seller', setup) {
     import React from 'react'; import {createRoot} from 'react-dom/client';
     import FulfillmentTab from './src/components/seller/FulfillmentTab.jsx';
     import OrderDetails from './src/components/orders/OrderDetails.jsx';
+    import ProductDetailsPage from './src/components/product/ProductDetailsPage.jsx';
     import ShipmentPanel, {ShipmentLineAction} from './src/components/orders/ShipmentPanel.jsx';
     import InfoHint from './src/components/shared/InfoHint.jsx';
     import AuthField from './src/components/shared/AuthField.jsx';
@@ -21,12 +22,18 @@ async function fixture(component='seller', setup) {
     import MarketplaceFinance from './src/components/shared/MarketplaceFinance.jsx';
     import {RevenueCards} from './src/components/shared/DashboardWidgets.jsx';
     import useWorkflowResource from './src/hooks/useWorkflowResource.js';
-    import {MemoryRouter} from 'react-router-dom';
+    import {MemoryRouter, Route, Routes} from 'react-router-dom';
     import {Provider} from 'react-redux'; import {configureStore} from '@reduxjs/toolkit';
-    const store=configureStore({reducer:{cart:()=>({deliveryOptions:[],deliveryMethod:'STANDARD',cartLoading:false}),[privateApi.reducerPath]:privateApi.reducer},middleware:get=>get().concat(privateApi.middleware)});
+    const store=configureStore({reducer:{
+      cart:(state={deliveryOptions:[],deliveryMethod:'STANDARD',cartLoading:false,cartItems:[]})=>state,
+      products:(state={byId:{}},action)=>action.type==='SET_PRODUCT_TO_DISPLAY'?{byId:{[action.payload.productId]:action.payload}}:state,
+      wishlist:(state={})=>state,
+      [privateApi.reducerPath]:privateApi.reducer,
+    },middleware:get=>get().concat(privateApi.middleware)});
+    function ReviewFixture(){return <Routes><Route path="/products/:productId" element={<ProductDetailsPage />} /><Route path="/" element={<OrderDetails orderId="O1" />} /></Routes>;}
     function ShipFixture({scope}){const [request,setRequest]=React.useState(null);const [data,setData]=React.useState(null);return <><div>{(data?.handoffItems||[]).map(item=><div key={item.lineNumber}><ShipmentLineAction data={data} fulfillmentId={item.fulfillmentId} lineNumber={item.lineNumber} onOpen={setRequest}/></div>)}</div><ShipmentPanel scope={scope} recordId={scope==='seller'?'F1':'O1'} onData={setData} lineRequest={request}/></>;}
     function Resource(){const [url,setUrl]=React.useState('/one');const value=useWorkflowResource(url);window.refresh=value.refresh;window.selectUrl=setUrl;return <p>{value.data?.name || 'Loading'}{value.error}</p>;}
-    window.render=() => createRoot(document.getElementById('root')).render(<Provider store={store}><MemoryRouter initialEntries={[${component==='orders'?'"/orders?orderId=O1"':'"/"'}]}>${component==='info'?'<div className="app-page" style={{padding:16}}><AuthField label="GST" info="Your registration number."><input /></AuthField><div style={{display:"flex",justifyContent:"flex-end",marginTop:30}}><InfoHint label="Shipping help">Use the order delivery details. No real label or pickup is purchased.</InfoHint></div></div>':component==='shipment-seller'?'<ShipFixture scope="seller" />':component==='shipment-customer'?'<ShipmentPanel recordId="O1" version={3} onChanged={()=>{window.parentRefreshes=(window.parentRefreshes||0)+1;}} />':component==='shipment-admin'?'<ShipFixture scope="admin" />':component==='seller'?'<FulfillmentTab />':component==='admin'?'<OrdersTab />':component==='orders'?'<Orders />':component==='resource'?'<Resource />':component==='help'?'<Help />':component==='finance'?'<><RevenueCards revenue={{allTime:189,thisMonth:189,today:189,averagePerOrder:63}} admin/><MarketplaceFinance admin/></>':component==='checkout'?'<ReviewPaymentStep selectedAddress={{}} cartWithProducts={[]} />':'<OrderDetails orderId="O1" />'}</MemoryRouter></Provider>);
+    window.render=() => createRoot(document.getElementById('root')).render(<Provider store={store}><MemoryRouter initialEntries={[${component==='orders'?'"/orders?orderId=O1"':'"/"'}]}>${component==='info'?'<div className="app-page" style={{padding:16}}><AuthField label="GST" info="Your registration number."><input /></AuthField><div style={{display:"flex",justifyContent:"flex-end",marginTop:30}}><InfoHint label="Shipping help">Use the order delivery details. No real label or pickup is purchased.</InfoHint></div></div>':component==='shipment-seller'?'<ShipFixture scope="seller" />':component==='shipment-customer'?'<ShipmentPanel recordId="O1" version={3} onChanged={()=>{window.parentRefreshes=(window.parentRefreshes||0)+1;}} />':component==='shipment-admin'?'<ShipFixture scope="admin" />':component==='seller'?'<FulfillmentTab />':component==='admin'?'<OrdersTab />':component==='orders'?'<Orders />':component==='resource'?'<Resource />':component==='help'?'<Help />':component==='finance'?'<><RevenueCards revenue={{allTime:189,thisMonth:189,today:189,averagePerOrder:63}} admin/><MarketplaceFinance admin/></>':component==='checkout'?'<ReviewPaymentStep selectedAddress={{}} cartWithProducts={[]} />':component==='reviews'?'<ReviewFixture />':'<OrderDetails orderId="O1" />'}</MemoryRouter></Provider>);
     window.render();`,resolveDir:root,loader:'jsx'},bundle:true,write:false,jsx:'automatic',plugins:[{name:'fixture',setup(build){
       build.onResolve({filter:/backend\/api(?:\.js)?$/},() => ({path:'api',namespace:'fixture'}));
       build.onResolve({filter:/toastUtils(?:\.js)?$/},() => ({path:'toast',namespace:'fixture'}));
@@ -66,6 +73,84 @@ async function fixture(component='seller', setup) {
 }
 
 async function chooseOtherReason(page,text){await page.getByRole('button',{name:'Cancellation reason',exact:true}).click();await page.getByRole('option',{name:'Other',exact:true}).click();await page.getByLabel('Reason',{exact:true}).fill(text);}
+
+test('delivered item reviews retain attachments after failure and appear on the product page', async () => {
+  const { browser, page } = await fixture('reviews', () => {
+    window.line.workflow.deliveredQty = 1;
+    window.line.shippedQty = 1;
+    const fetchOrder = window.fixtureGet;
+    const product = { ...window.line.product, categoryName: 'Kitchen', availableQty: 4, sellingPrice: 300 };
+    window.fixtureGet = async url => {
+      if (url === '/user/orders/O1/reviews') return { data: { 1: window.review ? 'SUBMITTED' : 'AVAILABLE' } };
+      if (url === '/user/orders/O1') {
+        const order = window.record();
+        order.orderLines.push({
+          ...order.orderLines[0],
+          orderLineNumber: 2,
+          workflow: { ...order.orderLines[0].workflow, deliveredQty: 0 },
+          product: { ...product, productId: 'P2', productName: 'Tea tray' },
+        });
+        return { data: order };
+      }
+      if (url === '/public/products/P1') return { data: product };
+      if (url === '/public/products') return { data: { content: [] } };
+      if (url === '/public/products/P1/reviews') {
+        return { data: { count: 1, average: window.review.rating, reviews: [window.review], hasMore: false } };
+      }
+      return fetchOrder(url);
+    };
+    window.fixturePost = async (url, form) => {
+      if (url !== '/user/orders/O1/lines/1/review') throw Error('Unexpected URL');
+      if (!window.reviewTried) {
+        window.reviewTried = true;
+        throw Error('Connection lost');
+      }
+      window.review = {
+        id: 1, rating: Number(form.get('rating')), text: form.get('text'),
+        photos: form.getAll('photos').map(file => URL.createObjectURL(file)),
+        video: URL.createObjectURL(form.get('video')), createdAt: '2026-10-26T02:00:00Z',
+      };
+      return { data: window.review };
+    };
+  });
+  try {
+    await page.getByRole('button', { name: 'Review item: Ceramic cup' }).click();
+    assert.equal(await page.getByRole('button', { name: 'Review item: Tea tray' }).count(), 0);
+    const dialog = page.getByRole('dialog', { name: 'Review item' });
+    await dialog.getByRole('radio', { name: '4 stars' }).focus();
+    await page.keyboard.press('Space');
+    assert.equal(await dialog.getByRole('radio', { name: '4 stars' }).isChecked(), true);
+    await dialog.getByLabel('Your review').fill('Beautiful finish and exactly as described.');
+    const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jv9sAAAAASUVORK5CYII=', 'base64');
+    await dialog.getByLabel('Photos').setInputFiles(
+      Array.from({ length: 3 }, (_, i) => ({ name: `cup-${i + 1}.png`, mimeType: 'image/png', buffer: png })),
+    );
+    await dialog.getByLabel('Video').setInputFiles({ name: 'cup.mp4', mimeType: 'video/mp4', buffer: Buffer.from('fixture') });
+    for (const width of [320, 390, 1440]) {
+      await page.setViewportSize({ width, height: 844 });
+      assert.equal(await dialog.evaluate(el => el.scrollWidth > el.clientWidth), false);
+    }
+    const post = dialog.getByRole('button', { name: 'Post review' });
+    await post.click();
+    await dialog.getByRole('alert').getByText('Your review couldn’t be posted. Please try again.').waitFor();
+    assert.equal(await dialog.getByLabel('Your review').inputValue(), 'Beautiful finish and exactly as described.');
+    await dialog.getByText('cup-3.png').waitFor();
+    await dialog.getByText('cup.mp4').waitFor();
+    await post.click();
+    await page.getByText('Review submitted').waitFor();
+    await page.getByRole('link', { name: 'Ceramic cup', exact: true }).click();
+    await page.getByRole('link', { name: '4.0 out of 5 · 1 rating' }).waitFor();
+    const reviews = page.getByRole('region', { name: 'Customer reviews' });
+    await reviews.getByText('Verified buyer').waitFor();
+    await reviews.getByText('Beautiful finish and exactly as described.').waitFor();
+    assert.equal(await reviews.getByRole('img', { name: /Customer review photo/ }).count(), 3);
+    assert.equal(await reviews.locator('video[controls]').count(), 1);
+    await page.setViewportSize({ width: 320, height: 844 });
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+  } finally {
+    await browser.close();
+  }
+});
 
 test('compact packages open an in-place courier timeline and return without losing context',async()=>{
   const {browser,page}=await fixture('shipment-customer',()=>{

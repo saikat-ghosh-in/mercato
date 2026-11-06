@@ -14,6 +14,7 @@ import toast from "../../utils/toastUtils.js";
 import { formatCurrency } from "../../utils/formatCurrency";
 import { formatDate } from "../../utils/formatDate";
 import ShipmentPanel from "./ShipmentPanel";
+import OrderReview from "./OrderReview";
 import useWorkflowResource from "../../hooks/useWorkflowResource";
 import { actionMaximum, canCancelWhole, workflowLabel, paymentPolicy } from "../../utils/fulfillment";
 import { QuantityCommand, WorkflowProgress, CancellationPolicy } from "./WorkflowControls";
@@ -108,7 +109,7 @@ const InfoRow = ({ label, value, mono, copyable, color, last }) => {
   );
 };
 
-const OrderLineItem = ({ line, version, onLineUpdate, refreshing }) => {
+const OrderLineItem = ({ line, version, onLineUpdate, refreshing, reviewAction }) => {
   const sellerName = line.seller?.name ?? "Unknown Seller";
 
   return (
@@ -129,7 +130,10 @@ const OrderLineItem = ({ line, version, onLineUpdate, refreshing }) => {
             by {sellerName}&nbsp;·&nbsp;{formatCurrency(line.product?.unitPrice)} / unit
           </p>
           <div className="mt-2"><WorkflowProgress record={line} audience="customer" /></div>
-          <div className="mt-2"><QuantityCommand label="Cancel units" cancellation maximum={actionMaximum(line,'CANCEL')} version={version} endpoint="/user/fulfillment/commands" makeBody={(qty,reason) => ({fulfillmentId:line.fulfillmentId,orderLineNumber:line.orderLineNumber,action:'CANCEL',qty,reason})} onComplete={onLineUpdate} disabled={refreshing} /></div>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <QuantityCommand label="Cancel units" cancellation maximum={actionMaximum(line,'CANCEL')} version={version} endpoint="/user/fulfillment/commands" makeBody={(qty,reason) => ({fulfillmentId:line.fulfillmentId,orderLineNumber:line.orderLineNumber,action:'CANCEL',qty,reason})} onComplete={onLineUpdate} disabled={refreshing} />
+            {reviewAction}
+          </div>
         </div>
 
         <div className="customer-order-item-price">
@@ -145,6 +149,10 @@ const OrderLineItem = ({ line, version, onLineUpdate, refreshing }) => {
 const OrderDetails = ({ orderId }) => {
   const navigate = useNavigate();
   const {data:order, loading, error, refresh:fetchOrder, epoch} = useWorkflowResource(`/user/orders/${encodeURIComponent(orderId)}`);
+  const reviewableLines = order?.orderLines?.filter(line => line.workflow?.deliveredQty > 0) ?? [];
+  const reviewUrl = reviewableLines.length ? `/user/orders/${encodeURIComponent(orderId)}/reviews` : null;
+  const { data: reviewStatuses, error: reviewError, loading: loadingReviews, refresh: fetchReviews } =
+    useWorkflowResource(reviewUrl, reviewableLines.map(line => line.orderLineNumber).join(","));
   const canCancelOrder = canCancelWhole(order);
 
   if (loading && !order) return (
@@ -276,6 +284,7 @@ const OrderDetails = ({ orderId }) => {
           {/* Left column */}
           <div className="lg:col-span-2 space-y-4">
             <SectionCard title="Order Items" icon={MdShoppingBag}>
+              {reviewError && <p className="text-sm text-gray-600">Review options couldn’t load. <button type="button" className="text-link" onClick={fetchReviews}>Retry</button></p>}
               {order.orderLines?.length > 0 ? (
                 order.orderLines.map(line => (
                   <OrderLineItem
@@ -284,6 +293,8 @@ const OrderDetails = ({ orderId }) => {
                     version={order.workflow?.version}
                     onLineUpdate={fetchOrder}
                     refreshing={loading}
+                    reviewAction={<OrderReview status={reviewStatuses?.[line.orderLineNumber]}
+                      orderId={orderId} line={line} onComplete={fetchReviews} refreshing={loadingReviews} />}
                   />
                 ))
               ) : (
