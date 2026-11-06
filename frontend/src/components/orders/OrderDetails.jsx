@@ -193,7 +193,10 @@ const OrderDetails = ({ orderId }) => {
         <PageHeading title={"Order #" + order.orderId} description={"Placed on " + formatDate(order.createdAt)}><button type="button" className="button button-outline" onClick={() => navigate("/orders")}><MdArrowBack aria-hidden="true" /> All orders</button></PageHeading>
 
         {error && <p role="alert" className="text-sm text-red-700">{error} <button className="text-link" onClick={fetchOrder}>Retry refresh</button></p>}
-        <div aria-label="Order progress" className="surface p-5 mb-5 space-y-3"><WorkflowProgress record={order} audience="customer" showState={false} /><p className="text-sm text-gray-600">You can cancel items until preparation starts.</p><QuantityCommand key={`${epoch}:${orderId}:whole`} label="Cancel entire order" cancellation whole maximum={canCancelOrder ? 1 : 0} version={order.workflow?.version} endpoint="/user/fulfillment/cancellations" makeBody={(_qty,reason) => ({orderId:order.orderId,reason})} onComplete={fetchOrder} disabled={loading} /><CancellationPolicy /></div>
+        <div aria-label="Order progress" className="surface p-5 mb-5 space-y-3">
+          <WorkflowProgress record={order} audience="customer" showState={false} showQuantity={false} />
+          <QuantityCommand key={`${epoch}:${orderId}:whole`} label="Cancel entire order" cancellation whole maximum={canCancelOrder ? 1 : 0} version={order.workflow?.version} endpoint="/user/fulfillment/cancellations" makeBody={(_qty,reason) => ({orderId:order.orderId,reason})} onComplete={fetchOrder} disabled={loading} />
+        </div>
         {/* Status banner */}
         <StatusBanner order={order} onRetrySuccess={() => fetchOrder(true)} />
         <div className="mb-4"><ShipmentPanel recordId={orderId} version={order.workflow?.version} onChanged={fetchOrder} /></div>
@@ -304,6 +307,10 @@ const OrderDetails = ({ orderId }) => {
                 <p className="text-sm text-gray-400">No address information available</p>
               )}
             </SectionCard>
+
+            <div className="surface px-5 py-2">
+              <CancellationPolicy />
+            </div>
 
             <SectionCard title="Payment Information" icon={MdPayment}>
               <p className="text-sm text-gray-600 mb-3">{paymentPolicy}</p>
