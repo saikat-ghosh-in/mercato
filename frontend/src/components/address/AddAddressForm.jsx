@@ -12,8 +12,8 @@ const Label = ({ children, required }) => (
 );
 
 const InputField = ({ field, placeholder, error, type = "text", prefix, maxLength, inputMode }) => (
-  <div className={`flex items-center border rounded-xl overflow-hidden transition-[transform,opacity,background-color]
-        ${error ? "border-red-300 bg-red-50 focus-within:ring-1 focus-within:ring-red-400" : "border-gray-200 bg-white focus-within:border-blue-400 focus-within:ring-1 focus-within:ring-blue-400"}`}
+  <div className={`field-focus flex items-center border rounded-xl overflow-hidden transition-colors
+        ${error ? "border-red-300 bg-red-50" : "border-gray-200 bg-white"}`}
   >
     {prefix && (
       <span className="px-3 text-xs font-semibold text-gray-400 border-r border-gray-200 bg-gray-50 py-2.5 shrink-0">

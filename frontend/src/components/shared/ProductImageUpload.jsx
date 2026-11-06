@@ -189,7 +189,7 @@ export default function ProductImageUpload({
                 placeholder="Image URL"
                 value={primaryUrl}
                 onChange={e => setPrimaryUrl(e.target.value)}
-                className="flex-1 min-w-0 text-xs border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-300 text-gray-700"
+                className="flex-1 min-w-0 text-xs border border-gray-200 rounded-xl px-3 py-2 text-gray-700"
               />
               <button
                 type="button"
@@ -265,7 +265,7 @@ export default function ProductImageUpload({
               placeholder="Image URL"
               value={secondaryUrl}
               onChange={e => setSecondaryUrl(e.target.value)}
-              className="flex-1 min-w-0 text-xs border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-300 text-gray-700"
+              className="flex-1 min-w-0 text-xs border border-gray-200 rounded-xl px-3 py-2 text-gray-700"
             />
             <button
               type="button"

@@ -6,7 +6,7 @@ export default function AuthField({ label, error, errors = [], icon: Icon, requi
   const messages = [...new Set([error, ...errors].filter(Boolean))];
   const describedBy = messages.length ? id + "-error" : hint ? id + "-hint" : undefined;
   return <div className="auth-field"><div className="auth-field-label"><label htmlFor={id}>{label}{required && <span className="text-red-500 ml-0.5" aria-hidden="true">*</span>}</label>{info && <InfoHint label={label}>{info}</InfoHint>}</div>
-    <div className={"auth-field-control flex items-center gap-2.5 border rounded-lg transition-colors focus-within:ring-1 " + (messages.length ? "border-red-300 focus-within:ring-red-300 bg-red-50/30" : "border-gray-200 focus-within:ring-blue-300")}>
+    <div className={"auth-field-control flex items-center gap-2.5 border rounded-lg transition-colors " + (messages.length ? "border-red-300 bg-red-50/30" : "border-gray-200")}>
       {Icon && <Icon size={15} className="text-gray-400" aria-hidden="true" />}
       {Children.map(children, child => isValidElement(child) && (["input","select","textarea"].includes(child.type) || child.type === SelectControl) ? cloneElement(child, { id, required, "aria-invalid": Boolean(messages.length), "aria-describedby": describedBy }) : child)}
     </div>

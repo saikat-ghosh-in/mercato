@@ -41,16 +41,12 @@ const SupplyQtyStepper = ({ value, onChange, min, supplyType }) => {
         onChange(String(parsed));
     };
 
-    const borderColor = isNegative
-        ? "border-red-200 focus-within:ring-red-200"
-        : isPositive
-            ? "border-blue-200 focus-within:ring-blue-200"
-            : "border-gray-200 focus-within:ring-blue-200";
+    const borderColor = isNegative ? "border-red-200" : "border-gray-200";
 
     const textColor = isNegative ? "text-red-600" : isPositive ? "text-blue-700" : "text-gray-700";
 
     return (
-        <div className={`flex items-center border rounded-xl overflow-hidden focus-within:ring-1 transition-colors ${borderColor}`}>
+        <div className={`field-focus flex items-center border rounded-xl overflow-hidden transition-colors ${borderColor}`}>
             <button
                 aria-label="Decrease stock quantity" onClick={decrement}
                 disabled={qty <= min}

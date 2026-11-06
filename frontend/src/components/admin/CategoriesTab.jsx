@@ -50,7 +50,7 @@ const CategoryFormModal = ({ category, onClose, onSave }) => {
                         onKeyDown={e => e.key === "Enter" && handleSave()}
                         placeholder="e.g. Electronics"
                         autoFocus
-                        className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-blue-300 text-gray-700"
+                        className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 text-gray-700"
                     />
                 </div>
                 <div className="flex gap-3 p-5 border-t border-gray-100">
