@@ -324,11 +324,14 @@ button:focus-visible,.button:focus-visible { transition-duration:0ms; }
 .filter-section:last-child { border:0; }
 .filter-section-toggle { font-size:14px; font-weight:550; }
 .filter-options { display:grid; gap:2px; }
-.filter-option { display:flex; align-items:center; gap:10px; min-height:36px; padding:8px 12px; font-size:14px; text-align:left; width:100%; overflow-wrap:anywhere; }
+.filter-option { display:flex; align-items:center; gap:10px; min-height:36px; padding:8px 12px; font-size:14px; text-align:left; width:100%; overflow-wrap:anywhere; border-radius:var(--radius-control); cursor:pointer; }
 .filter-option[aria-pressed=true] { background:var(--control-selected); }
 .filter-option input { width:18px; height:18px; flex-shrink:0; }
 .filter-more,.filter-clear { text-decoration:underline; text-underline-offset:4px; font-size:13px; padding-block:8px; }
 .filter-more { text-align:left; padding-inline:12px; }
+@media (hover:hover) and (pointer:fine) {
+  .filter-option:not([aria-pressed=true]):hover,.filter-more:hover { background:var(--control-hover); }
+}
 .filter-price-fields { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
 .filter-price-fields label { display:grid; gap:8px; font-size:12px; }
 .filter-price-fields input { border:1px solid #ddd; border-radius:6px; padding:10px 12px; min-width:0; width:100%; font-size:16px; }
