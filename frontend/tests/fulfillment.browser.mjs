@@ -696,7 +696,7 @@ test('one cancelled item has a single compact state and no quantity breakdown',a
   try{
     await page.getByText('Qty 1 · Cancelled',{exact:true}).waitFor();
     assert.equal(await page.locator('dl[aria-label="Quantity breakdown"]').count(),0);
-    assert.equal(await page.locator('p').filter({hasText:/^Qty 1$/}).count(),1,'order total remains visible');
+    assert.equal(await page.getByText('Qty 1',{exact:true}).count(),1,'quantity appears only in the item status');
     assert.equal(await page.getByRole('button',{name:'Cancel units',exact:true}).count(),0);
     await page.screenshot({path:fileURLToPath(new URL('../../backend/target/delhivery-m1-browser/customer-cancelled-390.png',import.meta.url)),fullPage:true});
   }finally{await browser.close();}
