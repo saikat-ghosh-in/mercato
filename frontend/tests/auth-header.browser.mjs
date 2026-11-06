@@ -12,12 +12,16 @@ async function fixture(view='login',path='/'){
     import Header from './src/components/Header.jsx';import Login from './src/components/auth/LogIn.jsx';
     import ProfileEdit from './src/components/user/ProfileEdit.jsx';
     ${view==='home'?"import Home from './src/components/home/Home.jsx';":""}
+    ${view==='catalog'?"import Catalog from './src/components/product/ProductListingPage.jsx';":""}
+    import {productReducer} from './src/reduxStore/reducers/productReducer.js';
     const initial={user:{username:'maya'},userDetails:{userId:7,firstName:'Maya',lastName:'Shah',username:'maya',email:'maya@example.test',emailVerified:true,profileImageUrl:'placeholder',roles:['ROLE_USER']},sessionStatus:'authenticated'};
     const categories=${JSON.stringify(view==='home'?['Lighting','Kitchen & Dining','Clothing','Sports & Outdoors','Accessories']:[])}.map((categoryName,categoryId)=>({categoryName,categoryId}));
-    window.store=configureStore({reducer:{auth:(s=initial,a)=>a.type==='set'?{...s,...a.payload}:s,categories:()=>({categories}),cart:()=>({cartQty:0,cartItems:[]})}});
+    window.store=configureStore({reducer:{auth:(s=initial,a)=>a.type==='set'?{...s,...a.payload}:s,categories:()=>({categories}),
+      products:productReducer,sellers:()=>({sellers:[]}),
+      cart:()=>({cartQty:0,cartItems:${view==='catalog'?"[{productId:'fixture-2',quantity:2}]":"[]"}})}});
     window.account=value=>window.store.dispatch({type:'set',payload:value});
     function CurrentRoute(){const location=useLocation();return <output data-testid="current-route" hidden>{location.pathname+location.search}</output>}
-    createRoot(document.getElementById('root')).render(<Provider store={window.store}><MemoryRouter initialEntries={[${JSON.stringify(path)}]}><div className="app-page"><Header/><CurrentRoute/><main id="main-content">${view==='profile'?'<ProfileEdit/>':view==='home'?'<Home/>':'<Login/>'}</main></div></MemoryRouter></Provider>);
+    createRoot(document.getElementById('root')).render(<Provider store={window.store}><MemoryRouter initialEntries={[${JSON.stringify(path)}]}><div className="app-page"><Header/><CurrentRoute/><main id="main-content">${view==='profile'?'<ProfileEdit/>':view==='home'?'<Home/>':view==='catalog'?'<Catalog/>':'<Login/>'}</main></div></MemoryRouter></Provider>);
   `,resolveDir:root,loader:'jsx'},bundle:true,write:false,jsx:'automatic',loader:{'.webp':'dataurl'},plugins:[{name:'actions',setup(build){
     build.onResolve({filter:/reduxStore\/actions\/authActions(?:\.js)?$/},()=>({path:'auth',namespace:'fixture'}));
     build.onLoad({filter:/.*/,namespace:'fixture'},()=>({contents:`export const authenticateUser=data=>async()=>{window.loginPayload=data};export const logOutUser=()=>()=>window.account({user:null,userDetails:null,sessionStatus:'anonymous'});export const fetchUserDetails=()=>async()=>window.account({userDetails:{...window.store.getState().auth.userDetails,...window.savedProfile}});`,loader:'js'}));
@@ -28,8 +32,14 @@ async function fixture(view='login',path='/'){
         'Sports & Outdoors':{categoryName:'Sports & Outdoors',primaryImageUrl:'/images/backpack.jpg'},
         'Accessories':{categoryName:'Clothing',primaryImageUrl:'/images/wrong.jpg'}};
       export const session={getSnapshot:()=>({epoch:0}),subscribe:()=>{}};
+      const catalog=['Desk lamp','An insulated hiking backpack with a long product title and room for a spare layer','Porcelain bowl',
+        'Trail shoes','Serving spoons','A long unbroken product code ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ'].map((productName,i)=>({
+        productName,productId:'fixture-'+i,primaryImageUrl:'/images/catalog.jpg',categoryName:i%2?'Sports & Outdoor Equipment':'Kitchen',
+        sellingPrice:799,retailPrice:1599,discountPercent:i%2?50:0,availableQty:i===3?0:4
+      }));
       export default {put:async(path,data)=>{window.savedProfile=data;return {data}},
-        get:async(path,{params})=>({data:path.endsWith('/promotions')?[]:{content:products[params.category]?[products[params.category]]:[]}})};
+        get:async(path,{params}={})=>({data:path.includes('/products?')?{content:catalog,totalPages:1,totalElements:catalog.length}:
+          path.endsWith('/promotions')||path.endsWith('/sellers')?[]:{content:products[params?.category]?[products[params.category]]:[]}})};
     `,loader:'js'}));
     build.onResolve({filter:/utils\/toastUtils(?:\.js)?$/},()=>({path:'toast',namespace:'fixture-toast'}));
     build.onLoad({filter:/.*/,namespace:'fixture-toast'},()=>({contents:'export default {success(){},error(){}};export const showWarningToast=()=>{};',loader:'js'}));
@@ -132,4 +142,36 @@ test('home banners show relevant gallery photos and keep every category browsabl
     assert.equal(await page.locator('#collections .collection-card').count(),5);
   }catch(error){throw new Error(errors.join('\n') || (await page.locator('body').innerText()).slice(0,1000),{cause:error});}
   finally{await browser.close();}
+});
+
+test('catalog rows align wrapped text, sale prices and mixed purchase controls',async()=>{
+  const {browser,page}=await fixture('catalog','/products');try{
+    await page.getByRole('heading',{name:'Desk lamp',exact:true}).waitFor();
+    for(const width of [320,390,639,767,768,1024,1440,1920]){
+      await page.setViewportSize({width,height:900});
+      const layout=await page.evaluate(()=>{
+        const rows={};
+        for(const card of document.querySelectorAll('.catalog-product-grid .product-card')){
+          const top=card.getBoundingClientRect().top;
+          const aligned=['.product-copy h3','.product-category','.product-price','.card-purchase'];
+          (rows[top]??=[]).push(aligned.map(selector=>card.querySelector(selector).getBoundingClientRect().top));
+        }
+        return {rows:Object.values(rows),overflow:document.documentElement.scrollWidth>innerWidth};
+      });
+      assert.equal(layout.overflow,false,`overflow at ${width}px`);
+      assert.equal(layout.rows[0].length,width<=767?2:3);
+      for(const row of layout.rows){
+        for(const positions of row)assert.deepEqual(positions,row[0],`row alignment at ${width}px`);
+      }
+    }
+    const search=page.getByRole('searchbox',{name:'Search products'});
+    await search.click();
+    assert.deepEqual(await search.evaluate(input=>({
+      border:getComputedStyle(input.form).borderColor,
+      outline:getComputedStyle(input.form).outlineStyle,
+      inputOutline:getComputedStyle(input).outlineStyle,
+    })),{border:'rgb(41, 41, 41)',outline:'none',inputOutline:'none'});
+    await page.keyboard.press('Tab');
+    assert.equal(await page.getByRole('button',{name:'Search',exact:true}).evaluate(button=>getComputedStyle(button).outlineColor),'rgb(41, 41, 41)');
+  }finally{await browser.close();}
 });

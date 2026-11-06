@@ -22,7 +22,12 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@SpringBootTest(properties="marketplace.notices.initial-delay-ms=3600000") @ActiveProfiles("demo") @AutoConfigureMockMvc @DirtiesContext
+// This context drops its schema when closed, so it must not share the default demo database.
+@SpringBootTest(properties = {
+        "marketplace.notices.initial-delay-ms=3600000",
+        "spring.datasource.url=jdbc:h2:mem:mercato-finance-promotion;MODE=PostgreSQL;DB_CLOSE_DELAY=-1"
+})
+@ActiveProfiles("demo") @AutoConfigureMockMvc @DirtiesContext
 class MarketplaceFinancePromotionTest {
     @Autowired MockMvc rawMvc; CookieBrowserHarness mvc;
     @org.junit.jupiter.api.BeforeEach void cookieBrowser(){mvc=new CookieBrowserHarness(rawMvc,json);}@Autowired ObjectMapper json;@Autowired ProductRepository products;@Autowired SellerPromotionRepository campaigns;

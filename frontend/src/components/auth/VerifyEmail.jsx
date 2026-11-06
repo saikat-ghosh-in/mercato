@@ -105,7 +105,7 @@ const VerifyEmail = () => {
                         <p className="text-xs text-gray-400">
                             Enter your email to resend the verification link
                         </p>
-                        <div className="flex items-center gap-2.5 border border-gray-200 rounded-xl px-3 py-2.5 focus-within:ring-1 focus-within:ring-blue-300">
+                        <div className="field-focus flex items-center gap-2.5 border border-gray-200 rounded-xl px-3 py-2.5">
                             <MdEmail size={15} className="text-gray-400 shrink-0" />
                             <input
                                 type="email"

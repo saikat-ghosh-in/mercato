@@ -1,6 +1,7 @@
 import { Spinner } from "../shared/Spinner";
 import { LoadingLayout } from "../shared/LoadingStates";
 import PageHeading from "../shared/PageHeading";
+import Accordion from "../shared/Accordion";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
@@ -13,6 +14,7 @@ import toast from "../../utils/toastUtils.js";
 import { formatCurrency } from "../../utils/formatCurrency";
 import { formatDate } from "../../utils/formatDate";
 import ShipmentPanel from "./ShipmentPanel";
+import OrderReview from "./OrderReview";
 import useWorkflowResource from "../../hooks/useWorkflowResource";
 import { actionMaximum, canCancelWhole, workflowLabel, paymentPolicy } from "../../utils/fulfillment";
 import { QuantityCommand, WorkflowProgress, CancellationPolicy } from "./WorkflowControls";
@@ -107,7 +109,7 @@ const InfoRow = ({ label, value, mono, copyable, color, last }) => {
   );
 };
 
-const OrderLineItem = ({ line, version, onLineUpdate, refreshing }) => {
+const OrderLineItem = ({ line, version, onLineUpdate, refreshing, reviewAction }) => {
   const sellerName = line.seller?.name ?? "Unknown Seller";
 
   return (
@@ -128,7 +130,10 @@ const OrderLineItem = ({ line, version, onLineUpdate, refreshing }) => {
             by {sellerName}&nbsp;·&nbsp;{formatCurrency(line.product?.unitPrice)} / unit
           </p>
           <div className="mt-2"><WorkflowProgress record={line} audience="customer" /></div>
-          <div className="mt-2"><QuantityCommand label="Cancel units" cancellation maximum={actionMaximum(line,'CANCEL')} version={version} endpoint="/user/fulfillment/commands" makeBody={(qty,reason) => ({fulfillmentId:line.fulfillmentId,orderLineNumber:line.orderLineNumber,action:'CANCEL',qty,reason})} onComplete={onLineUpdate} disabled={refreshing} /></div>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <QuantityCommand label="Cancel units" cancellation maximum={actionMaximum(line,'CANCEL')} version={version} endpoint="/user/fulfillment/commands" makeBody={(qty,reason) => ({fulfillmentId:line.fulfillmentId,orderLineNumber:line.orderLineNumber,action:'CANCEL',qty,reason})} onComplete={onLineUpdate} disabled={refreshing} />
+            {reviewAction}
+          </div>
         </div>
 
         <div className="customer-order-item-price">
@@ -144,6 +149,10 @@ const OrderLineItem = ({ line, version, onLineUpdate, refreshing }) => {
 const OrderDetails = ({ orderId }) => {
   const navigate = useNavigate();
   const {data:order, loading, error, refresh:fetchOrder, epoch} = useWorkflowResource(`/user/orders/${encodeURIComponent(orderId)}`);
+  const reviewableLines = order?.orderLines?.filter(line => line.workflow?.deliveredQty > 0) ?? [];
+  const reviewUrl = reviewableLines.length ? `/user/orders/${encodeURIComponent(orderId)}/reviews` : null;
+  const { data: reviewStatuses, error: reviewError, loading: loadingReviews, refresh: fetchReviews } =
+    useWorkflowResource(reviewUrl, reviewableLines.map(line => line.orderLineNumber).join(","));
   const canCancelOrder = canCancelWhole(order);
 
   if (loading && !order) return (
@@ -193,7 +202,10 @@ const OrderDetails = ({ orderId }) => {
         <PageHeading title={"Order #" + order.orderId} description={"Placed on " + formatDate(order.createdAt)}><button type="button" className="button button-outline" onClick={() => navigate("/orders")}><MdArrowBack aria-hidden="true" /> All orders</button></PageHeading>
 
         {error && <p role="alert" className="text-sm text-red-700">{error} <button className="text-link" onClick={fetchOrder}>Retry refresh</button></p>}
-        <div aria-label="Order progress" className="surface p-5 mb-5 space-y-3"><WorkflowProgress record={order} audience="customer" showState={false} /><p className="text-sm text-gray-600">You can cancel items until preparation starts.</p><QuantityCommand key={`${epoch}:${orderId}:whole`} label="Cancel entire order" cancellation whole maximum={canCancelOrder ? 1 : 0} version={order.workflow?.version} endpoint="/user/fulfillment/cancellations" makeBody={(_qty,reason) => ({orderId:order.orderId,reason})} onComplete={fetchOrder} disabled={loading} /><CancellationPolicy /></div>
+        <div aria-label="Order progress" className="surface p-5 mb-5 space-y-3">
+          <WorkflowProgress record={order} audience="customer" showState={false} showQuantity={false} />
+          <QuantityCommand key={`${epoch}:${orderId}:whole`} label="Cancel entire order" cancellation whole maximum={canCancelOrder ? 1 : 0} version={order.workflow?.version} endpoint="/user/fulfillment/cancellations" makeBody={(_qty,reason) => ({orderId:order.orderId,reason})} onComplete={fetchOrder} disabled={loading} />
+        </div>
         {/* Status banner */}
         <StatusBanner order={order} onRetrySuccess={() => fetchOrder(true)} />
         <div className="mb-4"><ShipmentPanel recordId={orderId} version={order.workflow?.version} onChanged={fetchOrder} /></div>
@@ -272,6 +284,7 @@ const OrderDetails = ({ orderId }) => {
           {/* Left column */}
           <div className="lg:col-span-2 space-y-4">
             <SectionCard title="Order Items" icon={MdShoppingBag}>
+              {reviewError && <p className="text-sm text-gray-600">Review options couldn’t load. <button type="button" className="text-link" onClick={fetchReviews}>Retry</button></p>}
               {order.orderLines?.length > 0 ? (
                 order.orderLines.map(line => (
                   <OrderLineItem
@@ -280,6 +293,8 @@ const OrderDetails = ({ orderId }) => {
                     version={order.workflow?.version}
                     onLineUpdate={fetchOrder}
                     refreshing={loading}
+                    reviewAction={<OrderReview status={reviewStatuses?.[line.orderLineNumber]}
+                      orderId={orderId} line={line} onComplete={fetchReviews} refreshing={loadingReviews} />}
                   />
                 ))
               ) : (
@@ -305,23 +320,32 @@ const OrderDetails = ({ orderId }) => {
               )}
             </SectionCard>
 
-            <SectionCard title="Payment Information" icon={MdPayment}>
-              <p className="text-sm text-gray-600 mb-3">{paymentPolicy}</p>
-              <InfoRow label="Method" value={order.paymentSummary?.paymentMethod} />
-              <InfoRow label="Status" value={order.paymentSummary?.status} color={paymentStyle.text} />
-              {order.paymentSummary?.gatewayName && (
-                <InfoRow label="Gateway" value={order.paymentSummary.gatewayName} />
-              )}
-              {order.paymentSummary?.gatewayReference && (
-                <InfoRow label="Transaction ID" value={order.paymentSummary.gatewayReference} mono copyable />
-              )}
-              {order.paymentSummary?.completedAt && (
-                <InfoRow label="Paid On" value={formatDate(order.paymentSummary.completedAt)} />
-              )}
-              {order.paymentSummary?.gatewayResponseMessage && (
-                <InfoRow label="Message" value={order.paymentSummary.gatewayResponseMessage} last />
-              )}
-            </SectionCard>
+            <Accordion className="surface px-5 py-2">
+              <Accordion.Item value="payment">
+                <Accordion.Trigger>Payment Information</Accordion.Trigger>
+                <Accordion.Content className="pb-3">
+                  <p className="text-sm text-gray-600 mb-3">{paymentPolicy}</p>
+                  <InfoRow label="Method" value={order.paymentSummary?.paymentMethod} />
+                  <InfoRow label="Status" value={order.paymentSummary?.status} color={paymentStyle.text} />
+                  {order.paymentSummary?.gatewayName && (
+                    <InfoRow label="Gateway" value={order.paymentSummary.gatewayName} />
+                  )}
+                  {order.paymentSummary?.gatewayReference && (
+                    <InfoRow label="Transaction ID" value={order.paymentSummary.gatewayReference} mono copyable />
+                  )}
+                  {order.paymentSummary?.completedAt && (
+                    <InfoRow label="Paid On" value={formatDate(order.paymentSummary.completedAt)} />
+                  )}
+                  {order.paymentSummary?.gatewayResponseMessage && (
+                    <InfoRow label="Message" value={order.paymentSummary.gatewayResponseMessage} last />
+                  )}
+                </Accordion.Content>
+              </Accordion.Item>
+            </Accordion>
+
+            <div className="surface px-5 py-2">
+              <CancellationPolicy />
+            </div>
 
             {order.refundSummary && (
               <SectionCard title="Refund Information" icon={MdAutorenew}>

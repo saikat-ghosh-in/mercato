@@ -37,4 +37,6 @@ Despite the production hostname, this personal project uses **Cashfree sandbox a
 6. In Netlify project **mercato-in**, trigger a deploy from **main**. Confirm the published commit matches the release. Leave project **mercato-in-beta** unchanged.
 7. Verify Sign in by username/email, production admin MFA, public images/catalog, bag totals, sandbox checkout, orders and tracking. An unsigned direct request to the DuckDNS origin must return `403`.
 
+For the product reviews release, deploy the backend with Flyway V20 and set `client_max_body_size 20m;` inside the Mercato HTTPS server block before publishing the frontend. Validate with `sudo nginx -t` before reloading Nginx. After publishing, submit a review with three photos and an MP4 through the storefront, then verify the photos display and the video can play and seek. Review media lives under `reviews/` in the existing upload directory.
+
 Keep `/opt/mercato/config/cookie-release-ready` and the runtime's access to the uploaded images. Do not restore the old bearer-token application against this database. Local deployment backups remain on the instance; off-instance backup/monitoring services have not been purchased or provisioned.

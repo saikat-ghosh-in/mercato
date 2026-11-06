@@ -33,6 +33,8 @@ test('real browser: controlled state, keyboard navigation, retained drafts, iner
     const trigger = name => page.getByRole('button', { name, exact: true });
     const panel = async name => page.locator(`[id="${await trigger(name).getAttribute('aria-controls')}"]`);
     await trigger('one').focus();
+    assert.equal(await trigger('one').locator('.accordion-indicator path').count(), 1);
+    assert.equal(await trigger('three').locator('.accordion-indicator path').count(), 2);
     await page.keyboard.press('ArrowDown');
     assert.equal(await trigger('three').evaluate(el => el === document.activeElement), true);
     await page.keyboard.press('Home');
@@ -40,6 +42,7 @@ test('real browser: controlled state, keyboard navigation, retained drafts, iner
     await page.keyboard.press('End');
     await page.keyboard.press('Enter');
     assert.equal(await page.locator('output').textContent(), '["one","three"]');
+    assert.equal(await trigger('three').locator('.accordion-indicator path').count(), 1);
     await page.keyboard.press('ArrowUp');
     await page.keyboard.press('Space');
     assert.equal(await trigger('one').getAttribute('aria-expanded'), 'false');

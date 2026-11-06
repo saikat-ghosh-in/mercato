@@ -194,7 +194,7 @@ Keep beta's existing port-80 redirect/ACME handling and port-443 TLS/certificate
 Inside **only the beta HTTPS server block**, replace the old catch-all proxy to `https://127.0.0.1:8444` with these locations and response headers. Remove conflicting old beta locations; do not append a second catch-all. Preserve certificate renewal configuration.
 
 ```nginx
-client_max_body_size 6m;
+client_max_body_size 20m;
 add_header Strict-Transport-Security "max-age=300" always;
 add_header X-Content-Type-Options "nosniff" always;
 add_header X-Frame-Options "DENY" always;

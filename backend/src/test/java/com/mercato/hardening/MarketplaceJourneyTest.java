@@ -28,7 +28,10 @@ import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@SpringBootTest(properties = "marketplace.notices.initial-delay-ms=3600000")
+@SpringBootTest(properties = {
+        "marketplace.notices.initial-delay-ms=3600000",
+        "spring.datasource.url=jdbc:h2:mem:mercato-marketplace-journey;MODE=PostgreSQL;DB_CLOSE_DELAY=-1"
+})
 @ActiveProfiles("demo") @AutoConfigureMockMvc @DirtiesContext
 class MarketplaceJourneyTest {
     @Autowired MockMvc rawMvc; CookieBrowserHarness mvc;

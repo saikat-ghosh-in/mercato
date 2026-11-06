@@ -71,7 +71,7 @@ public class FileService {
         }
     }
 
-    private void validateFile(MultipartFile file) {
+    void validateFile(MultipartFile file) {
         if (file == null || file.isEmpty()) {
             throw new InvalidFileException("File is empty");
         }
@@ -114,7 +114,7 @@ public class FileService {
         return root.endsWith("/images") ? root : root + "/images";
     }
 
-    private String getExtension(String filename) {
+    String getExtension(String filename) {
         if (filename == null || !filename.contains(".")) {
             throw new InvalidFileException("Invalid filename");
         }

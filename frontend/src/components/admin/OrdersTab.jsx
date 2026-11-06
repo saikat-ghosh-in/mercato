@@ -229,7 +229,7 @@ const OrdersTab = () => {
                 <SelectControl aria-label="Filter orders by status"
                     value={statusFilter}
                     onChange={e => setStatusFilter(e.target.value)}
-                    className="text-xs border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-300 text-gray-700"
+                    className="text-xs border border-gray-200 rounded-xl px-3 py-2 text-gray-700"
                 >
                     <option value="">All Statuses</option>
                     {ALL_STATUSES.map(s => (

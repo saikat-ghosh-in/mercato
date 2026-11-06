@@ -6,13 +6,14 @@ export function useWorkflowEpoch() {
   return useSyncExternalStore(session.subscribe, () => session.getSnapshot().epoch);
 }
 
-export default function useWorkflowResource(url) {
+export default function useWorkflowResource(url, revision) {
   const epoch = useWorkflowEpoch();
   const [fence] = useState(() => createResponseFence(() => session.getSnapshot().epoch));
   const [request] = useState(() => ({ controller:null }));
   const scope = `${epoch}:${url}`;
   const [state, setState] = useState({ scope, data:null, loading:true, error:'', receivedAt:0 });
   const refresh = useCallback(async () => {
+    if (!url) return;
     request.controller?.abort();
     const controller = new AbortController();
     request.controller = controller;
@@ -25,6 +26,6 @@ export default function useWorkflowResource(url) {
       if (current() && !controller.signal.aborted) setState(value => ({...value, loading:false, error:error?.response?.data?.message || 'Updates could not load. Your current view and drafts are retained.'}));
     }
   }, [url, fence, request, scope]);
-  useEffect(() => { refresh(); return () => { fence.invalidate(); request.controller?.abort(); }; }, [refresh, fence, request]);
-  return {...(state.scope === scope ? state : {data:null, loading:true, error:'', receivedAt:0}), refresh, epoch};
+  useEffect(() => { refresh(); return () => { fence.invalidate(); request.controller?.abort(); }; }, [refresh, fence, request, revision]);
+  return {...(state.scope === scope && url ? state : {data:null, loading:Boolean(url), error:'', receivedAt:0}), refresh, epoch};
 }

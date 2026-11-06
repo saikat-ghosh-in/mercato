@@ -1,5 +1,4 @@
 import { createContext, useContext, useEffect, useId, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
-import { FiChevronRight } from "react-icons/fi";
 
 const AccordionContext = createContext(null);
 const ItemContext = createContext(null);
@@ -45,7 +44,13 @@ function AccordionTrigger({ children, className = "", onClick, onKeyDown, ...pro
     event.preventDefault();
     triggers[next]?.focus();
   };
-  return <button {...props} ref={triggerRef} type="button" id={triggerId} aria-expanded={open} aria-controls={contentId} data-accordion-trigger="" className={`accordion-trigger ${className}`} onKeyDown={navigate} onClick={event => { onClick?.(event); if (!event.defaultPrevented) toggle(value); }}><span>{children}</span><FiChevronRight className="accordion-chevron" aria-hidden="true" /></button>;
+  return <button {...props} ref={triggerRef} type="button" id={triggerId} aria-expanded={open} aria-controls={contentId} data-accordion-trigger="" className={`accordion-trigger ${className}`} onKeyDown={navigate} onClick={event => { onClick?.(event); if (!event.defaultPrevented) toggle(value); }}>
+    <svg className="accordion-indicator" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true">
+      <path d="M3 8h10" />
+      {!open && <path d="M8 3v10" />}
+    </svg>
+    <span>{children}</span>
+  </button>;
 }
 
 function AccordionContent({ children, className = "", ...props }) {
